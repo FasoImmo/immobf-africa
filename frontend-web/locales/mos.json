@@ -1,0 +1,46 @@
+{
+  "app_name": "ImmoBF Africa",
+  "tagline": "Afrik yir la zĩ-ra, yaood mobile money.",
+  "nav": {
+    "browse": "Vaɛnd",
+    "sell": "Koos",
+    "agencies": "Agãns",
+    "login": "Kẽn n kẽnge",
+    "register": "Gʋlse fo yʋʋre",
+    "logout": "Yi n looge"
+  },
+  "search": {
+    "placeholder": "Tẽn-gãnga, zĩiga, bũm-buuda…",
+    "filters": "Welgre",
+    "type": "Buuda",
+    "price_min": "Yaood sẽn yaa bilfu",
+    "price_max": "Yaood sẽn yaa wʋsgo",
+    "area_min": "Zĩigã sẽn yaa bilfu",
+    "bedrooms": "Gãada"
+  },
+  "types": {
+    "land": "Zĩiga",
+    "house": "Yir",
+    "apartment": "Yir-bil",
+    "office": "Tʋʋm-zĩiga",
+    "commercial": "Koosg-zĩiga"
+  },
+  "property": {
+    "deposit": "Reegl-ligdi",
+    "area": "Zĩigã bedr",
+    "bedrooms": "Gãada",
+    "bathrooms": "Waool-roto",
+    "pay_deposit": "Yao reegl-ligdi ne mobile money",
+    "contact_seller": "Gʋls koosdã"
+  },
+  "payment": {
+    "choose_provider": "Tʋlg yaood soayã",
+    "orange_money_bf": "Orange Money (*144*4*6#)",
+    "moov_money_bf": "Moov Money (*555*6#)",
+    "wave": "Wave",
+    "cinetpay": "CinetPay",
+    "processing": "Yaood wã sɩngame…",
+    "success": "Yaood wã sa-me ✓",
+    "failed": "Yaood wã pa tõog ye"
+  }
+}

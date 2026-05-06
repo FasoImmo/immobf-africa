@@ -1,0 +1,46 @@
+{
+  "app_name": "ImmoBF Africa",
+  "tagline": "Afriki so ni dugu, mobile money fɛ.",
+  "nav": {
+    "browse": "A fɛ",
+    "sell": "Feere",
+    "agencies": "Agenki",
+    "login": "Don",
+    "register": "I tɔgɔ sɛbɛn",
+    "logout": "Bɔ"
+  },
+  "search": {
+    "placeholder": "Dugu, kin, suguya…",
+    "filters": "Sugandili",
+    "type": "Suguya",
+    "price_min": "Sɔngɔ dɔgɔmanin",
+    "price_max": "Sɔngɔ belebeleba",
+    "area_min": "Yɔrɔba dɔgɔmanin",
+    "bedrooms": "Sunɔgɔ-so"
+  },
+  "types": {
+    "land": "Foro",
+    "house": "So",
+    "apartment": "So-fitinin",
+    "office": "Baara-yɔrɔ",
+    "commercial": "Feere-yɔrɔ"
+  },
+  "property": {
+    "deposit": "Nafaladili sɔngɔ",
+    "area": "Yɔrɔba",
+    "bedrooms": "Sunɔgɔ-so",
+    "bathrooms": "Koyɔrɔ",
+    "pay_deposit": "Nafaladili sara mobile money fɛ",
+    "contact_seller": "Feerela wele"
+  },
+  "payment": {
+    "choose_provider": "Sara-fɛɛrɛ sugandi",
+    "orange_money_bf": "Orange Money (*144*4*6#)",
+    "moov_money_bf": "Moov Money (*555*6#)",
+    "wave": "Wave",
+    "cinetpay": "CinetPay",
+    "processing": "Sara bɛ kɛ…",
+    "success": "Sara sɔrɔla ✓",
+    "failed": "Sara ma kɛ"
+  }
+}

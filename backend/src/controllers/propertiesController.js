@@ -1,0 +1,92 @@
+"use strict";
+
+const Joi = require("joi");
+const Property = require("../models/Property");
+const { BadRequest, NotFound, Forbidden } = require("../utils/errors");
+const moderation = require("../services/moderation");
+const valuation = require("../services/valuation");
+
+const propertySchema = Joi.object({
+  type: Joi.string().valid("land", "house", "apartment", "office", "commercial").required(),
+  title: Joi.string().min(5).max(200).required(),
+  description: Joi.string().max(5000).allow("", null),
+  price: Joi.number().positive().required(),
+  currency: Joi.string().length(3).uppercase().default("XOF"),
+  area_m2: Joi.number().positive().allow(null),
+  bedrooms: Joi.number().integer().min(0).allow(null),
+  bathrooms: Joi.number().integer().min(0).allow(null),
+  country_code: Joi.string().length(2).uppercase().default("BF"),
+  city: Joi.string().min(2).max(120).required(),
+  address: Joi.string().max(300).allow("", null),
+  lat: Joi.number().min(-90).max(90).allow(null),
+  lng: Joi.number().min(-180).max(180).allow(null),
+  deposit_pct: Joi.number().min(0).max(100).default(5),
+  features: Joi.object().unknown(true).default({}),
+});
+
+async function create(req, res) {
+  const { value, error } = propertySchema.validate(req.body);
+  if (error) throw BadRequest(error.message);
+
+  const score = moderation.overallScore({
+    title: value.title, description: value.description, price: value.price,
+  });
+  const decision = moderation.decision(score);
+  if (decision === "reject") {
+    throw BadRequest("Annonce rejetée par modération automatique (contenu suspect)");
+  }
+
+  const property = await Property.create({ ...value, owner_id: req.user.id });
+  res.status(201).json({ property, moderation: { score, decision } });
+}
+
+async function get(req, res) {
+  const p = await Property.findById(req.params.id);
+  if (!p) throw NotFound("Annonce introuvable");
+  const photos = await Property.photosFor(p.id);
+  res.json({ property: { ...p, photos } });
+}
+
+async function publish(req, res) {
+  const p = await Property.publish(req.params.id, req.user.id);
+  if (!p) throw Forbidden("Non autorisé ou annonce introuvable");
+  res.json({ property: p });
+}
+
+async function search(req, res) {
+  const schema = Joi.object({
+    q: Joi.string().allow("", null),
+    country: Joi.string().length(2).uppercase(),
+    city: Joi.string(),
+    type: Joi.string().valid("land", "house", "apartment", "office", "commercial"),
+    min_price: Joi.number(),
+    max_price: Joi.number(),
+    min_area: Joi.number(),
+    bedrooms: Joi.number().integer(),
+    lat: Joi.number(),
+    lng: Joi.number(),
+    radius_km: Joi.number().min(0).max(500),
+    limit: Joi.number().integer().min(1).max(100).default(20),
+    offset: Joi.number().integer().min(0).default(0),
+  });
+  const { value, error } = schema.validate(req.query);
+  if (error) throw BadRequest(error.message);
+  const { limit, offset, ...filters } = value;
+  const items = await Property.search(filters, { limit, offset });
+  res.json({ items, limit, offset });
+}
+
+async function estimate(req, res) {
+  const schema = Joi.object({
+    country_code: Joi.string().length(2).uppercase().default("BF"),
+    city: Joi.string().required(),
+    type: Joi.string().valid("land", "house", "apartment", "office", "commercial").required(),
+    area_m2: Joi.number().positive().allow(null),
+  });
+  const { value, error } = schema.validate(req.body);
+  if (error) throw BadRequest(error.message);
+  const result = await valuation.estimate(value);
+  res.json(result);
+}
+
+module.exports = { create, get, publish, search, estimate };

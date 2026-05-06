@@ -1,0 +1,76 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgis/postgis:15-3.3
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: immobf
+      POSTGRES_PASSWORD: immobf_dev
+      POSTGRES_DB: immobf
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U immobf -d immobf"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  mongo:
+    image: mongo:6
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: immobf
+      MONGO_INITDB_ROOT_PASSWORD: immobf_dev
+    volumes:
+      - mongodata:/data/db
+    ports:
+      - "27017:27017"
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      mongo:
+        condition: service_started
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://immobf:immobf_dev@postgres:5432/immobf
+      REDIS_URL: redis://redis:6379
+      MONGO_URL: mongodb://immobf:immobf_dev@mongo:27017/immobf?authSource=admin
+      JWT_SECRET: change_me_in_prod
+      PORT: 4000
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  web:
+    build: ./frontend-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend-web:/app
+      - /app/node_modules
+      - /app/.next
+
+volumes:
+  pgdata:
+  mongodata:

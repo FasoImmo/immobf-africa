@@ -1,0 +1,50 @@
+{
+  "app_name": "ImmoBF Africa",
+  "tagline": "African real estate, paid in mobile money.",
+  "nav": {
+    "browse": "Browse",
+    "sell": "Sell",
+    "agencies": "Agencies",
+    "login": "Log in",
+    "register": "Sign up",
+    "logout": "Log out"
+  },
+  "search": {
+    "placeholder": "City, neighborhood, type…",
+    "filters": "Filters",
+    "type": "Type",
+    "price_min": "Min price",
+    "price_max": "Max price",
+    "area_min": "Min area",
+    "bedrooms": "Bedrooms"
+  },
+  "types": {
+    "land": "Land / Plot",
+    "house": "House",
+    "apartment": "Apartment",
+    "office": "Office",
+    "commercial": "Commercial"
+  },
+  "property": {
+    "deposit": "Deposit",
+    "area": "Area",
+    "bedrooms": "Bedrooms",
+    "bathrooms": "Bathrooms",
+    "pay_deposit": "Pay deposit with mobile money",
+    "contact_seller": "Contact seller"
+  },
+  "payment": {
+    "choose_provider": "Choose a payment method",
+    "fedapay": "FedaPay (all wallets)",
+    "orange_money_bf": "Orange Money (*144*4*6#)",
+    "moov_money_bf": "Moov Money (*555*6#)",
+    "wave": "Wave",
+    "cinetpay": "CinetPay (Orange/Moov/Wave)",
+    "preferred_operator": "Preferred operator",
+    "no_preference": "No preference",
+    "email_for_receipt": "Email (recommended for receipt)",
+    "processing": "Processing payment…",
+    "success": "Payment received ✓",
+    "failed": "Payment failed"
+  }
+}

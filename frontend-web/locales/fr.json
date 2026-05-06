@@ -1,0 +1,50 @@
+{
+  "app_name": "ImmoBF Africa",
+  "tagline": "L'immobilier africain, payé en mobile money.",
+  "nav": {
+    "browse": "Parcourir",
+    "sell": "Vendre",
+    "agencies": "Agences",
+    "login": "Connexion",
+    "register": "S'inscrire",
+    "logout": "Déconnexion"
+  },
+  "search": {
+    "placeholder": "Ville, quartier, type…",
+    "filters": "Filtres",
+    "type": "Type",
+    "price_min": "Prix min",
+    "price_max": "Prix max",
+    "area_min": "Superficie min",
+    "bedrooms": "Chambres"
+  },
+  "types": {
+    "land": "Terrain / Parcelle",
+    "house": "Maison",
+    "apartment": "Appartement",
+    "office": "Bureau",
+    "commercial": "Local commercial"
+  },
+  "property": {
+    "deposit": "Acompte",
+    "area": "Superficie",
+    "bedrooms": "Chambres",
+    "bathrooms": "Salles de bain",
+    "pay_deposit": "Payer l'acompte en mobile money",
+    "contact_seller": "Contacter le vendeur"
+  },
+  "payment": {
+    "choose_provider": "Choisir un moyen de paiement",
+    "fedapay": "FedaPay (tous opérateurs)",
+    "orange_money_bf": "Orange Money (*144*4*6#)",
+    "moov_money_bf": "Moov Money (*555*6#)",
+    "wave": "Wave",
+    "cinetpay": "CinetPay (Orange/Moov/Wave)",
+    "preferred_operator": "Opérateur préféré",
+    "no_preference": "Aucune préférence",
+    "email_for_receipt": "Email (recommandé pour le reçu)",
+    "processing": "Paiement en cours…",
+    "success": "Paiement reçu ✓",
+    "failed": "Paiement échoué"
+  }
+}
