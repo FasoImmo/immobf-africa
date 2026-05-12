@@ -2,7 +2,7 @@
 
 const { query, withTransaction } = require("../config/db");
 
-// Colonnes de base — lat/lng stockés en NUMERIC, pas de PostGIS
+// Colonnes pour SELECT avec alias de table (FROM properties p)
 const BASE_COLS = `
   p.id, p.owner_id, p.agency_id, p.type, p.title, p.description,
   p.price, p.currency, p.area_m2, p.bedrooms, p.bathrooms,
@@ -10,6 +10,16 @@ const BASE_COLS = `
   p.lat, p.lng,
   p.status, p.verified, p.boosted_until, p.deposit_pct,
   p.features, p.published_at, p.created_at, p.updated_at
+`;
+
+// Colonnes pour INSERT...RETURNING (pas d'alias de table)
+const RETURNING_COLS = `
+  id, owner_id, agency_id, type, title, description,
+  price, currency, area_m2, bedrooms, bathrooms,
+  country_code, city, address,
+  lat, lng,
+  status, verified, boosted_until, deposit_pct,
+  features, published_at, created_at, updated_at
 `;
 
 function hydrate(row) {
@@ -52,7 +62,7 @@ async function create(data) {
        lat, lng, deposit_pct, features)
      VALUES
       ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb)
-     RETURNING ${BASE_COLS}`,
+     RETURNING ${RETURNING_COLS}`,
     [
       owner_id, agency_id, type, title, description, price, currency,
       area_m2, bedrooms, bathrooms, country_code, city, address,
@@ -157,4 +167,33 @@ async function updateStatus(id, status) {
 async function boost(id, ownerId, days = 7) {
   const { rows } = await query(
     `UPDATE properties
-     SET boosted_until = NOW() + ($3 || ' days')::int
+     SET boosted_until = NOW() + ($3 || ' days')::interval, updated_at = NOW()
+     WHERE id = $1 AND owner_id = $2
+     RETURNING ${BASE_COLS}`,
+    [id, ownerId, String(days)]
+  );
+  return hydrate(rows[0]);
+}
+
+async function addPhoto(property_id, url, { is_360 = false, sort_order = 0 } = {}) {
+  const { rows } = await query(
+    `INSERT INTO property_photos (property_id, url, is_360, sort_order)
+     VALUES ($1,$2,$3,$4) RETURNING *`,
+    [property_id, url, is_360, sort_order]
+  );
+  return rows[0];
+}
+
+async function photosFor(property_id) {
+  const { rows } = await query(
+    `SELECT id, url, is_360, sort_order FROM property_photos
+     WHERE property_id = $1 ORDER BY sort_order ASC, created_at ASC`,
+    [property_id]
+  );
+  return rows;
+}
+
+module.exports = {
+  create, findById, search, publish, updateStatus, boost,
+  addPhoto, photosFor, withTransaction,
+};
