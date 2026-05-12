@@ -149,7 +149,7 @@ async function publish(id, ownerId) {
     `UPDATE properties
      SET status = 'published', published_at = COALESCE(published_at, NOW()), updated_at = NOW()
      WHERE id = $1 AND owner_id = $2
-     RETURNING ${BASE_COLS}`,
+     RETURNING ${RETURNING_COLS}`,
     [id, ownerId]
   );
   return hydrate(rows[0]);
@@ -158,7 +158,7 @@ async function publish(id, ownerId) {
 async function updateStatus(id, status) {
   const { rows } = await query(
     `UPDATE properties SET status = $2, updated_at = NOW() WHERE id = $1
-     RETURNING ${BASE_COLS}`,
+     RETURNING ${RETURNING_COLS}`,
     [id, status]
   );
   return hydrate(rows[0]);
@@ -169,7 +169,7 @@ async function boost(id, ownerId, days = 7) {
     `UPDATE properties
      SET boosted_until = NOW() + ($3 || ' days')::interval, updated_at = NOW()
      WHERE id = $1 AND owner_id = $2
-     RETURNING ${BASE_COLS}`,
+     RETURNING ${RETURNING_COLS}`,
     [id, ownerId, String(days)]
   );
   return hydrate(rows[0]);
