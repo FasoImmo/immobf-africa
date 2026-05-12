@@ -1,8 +1,9 @@
 -- ImmoBF Africa — schema initial
--- Requiert PostGIS installé sur la base
+-- PostgreSQL standard, sans extension PostGIS
+-- La géolocalisation est stockée en lat/lng NUMERIC ; la recherche radius
+-- utilise la formule Haversine en SQL pur (suffisant pour l'usage MVP).
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- Countries (pour extension Afrique)
 CREATE TABLE IF NOT EXISTS countries (
@@ -75,7 +76,8 @@ CREATE TABLE IF NOT EXISTS properties (
   country_code  CHAR(2) NOT NULL REFERENCES countries(code) DEFAULT 'BF',
   city          TEXT NOT NULL,
   address       TEXT,
-  location      GEOGRAPHY(POINT, 4326),
+  lat           NUMERIC(10,6),                -- latitude  (WGS-84)
+  lng           NUMERIC(10,6),                -- longitude (WGS-84)
   status        TEXT NOT NULL DEFAULT 'draft'
                 CHECK (status IN ('draft','published','under_contract','sold','archived','rejected')),
   verified      BOOLEAN NOT NULL DEFAULT FALSE,
@@ -90,7 +92,7 @@ CREATE TABLE IF NOT EXISTS properties (
 CREATE INDEX IF NOT EXISTS idx_properties_country_city ON properties(country_code, city);
 CREATE INDEX IF NOT EXISTS idx_properties_status_published ON properties(status, published_at DESC);
 CREATE INDEX IF NOT EXISTS idx_properties_type_price ON properties(type, price);
-CREATE INDEX IF NOT EXISTS idx_properties_geo ON properties USING GIST (location);
+CREATE INDEX IF NOT EXISTS idx_properties_lat_lng ON properties(lat, lng) WHERE lat IS NOT NULL;
 
 -- Photos
 CREATE TABLE IF NOT EXISTS property_photos (
@@ -167,11 +169,4 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- OTP codes (Redis est primaire, PG pour audit)
-CREATE TABLE IF NOT EXISTS otp_attempts (
-  id            BIGSERIAL PRIMARY KEY,
-  phone         TEXT NOT NULL,
-  success       BOOLEAN NOT NULL,
-  ip            INET,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+-- OTP codes (Redis est primaire, PG pour audi
