@@ -1,17 +1,32 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { Box, Paper, TextField, Button, Typography, Alert } from "@mui/material";
+import Link from "next/link";
+import {
+  Box, Paper, TextField, Button, Typography, Alert,
+  Checkbox, FormControlLabel, Tabs, Tab, Divider
+} from "@mui/material";
 import Layout from "../components/Layout";
 import { Auth } from "../lib/api";
 
 export default function Login() {
   const router = useRouter();
+  const [tab, setTab] = useState(0); // 0 = connexion, 1 = inscription
+
+  // Connexion
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState(null);
 
-  async function onSubmit(e) {
-    e.preventDefault(); setErr(null);
+  // Inscription
+  const [regPhone, setRegPhone] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regName, setRegName] = useState("");
+  const [cguAccepted, setCguAccepted] = useState(false);
+  const [regErr, setRegErr] = useState(null);
+
+  async function onLogin(e) {
+    e.preventDefault();
+    setErr(null);
     try {
       const { access, user } = await Auth.login({ phone, password });
       localStorage.setItem("immobf_token", access);
@@ -22,21 +37,18 @@ export default function Login() {
     }
   }
 
-  return (
-    <Layout title="Connexion — ImmoBF">
-      <Box sx={{ display: "flex", justifyContent: "center" }}>
-        <Paper sx={{ p: 4, maxWidth: 380, width: "100%" }} elevation={2}>
-          <Typography variant="h5" gutterBottom>Connexion</Typography>
-          <form onSubmit={onSubmit}>
-            <TextField fullWidth label="Téléphone (+226…)" margin="normal"
-              value={phone} onChange={(e) => setPhone(e.target.value)} required />
-            <TextField fullWidth label="Mot de passe" type="password" margin="normal"
-              value={password} onChange={(e) => setPassword(e.target.value)} required />
-            {err && <Alert severity="error" sx={{ mt: 2 }}>{err}</Alert>}
-            <Button type="submit" fullWidth variant="contained" sx={{ mt: 3 }}>Se connecter</Button>
-          </form>
-        </Paper>
-      </Box>
-    </Layout>
-  );
-}
+  async function onRegister(e) {
+    e.preventDefault();
+    setRegErr(null);
+    if (!cguAccepted) {
+      setRegErr("Vous devez accepter les CGU pour créer un compte.");
+      return;
+    }
+    try {
+      const { access, user } = await Auth.register({
+        phone: regPhone,
+        password: regPassword,
+        full_name: regName,
+      });
+      localStorage.setItem("immobf_token", access);
+      localStorage.setItem("immobf_u
