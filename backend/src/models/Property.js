@@ -1,6 +1,7 @@
 "use strict";
 
 const { query, withTransaction } = require("../config/db");
+const { translateProperty } = require("../services/translation");
 
 // Colonnes pour SELECT avec alias de table (FROM properties p)
 const BASE_COLS = `
@@ -9,7 +10,8 @@ const BASE_COLS = `
   p.country_code, p.city, p.address,
   p.lat, p.lng,
   p.status, p.verified, p.boosted_until, p.deposit_pct,
-  p.features, p.published_at, p.created_at, p.updated_at
+  p.features, p.published_at, p.created_at, p.updated_at,
+  p.title_translations, p.description_translations
 `;
 
 // Colonnes pour INSERT...RETURNING (pas d'alias de table)
@@ -19,7 +21,8 @@ const RETURNING_COLS = `
   country_code, city, address,
   lat, lng,
   status, verified, boosted_until, deposit_pct,
-  features, published_at, created_at, updated_at
+  features, published_at, created_at, updated_at,
+  title_translations, description_translations
 `;
 
 function hydrate(row) {
@@ -32,6 +35,66 @@ function hydrate(row) {
         ? { lat: parseFloat(lat), lng: parseFloat(lng) }
         : null,
   };
+}
+
+/**
+ * Applique la traduction à une propriété hydratée.
+ * 1. Si la traduction est déjà en cache (title_translations.en) → l'utilise.
+ * 2. Sinon → appelle DeepL, stocke en cache (non-bloquant), retourne.
+ * 3. Si lang=fr ou pas de lang → retourne l'original.
+ *
+ * Supprime title_translations et description_translations de la réponse finale.
+ */
+async function withTranslation(prop, lang) {
+  if (!prop) return null;
+  const { title_translations, description_translations, ...clean } = prop;
+
+  if (!lang || lang === "fr") return clean;
+
+  // Chercher en cache
+  const cachedTitle = title_translations?.[lang];
+  const cachedDesc  = description_translations?.[lang];
+
+  if (cachedTitle) {
+    // Cache hit — pas d'appel DeepL
+    return {
+      ...clean,
+      title: cachedTitle,
+      description: cachedDesc || clean.description,
+    };
+  }
+
+  // Cache miss — appel DeepL
+  const { title: translatedTitle, description: translatedDesc } =
+    await translateProperty(clean.title, clean.description, lang);
+
+  // Sauvegarder en cache de façon non-bloquante (ne ralentit pas la réponse)
+  if (translatedTitle !== clean.title) {
+    cacheTranslation(clean.id, lang, translatedTitle, translatedDesc).catch(() => {});
+  }
+
+  return {
+    ...clean,
+    title: translatedTitle,
+    description: translatedDesc,
+  };
+}
+
+/**
+ * Persiste une traduction en base (JSONB merge).
+ */
+async function cacheTranslation(id, lang, title, description) {
+  await query(
+    `UPDATE properties SET
+       title_translations       = title_translations       || $2::jsonb,
+       description_translations = description_translations || $3::jsonb
+     WHERE id = $1`,
+    [
+      id,
+      JSON.stringify({ [lang]: title }),
+      JSON.stringify({ [lang]: description || "" }),
+    ]
+  );
 }
 
 async function create(data) {
@@ -72,15 +135,15 @@ async function create(data) {
   return hydrate(rows[0]);
 }
 
-async function findById(id) {
+async function findById(id, { lang } = {}) {
   const { rows } = await query(
     `SELECT ${BASE_COLS} FROM properties p WHERE p.id = $1`,
     [id]
   );
-  return hydrate(rows[0]);
+  return withTranslation(hydrate(rows[0]), lang);
 }
 
-async function search(filters = {}, { limit = 20, offset = 0 } = {}) {
+async function search(filters = {}, { limit = 20, offset = 0, lang } = {}) {
   const clauses = ["p.status = 'published'"];
   const params = [];
 
@@ -123,77 +186,4 @@ async function search(filters = {}, { limit = 20, offset = 0 } = {}) {
     clauses.push(`
       (${R} * 2 * asin(sqrt(
         sin(radians((p.lat - $${h - 2}) / 2)) ^ 2
-        + cos(radians($${h - 2})) * cos(radians(p.lat))
-          * sin(radians((p.lng - $${h - 1}) / 2)) ^ 2
-      ))) <= $${h}
-    `);
-  }
-
-  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-  params.push(limit, offset);
-
-  const { rows } = await query(
-    `SELECT ${BASE_COLS}
-     FROM properties p
-     ${where}
-     ORDER BY (p.boosted_until > NOW()) DESC, p.published_at DESC NULLS LAST
-     LIMIT $${params.length - 1} OFFSET $${params.length}`,
-    params
-  );
-
-  return rows.map(hydrate);
-}
-
-async function publish(id, ownerId) {
-  const { rows } = await query(
-    `UPDATE properties
-     SET status = 'published', published_at = COALESCE(published_at, NOW()), updated_at = NOW()
-     WHERE id = $1 AND owner_id = $2
-     RETURNING ${RETURNING_COLS}`,
-    [id, ownerId]
-  );
-  return hydrate(rows[0]);
-}
-
-async function updateStatus(id, status) {
-  const { rows } = await query(
-    `UPDATE properties SET status = $2, updated_at = NOW() WHERE id = $1
-     RETURNING ${RETURNING_COLS}`,
-    [id, status]
-  );
-  return hydrate(rows[0]);
-}
-
-async function boost(id, ownerId, days = 7) {
-  const { rows } = await query(
-    `UPDATE properties
-     SET boosted_until = NOW() + ($3 || ' days')::interval, updated_at = NOW()
-     WHERE id = $1 AND owner_id = $2
-     RETURNING ${RETURNING_COLS}`,
-    [id, ownerId, String(days)]
-  );
-  return hydrate(rows[0]);
-}
-
-async function addPhoto(property_id, url, { is_360 = false, sort_order = 0 } = {}) {
-  const { rows } = await query(
-    `INSERT INTO property_photos (property_id, url, is_360, sort_order)
-     VALUES ($1,$2,$3,$4) RETURNING *`,
-    [property_id, url, is_360, sort_order]
-  );
-  return rows[0];
-}
-
-async function photosFor(property_id) {
-  const { rows } = await query(
-    `SELECT id, url, is_360, sort_order FROM property_photos
-     WHERE property_id = $1 ORDER BY sort_order ASC, created_at ASC`,
-    [property_id]
-  );
-  return rows;
-}
-
-module.exports = {
-  create, findById, search, publish, updateStatus, boost,
-  addPhoto, photosFor, withTransaction,
-};
+        + cos(radians($${h - 2})) * cos(radians(p.lat)

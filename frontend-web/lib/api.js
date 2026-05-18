@@ -14,9 +14,15 @@ api.interceptors.request.use((cfg) => {
 
 export default api;
 
+/** Retourne la langue active (stockée par le switcher de langue). */
+function getLang() {
+  if (typeof window === "undefined") return "fr";
+  return localStorage.getItem("immobf_lang") || "fr";
+}
+
 export const Properties = {
-  search: (params) => api.get("/properties", { params }).then((r) => r.data),
-  get: (id) => api.get(`/properties/${id}`).then((r) => r.data),
+  search: (params) => api.get("/properties", { params: { ...params, lang: getLang() } }).then((r) => r.data),
+  get: (id) => api.get(`/properties/${id}`, { params: { lang: getLang() } }).then((r) => r.data),
   create: (data) => api.post("/properties", data).then((r) => r.data),
   publish: (id) => api.post(`/properties/${id}/publish`).then((r) => r.data),
   estimate: (data) => api.post("/properties/estimate", data).then((r) => r.data),
@@ -30,8 +36,4 @@ export const Auth = {
 };
 
 export const Payments = {
-  providers: (country = "BF") => api.get("/payments/providers", { params: { country } }).then((r) => r.data),
-  initiate: (data) => api.post("/payments/initiate", data).then((r) => r.data),
-  list: () => api.get("/payments").then((r) => r.data),
-  get: (id) => api.get(`/payments/${id}`).then((r) => r.data),
-};
+  providers: (country = "BF") => api.get("/payme

@@ -41,7 +41,8 @@ async function create(req, res) {
 }
 
 async function get(req, res) {
-  const p = await Property.findById(req.params.id);
+  const lang = req.query.lang || "fr";
+  const p = await Property.findById(req.params.id, { lang });
   if (!p) throw NotFound("Annonce introuvable");
   const photos = await Property.photosFor(p.id);
   res.json({ property: { ...p, photos } });
@@ -68,11 +69,12 @@ async function search(req, res) {
     radius_km: Joi.number().min(0).max(500),
     limit: Joi.number().integer().min(1).max(100).default(20),
     offset: Joi.number().integer().min(0).default(0),
+    lang: Joi.string().valid("fr", "en", "mos", "dyu").default("fr"),
   });
   const { value, error } = schema.validate(req.query);
   if (error) throw BadRequest(error.message);
-  const { limit, offset, ...filters } = value;
-  const items = await Property.search(filters, { limit, offset });
+  const { limit, offset, lang, ...filters } = value;
+  const items = await Property.search(filters, { limit, offset, lang });
   res.json({ items, limit, offset });
 }
 
@@ -85,8 +87,4 @@ async function estimate(req, res) {
   });
   const { value, error } = schema.validate(req.body);
   if (error) throw BadRequest(error.message);
-  const result = await valuation.estimate(value);
-  res.json(result);
-}
-
-module.exports = { create, get, publish, search, estimate };
+  c

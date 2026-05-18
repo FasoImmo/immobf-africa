@@ -25,7 +25,16 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
           <Button color="inherit" component={Link} href="/sell">{t("nav.sell")}</Button>
           <Select
             value={i18n.language}
-            onChange={(e) => i18n.changeLanguage(e.target.value)}
+            onChange={(e) => {
+              const lang = e.target.value;
+              i18n.changeLanguage(lang);
+              // Persister la langue → getLang() dans api.js le lit
+              if (typeof window !== "undefined") {
+                localStorage.setItem("immobf_lang", lang);
+                // Recharger la page pour que les annonces se rechargent dans la nouvelle langue
+                window.location.reload();
+              }
+            }}
             variant="standard"
             sx={{ color: "white", ml: 2, "& .MuiSelect-icon": { color: "white" } }}
           >
@@ -45,16 +54,4 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
         <Box sx={{ mt: 1, display: "flex", justifyContent: "center", gap: 2, flexWrap: "wrap" }}>
           {[
             { key: "footer.cgu", label: t("footer.cgu") },
-            { key: "footer.privacy", label: t("footer.privacy") },
-            { key: "footer.legal", label: t("footer.legal") },
-            { key: "footer.disclaimer", label: t("footer.disclaimer") },
-          ].map(({ key, label }) => (
-            <Link key={key} href="/legal" style={{ color: "#999", fontSize: 12, textDecoration: "none" }}>
-              {label}
-            </Link>
-          ))}
-        </Box>
-      </Box>
-    </>
-  );
-}
+            { key: "footer.privacy", label: t("f
