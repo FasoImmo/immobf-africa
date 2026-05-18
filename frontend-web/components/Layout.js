@@ -31,8 +31,6 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
           >
             <MenuItem value="fr">FR</MenuItem>
             <MenuItem value="en">EN</MenuItem>
-            <MenuItem value="mos">Mooré</MenuItem>
-            <MenuItem value="dyu">Dioula</MenuItem>
           </Select>
           <Button color="inherit" component={Link} href="/login">{t("nav.login")}</Button>
         </Toolbar>
@@ -44,4 +42,19 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
         <Typography variant="body2" color="text.secondary">
           © 2026 ImmoBF Africa — contact@immobf.africa
         </Typography>
-        <Box sx={{ mt: 1, display: "flex", j
+        <Box sx={{ mt: 1, display: "flex", justifyContent: "center", gap: 2, flexWrap: "wrap" }}>
+          {[
+            { key: "footer.cgu", label: t("footer.cgu") },
+            { key: "footer.privacy", label: t("footer.privacy") },
+            { key: "footer.legal", label: t("footer.legal") },
+            { key: "footer.disclaimer", label: t("footer.disclaimer") },
+          ].map(({ key, label }) => (
+            <Link key={key} href="/legal" style={{ color: "#999", fontSize: 12, textDecoration: "none" }}>
+              {label}
+            </Link>
+          ))}
+        </Box>
+      </Box>
+    </>
+  );
+}

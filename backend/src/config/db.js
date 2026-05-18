@@ -7,6 +7,10 @@ const pool = new Pool({
   connectionString: config.db.url,
   max: 10,
   idleTimeoutMillis: 30_000,
+  // Railway PostgreSQL requires SSL in production
+  ...(process.env.NODE_ENV === "production" && {
+    ssl: { rejectUnauthorized: false },
+  }),
 });
 
 pool.on("error", (err) => {

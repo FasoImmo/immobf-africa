@@ -9,7 +9,7 @@ const nextConfig = {
     formats: ["image/avif", "image/webp"],
   },
   i18n: {
-    locales: ["fr", "en", "mos", "dyu"],
+    locales: ["fr", "en"],
     defaultLocale: "fr",
     localeDetection: true,
   },

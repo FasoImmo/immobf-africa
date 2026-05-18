@@ -2,8 +2,6 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import fr from "../locales/fr.json";
 import en from "../locales/en.json";
-import mos from "../locales/mos.json";
-import dyu from "../locales/dyu.json";
 
 if (!i18n.isInitialized) {
   i18n
@@ -12,8 +10,6 @@ if (!i18n.isInitialized) {
       resources: {
         fr: { translation: fr },
         en: { translation: en },
-        mos: { translation: mos },
-        dyu: { translation: dyu },
       },
       lng: "fr",
       fallbackLng: "fr",
