@@ -31,10 +31,10 @@ export default function BrowsePage() {
   const [ready, setReady] = useState(false);
 
   // Lire les query params après hydratation Next.js (router.isReady)
-  useEffect(function() {
+  useEffect(() => {
     if (!router.isReady) return;
-    var q = router.query;
-    var f = {
+    const q = router.query;
+    const f = {
       q:                q.q                || "",
       city:             q.city             || "",
       type:             q.type             || "",
@@ -45,38 +45,43 @@ export default function BrowsePage() {
     setFilters(f);
     setReady(true);
     runSearch(f);
-  }, [router.isReady, router.asPath]); // router.asPath change à chaque navigation
+  }, [router.isReady, router.asPath]); // eslint-disable-line
 
   async function runSearch(f) {
-    var current = f || filters;
+    const current = f || filters;
     setLoading(true);
-    var params = {};
-    Object.entries(current).forEach(function(kv) { if (kv[1]) params[kv[0]] = kv[1]; });
+    const params = {};
+    Object.entries(current).forEach(([k, v]) => { if (v) params[k] = v; });
     try {
-      var d = await Properties.search(params);
+      const d = await Properties.search(params);
       setItems(d.items || []);
     } finally { setLoading(false); }
   }
 
-  var pageTitle = TX_TITLES[filters.transaction_type] || "Parcourir les annonces";
+  const set = (key) => (e) => setFilters((f) => ({ ...f, [key]: e.target.value }));
+  const pageTitle = TX_TITLES[filters.transaction_type] || "Parcourir les annonces";
 
   return (
     <Layout title={pageTitle + " — ImmoBF"}>
       <Typography variant="h4" gutterBottom>{pageTitle}</Typography>
 
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 3 }}>
-        <TextField label="Recherche" size="small" value={filters.q}
-          onChange={function(e) { setFilters(function(f) { return Object.assign({}, f, { q: e.target.value }); })} />
-        <TextField label="Ville" size="small" value={filters.city}
-          onChange={function(e) { setFilters(function(f) { return Object.assign({}, f, { city: e.target.value }); })} />
+        <TextField label="Recherche" size="small" value={filters.q} onChange={set("q")} />
+        <TextField label="Ville" size="small" value={filters.city} onChange={set("city")} />
         <TextField select label="Transaction" size="small" value={filters.transaction_type}
-          onChange={function(e) { setFilters(function(f) { return Object.assign({}, f, { transaction_type: e.target.value }); })}
-          sx={{ minWidth: 210 }}>
-          {TX_OPTIONS.map(function(o) { return <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>; })}
+          onChange={set("transaction_type")} sx={{ minWidth: 210 }}>
+          {TX_OPTIONS.map((o) => (
+            <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+          ))}
         </TextField>
         <TextField select label={t("search.type")} size="small" value={filters.type}
-          onChange={function(e) { setFilters(function(f) { return Object.assign({}, f, { type: e.target.value }); })}
-          sx={{ minWidth: 160 }}>
+          onChange={set("type")} sx={{ minWidth: 160 }}>
           <MenuItem value="">—</MenuItem>
-          {["land","house","apartment","office","commercial"].map(function(v) {
-            return <MenuItem key={v} val
+          {["land","house","apartment","office","commercial"].map((v) => (
+            <MenuItem key={v} value={v}>{t(`types.${v}`)}</MenuItem>
+          ))}
+        </TextField>
+        <TextField label={t("search.price_min")} type="number" size="small"
+          value={filters.min_price} onChange={set("min_price")} />
+        <TextField label={t("search.price_max")} type="number" size="small"
+          value={filters.max_price} o
