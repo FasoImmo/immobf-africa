@@ -38,26 +38,6 @@ export default function SellPage() {
   const { t } = useTranslation();
   const router = useRouter();
 
-  // ─── Garde : redirection si non connecté ─────────────────────────────────
-  useEffect(function() {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("immobf_token");
-      if (!token) {
-        router.replace("/login?redirect=/sell");
-      }
-    }
-  }, []); // eslint-disable-line
-
-  // ─── Pré-sélection du type de transaction via ?tx= ────────────────────────
-  useEffect(function() {
-    if (!router.isReady) return;
-    const tx = router.query.tx;
-    if (tx && ["sale", "rent_long", "rent_short"].includes(tx)) {
-      setForm(function(f) { return Object.assign({}, f, { transaction_type: tx }); });
-    }
-  }, [router.isReady, router.query.tx]); // eslint-disable-line
-
-
   // ─── Étape courante : 1=formulaire 2=paiement 3=photos ───────────────────
   const [step, setStep] = useState(1);
   const [propertyId, setPropertyId] = useState(null);
@@ -91,6 +71,25 @@ export default function SellPage() {
   const [uploadedCount, setUploadedCount] = useState(0);
   const [uploadErr, setUploadErr] = useState(null);
   const [uploadBusy, setUploadBusy] = useState(false);
+
+  // ─── Garde : redirection si non connecté ─────────────────────────────────
+  useEffect(function() {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("immobf_token");
+      if (!token) {
+        router.replace("/login?redirect=/sell");
+      }
+    }
+  }, []); // eslint-disable-line
+
+  // ─── Pré-sélection du type de transaction via ?tx= ────────────────────────
+  useEffect(function() {
+    if (!router.isReady) return;
+    const tx = router.query.tx;
+    if (tx && ["sale", "rent_long", "rent_short"].includes(tx)) {
+      setForm(function(f) { return Object.assign({}, f, { transaction_type: tx }); });
+    }
+  }, [router.isReady, router.query.tx]); // eslint-disable-line
 
   // Charger les providers quand on arrive à l'étape 2
   useEffect(function() {
@@ -468,3 +467,4 @@ export default function SellPage() {
     </Layout>
   );
 }
+ 
