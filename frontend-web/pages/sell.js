@@ -57,6 +57,7 @@ export default function SellPage() {
     }
   }, [router.isReady, router.query.tx]); // eslint-disable-line
 
+
   // ─── Étape courante : 1=formulaire 2=paiement 3=photos ───────────────────
   const [step, setStep] = useState(1);
   const [propertyId, setPropertyId] = useState(null);
@@ -424,4 +425,46 @@ export default function SellPage() {
             sx={{
               border: "2px dashed #0E7C66", borderRadius: 2, p: 4,
               textAlign: "center", cursor: "pointer",
-     
+              bgcolor: "rgba(14,124,102,0.04)",
+              "&:hover": { bgcolor: "rgba(14,124,102,0.08)" }
+            }}
+          >
+            <Typography>Glissez vos fichiers ici ou cliquez pour sélectionner</Typography>
+            <input id="file-input" type="file" multiple
+              accept="image/*,video/mp4,video/quicktime,video/webm"
+              style={{ display: "none" }} onChange={onFilePick} />
+          </Box>
+
+          {files.length > 0 && (
+            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 2, gap: 1 }}>
+              {files.map(function(f, i) {
+                return <Chip key={i} label={f.name} onDelete={function() { removeFile(i); }} />;
+              })}
+            </Stack>
+          )}
+
+          {uploadProgress !== null && (
+              <LinearProgress variant="determinate" value={uploadProgress} />
+              {uploadProgress === 100 && (
+                <Typography color="success.main" sx={{ mt: 1 }}>
+                  {uploadedCount} fichier(s) uploadé(s) — redirection…
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {uploadErr && <Alert severity="error" sx={{ mt: 2 }}>{uploadErr}</Alert>}
+
+          <Box sx={{ mt: 3, display: "flex", justifyContent: "space-between" }}>
+            <Button variant="text" onClick={function() { router.push("/properties/" + propertyId); }} disabled={uploadBusy}>
+              Passer cette étape
+            </Button>
+            <Button variant="contained" onClick={uploadFiles} disabled={uploadBusy}>
+              {files.length ? "Uploader et terminer" : "Terminer sans photo"}
+            </Button>
+          </Box>
+        </Paper>
+      )}
+    </Layout>
+  );
+}
