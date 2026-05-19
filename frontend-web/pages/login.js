@@ -12,7 +12,8 @@ import { Auth } from "../lib/api";
 export default function Login() {
   const router = useRouter();
   const { t } = useTranslation();
-  const [tab, setTab] = useState(0); // 0 = connexion, 1 = inscription
+  const [tab, setTab] = useState(0);
+  const redirect = router.query.redirect || "/";
 
   // Connexion
   const [phone, setPhone] = useState("");
@@ -33,7 +34,7 @@ export default function Login() {
       const { access, user } = await Auth.login({ phone, password });
       localStorage.setItem("immobf_token", access);
       localStorage.setItem("immobf_user", JSON.stringify(user));
-      router.push("/");
+      router.push(redirect);
     } catch (e) {
       setErr(e?.response?.data?.error?.message || e.message);
     }
@@ -54,7 +55,7 @@ export default function Login() {
       });
       localStorage.setItem("immobf_token", access);
       localStorage.setItem("immobf_user", JSON.stringify(user));
-      router.push("/");
+      router.push(redirect);
     } catch (e) {
       setRegErr(e?.response?.data?.error?.message || e.message);
     }

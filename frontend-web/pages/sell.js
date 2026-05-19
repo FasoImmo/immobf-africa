@@ -38,6 +38,16 @@ export default function SellPage() {
   const { t } = useTranslation();
   const router = useRouter();
 
+  // ─── Garde : redirection si non connecté ─────────────────────────────────
+  useEffect(function() {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("immobf_token");
+      if (!token) {
+        router.replace("/login?redirect=/sell");
+      }
+    }
+  }, []); // eslint-disable-line
+
   // ─── Étape courante : 1=formulaire 2=paiement 3=photos ───────────────────
   const [step, setStep] = useState(1);
   const [propertyId, setPropertyId] = useState(null);
@@ -415,14 +425,4 @@ export default function SellPage() {
               style={{ display: "none" }} onChange={onFilePick} />
           </Box>
 
-          {files.length > 0 && (
-            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 2, gap: 1 }}>
-              {files.map(function(f, i) {
-                return <Chip key={i} label={f.name} onDelete={function() { removeFile(i); }} />;
-              })}
-            </Stack>
-          )}
-
-          {uploadProgress !== null && (
-            <Box sx={{ mt: 2 }}>
-              <LinearProg
+          {files.
