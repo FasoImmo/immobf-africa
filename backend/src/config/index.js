@@ -93,4 +93,11 @@ module.exports = {
     driver: process.env.STORAGE_DRIVER || "local",
     localDir: process.env.STORAGE_LOCAL_DIR || "./uploads",
     s3: {
-      bucket: process.en
+      bucket: process.env.S3_BUCKET,
+      region: process.env.S3_REGION,
+      accessKey: process.env.S3_ACCESS_KEY,
+      secretKey: process.env.S3_SECRET_KEY,
+      endpoint: process.env.S3_ENDPOINT,
+    },
+  },
+};
