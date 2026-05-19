@@ -39,6 +39,7 @@ module.exports = {
     appPct: parseFloat(process.env.APP_COMMISSION_PCT || "2"),
     boostXof: parseInt(process.env.BOOST_PRICE_XOF || "5000", 10),
     agencySubXof: parseInt(process.env.AGENCY_SUBSCRIPTION_XOF || "20000", 10),
+    listingFeeXof: parseInt(process.env.LISTING_FEE_XOF || "1000", 10),
   },
 
   providers: {

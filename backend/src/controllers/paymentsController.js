@@ -16,7 +16,7 @@ const initiateSchema = Joi.object({
   amount: Joi.number().positive().required(),
   currency: Joi.string().length(3).uppercase().default("XOF"),
   property_id: Joi.string().uuid().allow(null),
-  purpose: Joi.string().valid("deposit", "escrow", "boost", "commission", "subscription").required(),
+  purpose: Joi.string().valid("deposit", "escrow", "boost", "commission", "subscription", "listing_fee").required(),
   customer_phone: Joi.string().required(),
   customer_email: Joi.string().email().allow(null, ""),
   customer_name: Joi.string().max(120).allow(null, ""),
@@ -32,6 +32,11 @@ async function listProviders(req, res) {
 async function initiate(req, res) {
   const { value, error } = initiateSchema.validate(req.body);
   if (error) throw BadRequest(error.message);
+
+  // Frais de publication : montant fixe 1 000 FCFA, pas négociable
+  if (value.purpose === "listing_fee" && value.amount !== config.commissions.listingFeeXof) {
+    throw BadRequest(`Frais de publication : montant attendu ${config.commissions.listingFeeXof} XOF`);
+  }
 
   const provider = registry.get(value.provider);
 
@@ -54,7 +59,7 @@ async function initiate(req, res) {
       customerEmail: value.customer_email || req.user?.email,
       customerName: value.customer_name || req.user?.name,
       preferredOperator: value.preferred_operator,
-      description: value.description,
+      description: value.description || "Frais de publication ImmoBF",
       metadata: { transaction_id: tx.id, purpose: value.purpose },
     });
   } catch (e) {
@@ -104,7 +109,6 @@ async function webhook(req, res) {
   await Transaction.logEvent(tx.id, "webhook", parsed.raw);
 
   if (tx.status === "succeeded") {
-    // Idempotence : déjà traité.
     return res.json({ ok: true, already_processed: true });
   }
 
@@ -114,13 +118,28 @@ async function webhook(req, res) {
   });
 
   if (parsed.status === "succeeded") {
+    // --- Frais de publication → auto-publier l'annonce ---
+    if (tx.purpose === "listing_fee" && tx.property_id) {
+      try {
+        await Property.markListingFeePaid(tx.property_id);
+        logger.info({ property_id: tx.property_id }, "listing_fee paid — annonce publiée");
+      } catch (e) {
+        logger.error({ err: e.message, property_id: tx.property_id }, "markListingFeePaid failed");
+      }
+    }
+
+    // --- Escrow / dépôt de garantie ---
     if (tx.purpose === "escrow" || tx.purpose === "deposit") {
-      const dueAt = new Date(Date.now() + 30 * 24 * 3600 * 1000); // 30j par défaut
+      const dueAt = new Date(Date.now() + 30 * 24 * 3600 * 1000);
       await Escrow.create(tx.id, dueAt);
     }
+
+    // --- Boost ---
     if (tx.purpose === "boost" && tx.property_id) {
       await Property.boost(tx.property_id, updated.buyer_id, 7);
     }
+
+    // --- Reçu ---
     try {
       const buyer = await User.findById(updated.buyer_id);
       const property = updated.property_id ? await Property.findById(updated.property_id) : null;
@@ -155,13 +174,21 @@ async function releaseEscrow(req, res) {
   res.json({ escrow: released });
 }
 
-// Endpoint mock utile en dev pour simuler le webhook provider
 async function mockSucceed(req, res) {
   if (config.env === "production") throw Forbidden();
   const tx = await Transaction.findByReference(req.params.reference);
   if (!tx) throw NotFound();
   const updated = await Transaction.updateStatus(tx.id, "succeeded", { raw_payload: { mock: true } });
   await Transaction.logEvent(tx.id, "webhook", { mock: true });
+
+  // Déclencher les effets du webhook en mode mock
+  if (tx.purpose === "listing_fee" && tx.property_id) {
+    await Property.markListingFeePaid(tx.property_id);
+  }
+  if (tx.purpose === "boost" && tx.property_id) {
+    await Property.boost(tx.property_id, updated.buyer_id, 7);
+  }
+
   res.json({ ok: true, transaction: updated });
 }
 

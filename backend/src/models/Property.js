@@ -10,6 +10,7 @@ const BASE_COLS = `
   p.lat, p.lng,
   p.status, p.verified, p.boosted_until, p.deposit_pct,
   p.is_furnished, p.rent_period,
+  p.listing_fee_paid_at,
   p.features, p.published_at, p.created_at, p.updated_at,
   p.title_translations, p.description_translations
 `;
@@ -21,6 +22,7 @@ const RETURNING_COLS = `
   lat, lng,
   status, verified, boosted_until, deposit_pct,
   is_furnished, rent_period,
+  listing_fee_paid_at,
   features, published_at, created_at, updated_at,
   title_translations, description_translations
 `;
@@ -165,10 +167,51 @@ async function search(filters, opts) {
   return Promise.all(hydrated.map(function(p) { return withTranslation(p, lang); }));
 }
 
-async function publish(id, ownerId) {
+/**
+ * Publie une annonce.
+ * - skipFeeCheck = true : réservé aux webhooks de paiement et aux admins.
+ * - Sans skipFeeCheck : vérifie que listing_fee_paid_at est renseigné.
+ */
+async function publish(id, ownerId, opts) {
+  var options = opts || {};
+  var skipFeeCheck = options.skipFeeCheck || false;
+
+  if (!skipFeeCheck) {
+    // Vérifier que le frais de publication a été payé
+    const { rows: check } = await query(
+      "SELECT listing_fee_paid_at FROM properties WHERE id = $1 AND owner_id = $2",
+      [id, ownerId]
+    );
+    if (!check.length) return null; // not found / not owner
+    if (!check[0].listing_fee_paid_at) {
+      const err = new Error("Frais de publication non payé (1 000 FCFA requis)");
+      err.statusCode = 402;
+      err.code = "payment_required";
+      throw err;
+    }
+  }
+
   const { rows } = await query(
     "UPDATE properties SET status = 'published', published_at = COALESCE(published_at, NOW()), updated_at = NOW() WHERE id = $1 AND owner_id = $2 RETURNING " + RETURNING_COLS,
     [id, ownerId]
+  );
+  return hydrate(rows[0]);
+}
+
+/**
+ * Marque le frais de publication comme payé ET publie l'annonce automatiquement.
+ * Appelé par le webhook de paiement (purpose = 'listing_fee').
+ */
+async function markListingFeePaid(propertyId) {
+  const { rows } = await query(
+    `UPDATE properties
+     SET listing_fee_paid_at = NOW(),
+         status = 'published',
+         published_at = COALESCE(published_at, NOW()),
+         updated_at = NOW()
+     WHERE id = $1
+     RETURNING ${RETURNING_COLS}`,
+    [propertyId]
   );
   return hydrate(rows[0]);
 }
@@ -208,6 +251,6 @@ async function photosFor(property_id) {
 }
 
 module.exports = {
-  create, findById, search, publish, updateStatus, boost,
+  create, findById, search, publish, markListingFeePaid, updateStatus, boost,
   addPhoto, photosFor, withTransaction,
 };
