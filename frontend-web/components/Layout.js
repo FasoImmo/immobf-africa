@@ -1,10 +1,15 @@
 import Link from "next/link";
 import Head from "next/head";
+import { useState } from "react";
+import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
-import { AppBar, Toolbar, Typography, Button, Container, Box, Select, MenuItem } from "@mui/material";
+import { AppBar, Toolbar, Typography, Button, Container, Box, Select, MenuItem, Menu } from "@mui/material";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
 export default function Layout({ children, title = "ImmoBF Africa" }) {
   const { t, i18n } = useTranslation();
+  const router = useRouter();
+  const [rentAnchor, setRentAnchor] = useState(null);
 
   return (
     <>
@@ -23,7 +28,29 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
           </Typography>
           <Button color="inherit" component={Link} href="/properties">{t("nav.browse")}</Button>
           <Button color="inherit" component={Link} href="/sell">{t("nav.sell")}</Button>
-          <Button color="inherit" component={Link} href="/properties?transaction_type=rent_long">Louer</Button>
+
+          {/* ── Menu Louer ── */}
+          <Button
+            color="inherit"
+            endIcon={<KeyboardArrowDownIcon />}
+            onClick={(e) => setRentAnchor(e.currentTarget)}
+          >
+            Louer
+          </Button>
+          <Menu
+            anchorEl={rentAnchor}
+            open={Boolean(rentAnchor)}
+            onClose={() => setRentAnchor(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+            transformOrigin={{ vertical: "top", horizontal: "left" }}
+          >
+            <MenuItem onClick={() => { setRentAnchor(null); router.push("/properties?transaction_type=rent_long"); }}>
+              🔑 Location longue durée
+            </MenuItem>
+            <MenuItem onClick={() => { setRentAnchor(null); router.push("/properties?transaction_type=rent_short"); }}>
+              🌙 Courte durée / nuitée
+            </MenuItem>
+          </Menu>
           <Select
             value={i18n.language}
             onChange={(e) => {
@@ -42,29 +69,4 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
             <MenuItem value="fr">FR</MenuItem>
             <MenuItem value="en">EN</MenuItem>
           </Select>
-          <Button color="inherit" component={Link} href="/login">{t("nav.login")}</Button>
-        </Toolbar>
-      </AppBar>
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        {children}
-      </Container>
-      <Box component="footer" sx={{ py: 3, textAlign: "center", borderTop: "1px solid #eee", mt: 6 }}>
-        <Typography variant="body2" color="text.secondary">
-          © 2026 ImmoBF Africa — contact@immobf.africa
-        </Typography>
-        <Box sx={{ mt: 1, display: "flex", justifyContent: "center", gap: 2, flexWrap: "wrap" }}>
-          {[
-            { key: "footer.cgu", label: t("footer.cgu") },
-            { key: "footer.privacy", label: t("footer.privacy") },
-            { key: "footer.legal", label: t("footer.legal") },
-            { key: "footer.disclaimer", label: t("footer.disclaimer") },
-          ].map(({ key, label }) => (
-            <Link key={key} href="/legal" style={{ color: "#999", fontSize: 12, textDecoration: "none" }}>
-              {label}
-            </Link>
-          ))}
-        </Box>
-      </Box>
-    </>
-  );
-}
+          <Butto
