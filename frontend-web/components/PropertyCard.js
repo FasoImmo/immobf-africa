@@ -13,8 +13,20 @@ export default function PropertyCard({ property }) {
       <CardActionArea component={Link} href={`/properties/${property.id}`}>
         <CardMedia component="img" height="180" image={cover} alt={property.title} />
         <CardContent>
-          <Box sx={{ display: "flex", gap: 1, mb: 1 }}>
+          <Box sx={{ display: "flex", gap: 1, mb: 1, flexWrap: "wrap" }}>
             <Chip size="small" label={t(`types.${property.type}`)} color="primary" />
+            {property.transaction_type === "sale" && (
+              <Chip size="small" label="Vente" sx={{ bgcolor: "#1565c0", color: "white" }} />
+            )}
+            {property.transaction_type === "rent_long" && (
+              <Chip size="small" label="Location" sx={{ bgcolor: "#2e7d32", color: "white" }} />
+            )}
+            {property.transaction_type === "rent_short" && (
+              <Chip size="small" label="Courte durée" sx={{ bgcolor: "#6a1b9a", color: "white" }} />
+            )}
+            {property.is_furnished && (
+              <Chip size="small" label="Meublé" variant="outlined" />
+            )}
             {property.boosted_until && <Chip size="small" label="★" color="warning" />}
           </Box>
           <Typography variant="subtitle1" noWrap>{property.title}</Typography>

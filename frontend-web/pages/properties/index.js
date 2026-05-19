@@ -6,6 +6,13 @@ import Layout from "../../components/Layout";
 import PropertyCard from "../../components/PropertyCard";
 import { Properties } from "../../lib/api";
 
+const TX_OPTIONS = [
+  { value: "",           label: "Vente & Location" },
+  { value: "sale",       label: "Vente" },
+  { value: "rent_long",  label: "Location longue durée" },
+  { value: "rent_short", label: "Location courte durée / nuitée" },
+];
+
 export default function BrowsePage() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -13,6 +20,7 @@ export default function BrowsePage() {
     q: router.query.q || "",
     city: router.query.city || "",
     type: router.query.type || "",
+    transaction_type: router.query.transaction_type || "",
     min_price: "",
     max_price: "",
   });
@@ -40,6 +48,12 @@ export default function BrowsePage() {
           onChange={(e) => setFilters({ ...filters, q: e.target.value })} />
         <TextField label="Ville" size="small" value={filters.city}
           onChange={(e) => setFilters({ ...filters, city: e.target.value })} />
+        <TextField select label="Transaction" size="small" value={filters.transaction_type}
+          onChange={(e) => setFilters({ ...filters, transaction_type: e.target.value })} sx={{ minWidth: 200 }}>
+          {TX_OPTIONS.map((o) => (
+            <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+          ))}
+        </TextField>
         <TextField select label={t("search.type")} size="small" value={filters.type}
           onChange={(e) => setFilters({ ...filters, type: e.target.value })} sx={{ minWidth: 160 }}>
           <MenuItem value="">—</MenuItem>

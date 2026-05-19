@@ -11,6 +11,7 @@ export default function Home() {
   const [q, setQ] = useState("");
   const [city, setCity] = useState("");
   const [type, setType] = useState("");
+  const [txType, setTxType] = useState("");
   const [items, setItems] = useState([]);
 
   useEffect(() => {
@@ -31,11 +32,20 @@ export default function Home() {
           <TextField
             label="Ville" size="small"
             value={city} onChange={(e) => setCity(e.target.value)}
-            sx={{ flex: "1 1 180px" }}
+            sx={{ flex: "1 1 160px" }}
           />
           <TextField
+            select size="small" label="Transaction" value={txType}
+            onChange={(e) => setTxType(e.target.value)} sx={{ minWidth: 190 }}
+          >
+            <MenuItem value="">Vente &amp; Location</MenuItem>
+            <MenuItem value="sale">Vente</MenuItem>
+            <MenuItem value="rent_long">Location longue durée</MenuItem>
+            <MenuItem value="rent_short">Location courte durée</MenuItem>
+          </TextField>
+          <TextField
             select size="small" label={t("search.type")} value={type}
-            onChange={(e) => setType(e.target.value)} sx={{ minWidth: 160 }}
+            onChange={(e) => setType(e.target.value)} sx={{ minWidth: 150 }}
           >
             <MenuItem value="">—</MenuItem>
             {["land","house","apartment","office","commercial"].map((v) => (
@@ -45,7 +55,7 @@ export default function Home() {
           <Button
             variant="contained" color="secondary"
             component={Link}
-            href={{ pathname: "/properties", query: { q, city, type } }}
+            href={{ pathname: "/properties", query: { q, city, type, transaction_type: txType } }}
           >
             {t("nav.browse")}
           </Button>
