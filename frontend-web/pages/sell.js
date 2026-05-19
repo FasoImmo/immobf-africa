@@ -443,6 +443,7 @@ export default function SellPage() {
           )}
 
           {uploadProgress !== null && (
+            <Box sx={{ mt: 2 }}>
               <LinearProgress variant="determinate" value={uploadProgress} />
               {uploadProgress === 100 && (
                 <Typography color="success.main" sx={{ mt: 1 }}>
@@ -462,9 +463,4 @@ export default function SellPage() {
               {files.length ? "Uploader et terminer" : "Terminer sans photo"}
             </Button>
           </Box>
-        </Paper>
-      )}
-    </Layout>
-  );
-}
- 
+        </Paper
