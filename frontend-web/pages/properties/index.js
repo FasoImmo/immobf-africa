@@ -13,73 +13,70 @@ const TX_OPTIONS = [
   { value: "rent_short", label: "Location courte durée / nuitée" },
 ];
 
+const TX_TITLES = {
+  "":           "Parcourir les annonces",
+  "sale":       "Annonces à vendre",
+  "rent_long":  "Locations longue durée",
+  "rent_short": "Locations courte durée / nuitée",
+};
+
 export default function BrowsePage() {
   const router = useRouter();
   const { t } = useTranslation();
   const [filters, setFilters] = useState({
-    q: router.query.q || "",
-    city: router.query.city || "",
-    type: router.query.type || "",
-    transaction_type: router.query.transaction_type || "",
-    min_price: "",
-    max_price: "",
+    q: "", city: "", type: "", transaction_type: "", min_price: "", max_price: "",
   });
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
 
-  async function runSearch(f = filters) {
+  // Lire les query params après hydratation Next.js (router.isReady)
+  useEffect(function() {
+    if (!router.isReady) return;
+    var q = router.query;
+    var f = {
+      q:                q.q                || "",
+      city:             q.city             || "",
+      type:             q.type             || "",
+      transaction_type: q.transaction_type || "",
+      min_price:        q.min_price        || "",
+      max_price:        q.max_price        || "",
+    };
+    setFilters(f);
+    setReady(true);
+    runSearch(f);
+  }, [router.isReady, router.asPath]); // router.asPath change à chaque navigation
+
+  async function runSearch(f) {
+    var current = f || filters;
     setLoading(true);
-    const params = {};
-    Object.entries(f).forEach(([k, v]) => { if (v) params[k] = v; });
+    var params = {};
+    Object.entries(current).forEach(function(kv) { if (kv[1]) params[kv[0]] = kv[1]; });
     try {
-      const d = await Properties.search(params);
+      var d = await Properties.search(params);
       setItems(d.items || []);
     } finally { setLoading(false); }
   }
 
-  useEffect(() => { runSearch(filters); /* eslint-disable-next-line */ }, []);
+  var pageTitle = TX_TITLES[filters.transaction_type] || "Parcourir les annonces";
 
   return (
-    <Layout title="Parcourir — ImmoBF">
-      <Typography variant="h4" gutterBottom>{t("nav.browse")}</Typography>
+    <Layout title={pageTitle + " — ImmoBF"}>
+      <Typography variant="h4" gutterBottom>{pageTitle}</Typography>
 
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 3 }}>
         <TextField label="Recherche" size="small" value={filters.q}
-          onChange={(e) => setFilters({ ...filters, q: e.target.value })} />
+          onChange={function(e) { setFilters(function(f) { return Object.assign({}, f, { q: e.target.value }); })} />
         <TextField label="Ville" size="small" value={filters.city}
-          onChange={(e) => setFilters({ ...filters, city: e.target.value })} />
+          onChange={function(e) { setFilters(function(f) { return Object.assign({}, f, { city: e.target.value }); })} />
         <TextField select label="Transaction" size="small" value={filters.transaction_type}
-          onChange={(e) => setFilters({ ...filters, transaction_type: e.target.value })} sx={{ minWidth: 200 }}>
-          {TX_OPTIONS.map((o) => (
-            <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
-          ))}
+          onChange={function(e) { setFilters(function(f) { return Object.assign({}, f, { transaction_type: e.target.value }); })}
+          sx={{ minWidth: 210 }}>
+          {TX_OPTIONS.map(function(o) { return <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>; })}
         </TextField>
         <TextField select label={t("search.type")} size="small" value={filters.type}
-          onChange={(e) => setFilters({ ...filters, type: e.target.value })} sx={{ minWidth: 160 }}>
+          onChange={function(e) { setFilters(function(f) { return Object.assign({}, f, { type: e.target.value }); })}
+          sx={{ minWidth: 160 }}>
           <MenuItem value="">—</MenuItem>
-          {["land","house","apartment","office","commercial"].map((v) => (
-            <MenuItem key={v} value={v}>{t(`types.${v}`)}</MenuItem>
-          ))}
-        </TextField>
-        <TextField label={t("search.price_min")} type="number" size="small" value={filters.min_price}
-          onChange={(e) => setFilters({ ...filters, min_price: e.target.value })} />
-        <TextField label={t("search.price_max")} type="number" size="small" value={filters.max_price}
-          onChange={(e) => setFilters({ ...filters, max_price: e.target.value })} />
-        <Button variant="contained" onClick={() => runSearch()}>{t("search.filters")}</Button>
-      </Box>
-
-      <Grid container spacing={2}>
-        {items.map((p) => (
-          <Grid item xs={12} sm={6} md={4} key={p.id}>
-            <PropertyCard property={p} />
-          </Grid>
-        ))}
-        {!loading && items.length === 0 && (
-          <Grid item xs={12}>
-            <Typography color="text.secondary">Aucun résultat pour ces filtres.</Typography>
-          </Grid>
-        )}
-      </Grid>
-    </Layout>
-  );
-}
+          {["land","house","apartment","office","commercial"].map(function(v) {
+            return <MenuItem key={v} val
