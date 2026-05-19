@@ -7,9 +7,10 @@ const moderation = require("../services/moderation");
 const valuation = require("../services/valuation");
 
 const propertySchema = Joi.object({
-  type: Joi.string().valid("land", "house", "apartment", "office", "commercial").required(),
+  transaction_type: Joi.string().valid("sale","rent_long","rent_short").default("sale"),
+  type: Joi.string().valid("land","house","apartment","office","commercial").required(),
   title: Joi.string().min(5).max(200).required(),
-  description: Joi.string().max(5000).allow("", null),
+  description: Joi.string().max(5000).allow("",null),
   price: Joi.number().positive().required(),
   currency: Joi.string().length(3).uppercase().default("XOF"),
   area_m2: Joi.number().positive().allow(null),
@@ -17,10 +18,12 @@ const propertySchema = Joi.object({
   bathrooms: Joi.number().integer().min(0).allow(null),
   country_code: Joi.string().length(2).uppercase().default("BF"),
   city: Joi.string().min(2).max(120).required(),
-  address: Joi.string().max(300).allow("", null),
+  address: Joi.string().max(300).allow("",null),
   lat: Joi.number().min(-90).max(90).allow(null),
   lng: Joi.number().min(-180).max(180).allow(null),
   deposit_pct: Joi.number().min(0).max(100).default(5),
+  is_furnished: Joi.boolean().default(false),
+  rent_period: Joi.string().valid("monthly","weekly","nightly").allow(null),
   features: Joi.object().unknown(true).default({}),
 });
 
@@ -33,7 +36,7 @@ async function create(req, res) {
   });
   const decision = moderation.decision(score);
   if (decision === "reject") {
-    throw BadRequest("Annonce rejetée par modération automatique (contenu suspect)");
+    throw BadRequest("Annonce rejetee par moderation automatique (contenu suspect)");
   }
 
   const property = await Property.create({ ...value, owner_id: req.user.id });
@@ -50,16 +53,18 @@ async function get(req, res) {
 
 async function publish(req, res) {
   const p = await Property.publish(req.params.id, req.user.id);
-  if (!p) throw Forbidden("Non autorisé ou annonce introuvable");
+  if (!p) throw Forbidden("Non autorise ou annonce introuvable");
   res.json({ property: p });
 }
 
 async function search(req, res) {
   const schema = Joi.object({
-    q: Joi.string().allow("", null),
+    q: Joi.string().allow("",null),
     country: Joi.string().length(2).uppercase(),
     city: Joi.string(),
-    type: Joi.string().valid("land", "house", "apartment", "office", "commercial"),
+    type: Joi.string().valid("land","house","apartment","office","commercial"),
+    transaction_type: Joi.string().valid("sale","rent_long","rent_short"),
+    is_furnished: Joi.boolean(),
     min_price: Joi.number(),
     max_price: Joi.number(),
     min_area: Joi.number(),
@@ -69,7 +74,7 @@ async function search(req, res) {
     radius_km: Joi.number().min(0).max(500),
     limit: Joi.number().integer().min(1).max(100).default(20),
     offset: Joi.number().integer().min(0).default(0),
-    lang: Joi.string().valid("fr", "en", "mos", "dyu").default("fr"),
+    lang: Joi.string().valid("fr","en","mos","dyu").default("fr"),
   });
   const { value, error } = schema.validate(req.query);
   if (error) throw BadRequest(error.message);
@@ -82,7 +87,7 @@ async function estimate(req, res) {
   const schema = Joi.object({
     country_code: Joi.string().length(2).uppercase().default("BF"),
     city: Joi.string().required(),
-    type: Joi.string().valid("land", "house", "apartment", "office", "commercial").required(),
+    type: Joi.string().valid("land","house","apartment","office","commercial").required(),
     area_m2: Joi.number().positive().allow(null),
   });
   const { value, error } = schema.validate(req.body);
