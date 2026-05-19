@@ -186,4 +186,79 @@ async function search(filters = {}, { limit = 20, offset = 0, lang } = {}) {
     clauses.push(`
       (${R} * 2 * asin(sqrt(
         sin(radians((p.lat - $${h - 2}) / 2)) ^ 2
-        + cos(radians($${h - 2})) * cos(radians(p.lat)
+        + cos(radians($${h - 2})) * cos(radians(p.lat))
+          * sin(radians((p.lng - $${h - 1}) / 2)) ^ 2
+      ))) <= $${h}
+    `);
+  }
+
+  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+  params.push(limit, offset);
+
+  const { rows } = await query(
+    `SELECT ${BASE_COLS}
+     FROM properties p
+     ${where}
+     ORDER BY (p.boosted_until > NOW()) DESC, p.published_at DESC NULLS LAST
+     LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    params
+  );
+
+  const hydrated = rows.map(hydrate);
+  // Traduction en parallèle (Promise.all pour minimiser la latence DeepL)
+  return Promise.all(hydrated.map((p) => withTranslation(p, lang)));
+}
+
+async function publish(id, ownerId) {
+  const { rows } = await query(
+    `UPDATE properties
+     SET status = 'published', published_at = COALESCE(published_at, NOW()), updated_at = NOW()
+     WHERE id = $1 AND owner_id = $2
+     RETURNING ${RETURNING_COLS}`,
+    [id, ownerId]
+  );
+  return hydrate(rows[0]);
+}
+
+async function updateStatus(id, status) {
+  const { rows } = await query(
+    `UPDATE properties SET status = $2, updated_at = NOW() WHERE id = $1
+     RETURNING ${RETURNING_COLS}`,
+    [id, status]
+  );
+  return hydrate(rows[0]);
+}
+
+async function boost(id, ownerId, days = 7) {
+  const { rows } = await query(
+    `UPDATE properties
+     SET boosted_until = NOW() + ($3 || ' days')::interval, updated_at = NOW()
+     WHERE id = $1 AND owner_id = $2
+     RETURNING ${RETURNING_COLS}`,
+    [id, ownerId, String(days)]
+  );
+  return hydrate(rows[0]);
+}
+
+async function addPhoto(property_id, url, { is_360 = false, sort_order = 0 } = {}) {
+  const { rows } = await query(
+    `INSERT INTO property_photos (property_id, url, is_360, sort_order)
+     VALUES ($1,$2,$3,$4) RETURNING *`,
+    [property_id, url, is_360, sort_order]
+  );
+  return rows[0];
+}
+
+async function photosFor(property_id) {
+  const { rows } = await query(
+    `SELECT id, url, is_360, sort_order FROM property_photos
+     WHERE property_id = $1 ORDER BY sort_order ASC, created_at ASC`,
+    [property_id]
+  );
+  return rows;
+}
+
+module.exports = {
+  create, findById, search, publish, updateStatus, boost,
+  addPhoto, photosFor, withTransaction,
+};

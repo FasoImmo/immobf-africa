@@ -87,4 +87,8 @@ async function estimate(req, res) {
   });
   const { value, error } = schema.validate(req.body);
   if (error) throw BadRequest(error.message);
-  c
+  const result = await valuation.estimate(value);
+  res.json(result);
+}
+
+module.exports = { create, get, publish, search, estimate };

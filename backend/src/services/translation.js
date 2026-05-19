@@ -11,7 +11,14 @@
 
 const logger = require("../utils/logger");
 
-const DEEPL_ENDPOINT = "https://api-free.deepl.com/v2/translate";
+// Les clés Free se terminent par ":fx", les clés payantes non.
+// On détecte automatiquement l'endpoint à utiliser.
+function getDeeplEndpoint(apiKey) {
+  if (!apiKey) return "https://api-free.deepl.com/v2/translate";
+  return apiKey.endsWith(":fx")
+    ? "https://api-free.deepl.com/v2/translate"
+    : "https://api.deepl.com/v2/translate";
+}
 
 // DeepL n'a pas le mooré ni le dioula — on log un warning et on passe
 const DEEPL_LANGS = { en: "EN-US", fr: "FR" };
@@ -32,7 +39,7 @@ async function translateText(text, targetLang, sourceLang = "FR") {
   if (deeplTarget === sourceLang.toUpperCase()) return text; // même langue
 
   try {
-    const res = await fetch(DEEPL_ENDPOINT, {
+    const res = await fetch(getDeeplEndpoint(apiKey), {
       method: "POST",
       headers: {
         "Authorization": `DeepL-Auth-Key ${apiKey}`,
