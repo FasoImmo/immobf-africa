@@ -3,7 +3,8 @@ import { useRouter } from "next/router";
 import {
   Box, Paper, TextField, Button, Typography, MenuItem,
   Alert, Grid, LinearProgress, Chip, Stack,
-  FormControlLabel, Switch, Divider, CircularProgress
+  FormControlLabel, Switch, Divider, CircularProgress,
+  ToggleButton, ToggleButtonGroup
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
@@ -215,11 +216,29 @@ export default function SellPage() {
         <Paper sx={{ p: 3 }} elevation={1}>
           <form onSubmit={submitProperty}>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField select fullWidth label="Type de transaction" value={form.transaction_type} onChange={change("transaction_type")}>
-                  {TX_TYPES.map(function(o) { return <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>; })}
-                </TextField>
+              {/* ── Sélecteur type de transaction (boutons visibles) ── */}
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" sx={{ mb: 1, color: "text.secondary" }}>
+                  Type de transaction *
+                </Typography>
+                <ToggleButtonGroup
+                  exclusive fullWidth
+                  value={form.transaction_type}
+                  onChange={function(_, v) { if (v) setForm(function(f) { return Object.assign({}, f, { transaction_type: v }); }); }}
+                  sx={{ gap: 1 }}
+                >
+                  <ToggleButton value="sale" sx={{ flex: 1, py: 1.5, fontWeight: 600, borderRadius: "8px !important" }}>
+                    🏷️ Vente
+                  </ToggleButton>
+                  <ToggleButton value="rent_long" sx={{ flex: 1, py: 1.5, fontWeight: 600, borderRadius: "8px !important" }}>
+                    🔑 Location
+                  </ToggleButton>
+                  <ToggleButton value="rent_short" sx={{ flex: 1, py: 1.5, fontWeight: 600, borderRadius: "8px !important" }}>
+                    🌙 Courte durée
+                  </ToggleButton>
+                </ToggleButtonGroup>
               </Grid>
+
               <Grid item xs={12} sm={6}>
                 <TextField select fullWidth label={t("search.type")} value={form.type} onChange={change("type")}>
                   {PROP_TYPES.map(function(v) { return <MenuItem key={v} value={v}>{t("types." + v)}</MenuItem>; })}
@@ -406,27 +425,4 @@ export default function SellPage() {
 
           {uploadProgress !== null && (
             <Box sx={{ mt: 2 }}>
-              <LinearProgress variant="determinate" value={uploadProgress} />
-              {uploadProgress === 100 && (
-                <Typography color="success.main" sx={{ mt: 1 }}>
-                  {uploadedCount} fichier(s) uploadé(s) — redirection…
-                </Typography>
-              )}
-            </Box>
-          )}
-
-          {uploadErr && <Alert severity="error" sx={{ mt: 2 }}>{uploadErr}</Alert>}
-
-          <Box sx={{ mt: 3, display: "flex", justifyContent: "space-between" }}>
-            <Button variant="text" onClick={function() { router.push("/properties/" + propertyId); }} disabled={uploadBusy}>
-              Passer cette étape
-            </Button>
-            <Button variant="contained" onClick={uploadFiles} disabled={uploadBusy}>
-              {files.length ? "Uploader et terminer" : "Terminer sans photo"}
-            </Button>
-          </Box>
-        </Paper>
-      )}
-    </Layout>
-  );
-}
+              <LinearProg
