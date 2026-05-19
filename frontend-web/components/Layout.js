@@ -23,6 +23,7 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
           </Typography>
           <Button color="inherit" component={Link} href="/properties">{t("nav.browse")}</Button>
           <Button color="inherit" component={Link} href="/sell">{t("nav.sell")}</Button>
+          <Button color="inherit" component={Link} href="/properties?transaction_type=rent_long">Louer</Button>
           <Select
             value={i18n.language}
             onChange={(e) => {
@@ -54,4 +55,16 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
         <Box sx={{ mt: 1, display: "flex", justifyContent: "center", gap: 2, flexWrap: "wrap" }}>
           {[
             { key: "footer.cgu", label: t("footer.cgu") },
-            { key: "footer.privacy", label: t("f
+            { key: "footer.privacy", label: t("footer.privacy") },
+            { key: "footer.legal", label: t("footer.legal") },
+            { key: "footer.disclaimer", label: t("footer.disclaimer") },
+          ].map(({ key, label }) => (
+            <Link key={key} href="/legal" style={{ color: "#999", fontSize: 12, textDecoration: "none" }}>
+              {label}
+            </Link>
+          ))}
+        </Box>
+      </Box>
+    </>
+  );
+}
