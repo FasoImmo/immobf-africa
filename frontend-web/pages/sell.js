@@ -48,6 +48,15 @@ export default function SellPage() {
     }
   }, []); // eslint-disable-line
 
+  // ─── Pré-sélection du type de transaction via ?tx= ────────────────────────
+  useEffect(function() {
+    if (!router.isReady) return;
+    const tx = router.query.tx;
+    if (tx && ["sale", "rent_long", "rent_short"].includes(tx)) {
+      setForm(function(f) { return Object.assign({}, f, { transaction_type: tx }); });
+    }
+  }, [router.isReady, router.query.tx]); // eslint-disable-line
+
   // ─── Étape courante : 1=formulaire 2=paiement 3=photos ───────────────────
   const [step, setStep] = useState(1);
   const [propertyId, setPropertyId] = useState(null);
@@ -415,14 +424,4 @@ export default function SellPage() {
             sx={{
               border: "2px dashed #0E7C66", borderRadius: 2, p: 4,
               textAlign: "center", cursor: "pointer",
-              bgcolor: "rgba(14,124,102,0.04)",
-              "&:hover": { bgcolor: "rgba(14,124,102,0.08)" }
-            }}
-          >
-            <Typography>Glissez vos fichiers ici ou cliquez pour sélectionner</Typography>
-            <input id="file-input" type="file" multiple
-              accept="image/*,video/mp4,video/quicktime,video/webm"
-              style={{ display: "none" }} onChange={onFilePick} />
-          </Box>
-
-          {files.
+     

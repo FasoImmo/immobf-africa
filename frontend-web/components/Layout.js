@@ -11,7 +11,7 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const [browseAnchor, setBrowseAnchor] = useState(null);
-  const [rentAnchor, setRentAnchor] = useState(null);
+  const [publishAnchor, setPublishAnchor] = useState(null);
   const [accountAnchor, setAccountAnchor] = useState(null);
   const [user, setUser] = useState(null);
 
@@ -70,22 +70,23 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
             </MenuItem>
           </Menu>
 
-          <Button color="inherit" component={Link} href="/sell">{t("nav.sell")}</Button>
-
-          {/* ── Menu Louer ── */}
+          {/* ── Menu Publier une annonce ── */}
           <Button color="inherit" endIcon={<KeyboardArrowDownIcon />}
-            onClick={(e) => setRentAnchor(e.currentTarget)}>
-            Louer
+            onClick={(e) => setPublishAnchor(e.currentTarget)}>
+            {t("nav.publish")}
           </Button>
-          <Menu anchorEl={rentAnchor} open={Boolean(rentAnchor)}
-            onClose={() => setRentAnchor(null)}
+          <Menu anchorEl={publishAnchor} open={Boolean(publishAnchor)}
+            onClose={() => setPublishAnchor(null)}
             anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
             transformOrigin={{ vertical: "top", horizontal: "left" }}>
-            <MenuItem onClick={() => { setRentAnchor(null); router.push("/properties?transaction_type=rent_long"); }}>
-              🔑 Location longue durée
+            <MenuItem onClick={() => { setPublishAnchor(null); router.push("/sell?tx=sale"); }}>
+              🏷️ {t("nav.publish_sale")}
             </MenuItem>
-            <MenuItem onClick={() => { setRentAnchor(null); router.push("/properties?transaction_type=rent_short"); }}>
-              🌙 Courte durée / nuitée
+            <MenuItem onClick={() => { setPublishAnchor(null); router.push("/sell?tx=rent_long"); }}>
+              🔑 {t("nav.publish_rent_long")}
+            </MenuItem>
+            <MenuItem onClick={() => { setPublishAnchor(null); router.push("/sell?tx=rent_short"); }}>
+              🌙 {t("nav.publish_rent_short")}
             </MenuItem>
           </Menu>
 
@@ -120,8 +121,8 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
                 <MenuItem disabled sx={{ opacity: 0.7, fontSize: 13 }}>
                   {user.full_name || user.phone}
                 </MenuItem>
-                <MenuItem onClick={() => { setAccountAnchor(null); router.push("/sell"); }}>
-                  📝 Publier une annonce
+                <MenuItem onClick={() => { setAccountAnchor(null); router.push("/sell?tx=sale"); }}>
+                  📝 {t("nav.publish")}
                 </MenuItem>
                 <MenuItem onClick={logout} sx={{ color: "error.main" }}>
                   Déconnexion
@@ -149,12 +150,4 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
             { key: "footer.legal", label: t("footer.legal") },
             { key: "footer.disclaimer", label: t("footer.disclaimer") },
           ].map(({ key, label }) => (
-            <Link key={key} href="/legal" style={{ color: "#999", fontSize: 12, textDecoration: "none" }}>
-              {label}
-            </Link>
-          ))}
-        </Box>
-      </Box>
-    </>
-  );
-}
+            <Link key={key} href="/legal" style={{ color: "#999", fontSize: 12, textDecoration: "no

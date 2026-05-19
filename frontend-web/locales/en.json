@@ -4,6 +4,10 @@
   "nav": {
     "browse": "Browse",
     "sell": "Sell",
+    "publish": "Post a listing",
+    "publish_sale": "For sale",
+    "publish_rent_long": "Long-term rental",
+    "publish_rent_short": "Short-term rental",
     "agencies": "Agencies",
     "login": "Log in",
     "register": "Sign up",

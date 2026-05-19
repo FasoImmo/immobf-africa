@@ -4,6 +4,10 @@
   "nav": {
     "browse": "Parcourir",
     "sell": "Vendre",
+    "publish": "Publier une annonce",
+    "publish_sale": "Vente",
+    "publish_rent_long": "Location longue durée",
+    "publish_rent_short": "Location courte durée",
     "agencies": "Agences",
     "login": "Connexion",
     "register": "S'inscrire",
