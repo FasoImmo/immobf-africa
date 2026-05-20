@@ -14,6 +14,13 @@
     "register": "S'inscrire",
     "logout": "Déconnexion"
   },
+  "browse": {
+    "all": "Vente & Location",
+    "title_all": "Parcourir les annonces",
+    "title_sale": "Annonces à vendre",
+    "title_rent_long": "Location longue durée",
+    "title_rent_short": "Location courte durée / nuitée"
+  },
   "search": {
     "placeholder": "Ville, quartier, type…",
     "filters": "Filtres",

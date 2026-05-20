@@ -14,6 +14,13 @@
     "register": "Sign up",
     "logout": "Log out"
   },
+  "browse": {
+    "all": "Sale & Rental",
+    "title_all": "Browse listings",
+    "title_sale": "Properties for sale",
+    "title_rent_long": "Long-term rentals",
+    "title_rent_short": "Short-term rentals / nightly"
+  },
   "search": {
     "placeholder": "City, neighborhood, type…",
     "filters": "Filters",

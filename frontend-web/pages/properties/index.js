@@ -6,23 +6,23 @@ import Layout from "../../components/Layout";
 import PropertyCard from "../../components/PropertyCard";
 import { Properties } from "../../lib/api";
 
-const TX_OPTIONS = [
-  { value: "",           label: "Vente & Location" },
-  { value: "sale",       label: "Vente" },
-  { value: "rent_long",  label: "Location longue durée" },
-  { value: "rent_short", label: "Location courte durée / nuitée" },
-];
-
-const TX_TITLES = {
-  "":           "Parcourir les annonces",
-  "sale":       "Annonces à vendre",
-  "rent_long":  "Locations longue durée",
-  "rent_short": "Locations courte durée / nuitée",
-};
-
 export default function BrowsePage() {
   const router = useRouter();
   const { t } = useTranslation();
+
+  const TX_OPTIONS = [
+    { value: "",           label: t("browse.all") },
+    { value: "sale",       label: t("nav.publish_sale") },
+    { value: "rent_long",  label: t("nav.publish_rent_long") },
+    { value: "rent_short", label: t("nav.publish_rent_short") },
+  ];
+
+  const TX_TITLES = {
+    "":           t("browse.title_all"),
+    "sale":       t("browse.title_sale"),
+    "rent_long":  t("browse.title_rent_long"),
+    "rent_short": t("browse.title_rent_short"),
+  };
   const [filters, setFilters] = useState({
     q: "", city: "", type: "", transaction_type: "", min_price: "", max_price: "",
   });
