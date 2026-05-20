@@ -45,7 +45,8 @@
     "bedrooms": "Bedrooms",
     "bathrooms": "Bathrooms",
     "pay_deposit": "Pay deposit with mobile money",
-    "contact_seller": "Contact seller"
+    "contact_seller": "Contact seller",
+    "contact_whatsapp": "Contact on WhatsApp"
   },
   "payment": {
     "choose_provider": "Choose a payment method",

@@ -104,7 +104,13 @@ async function create(data) {
 async function findById(id, opts) {
   var options = opts || {};
   const { rows } = await query(
-    "SELECT " + BASE_COLS + " FROM properties p WHERE p.id = $1",
+    `SELECT ${BASE_COLS},
+       u.phone          AS owner_phone,
+       COALESCE(u.whatsapp_number, u.phone) AS owner_whatsapp,
+       u.full_name      AS owner_name
+     FROM properties p
+     LEFT JOIN users u ON u.id = p.owner_id
+     WHERE p.id = $1`,
     [id]
   );
   return withTranslation(hydrate(rows[0]), options.lang);

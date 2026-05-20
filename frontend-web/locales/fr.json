@@ -45,7 +45,8 @@
     "bedrooms": "Chambres",
     "bathrooms": "Salles de bain",
     "pay_deposit": "Payer l'acompte en mobile money",
-    "contact_seller": "Contacter le vendeur"
+    "contact_seller": "Contacter le vendeur",
+    "contact_whatsapp": "Contacter sur WhatsApp"
   },
   "payment": {
     "choose_provider": "Choisir un moyen de paiement",

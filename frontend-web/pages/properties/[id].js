@@ -139,9 +139,19 @@ export default function PropertyDetail() {
               </Button>
             )}
 
-            <Button fullWidth variant="outlined" sx={{ mt: 1 }}>
-              {t("property.contact_seller")}
-            </Button>
+            {p.owner_whatsapp && (
+              <Button
+                fullWidth variant="contained" size="large"
+                sx={{ mt: 1, bgcolor: "#25D366", "&:hover": { bgcolor: "#1ebe5a" }, color: "white" }}
+                href={`https://wa.me/${p.owner_whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(
+                  `Bonjour, je suis intéressé(e) par votre annonce "${p.title}" sur ImmoBF Africa.`
+                )}`}
+                target="_blank" rel="noopener noreferrer"
+                component="a"
+              >
+                💬 {t("property.contact_whatsapp")}
+              </Button>
+            )}
           </Paper>
         </Grid>
       </Grid>
