@@ -25,10 +25,12 @@
     "placeholder": "Ville, quartier, type…",
     "filters": "Filtres",
     "type": "Type",
+    "city": "Ville",
     "price_min": "Prix min",
     "price_max": "Prix max",
     "area_min": "Superficie min",
-    "bedrooms": "Chambres"
+    "bedrooms": "Chambres",
+    "no_results": "Aucun résultat pour ces filtres."
   },
   "types": {
     "land": "Terrain / Parcelle",

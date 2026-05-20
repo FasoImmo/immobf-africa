@@ -59,15 +59,15 @@ export default function BrowsePage() {
   }
 
   const set = (key) => (e) => setFilters((f) => ({ ...f, [key]: e.target.value }));
-  const pageTitle = TX_TITLES[filters.transaction_type] || "Parcourir les annonces";
+  const pageTitle = TX_TITLES[filters.transaction_type] || t("browse.title_all");
 
   return (
     <Layout title={pageTitle + " — ImmoBF"}>
       <Typography variant="h4" gutterBottom>{pageTitle}</Typography>
 
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 3 }}>
-        <TextField label="Recherche" size="small" value={filters.q} onChange={set("q")} />
-        <TextField label="Ville" size="small" value={filters.city} onChange={set("city")} />
+        <TextField label={t("search.placeholder")} size="small" value={filters.q} onChange={set("q")} />
+        <TextField label={t("search.city") || "Ville"} size="small" value={filters.city} onChange={set("city")} />
         <TextField select label="Transaction" size="small" value={filters.transaction_type}
           onChange={set("transaction_type")} sx={{ minWidth: 210 }}>
           {TX_OPTIONS.map((o) => (
@@ -96,7 +96,7 @@ export default function BrowsePage() {
         ))}
         {!loading && ready && items.length === 0 && (
           <Grid item xs={12}>
-            <Typography color="text.secondary">Aucun résultat pour ces filtres.</Typography>
+            <Typography color="text.secondary">{t("search.no_results") || "Aucun résultat pour ces filtres."}</Typography>
           </Grid>
         )}
       </Grid>

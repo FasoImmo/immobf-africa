@@ -2,6 +2,7 @@ import "../styles/globals.css";
 import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
 import { useEffect } from "react";
 import "../lib/i18n";
+import i18n from "../lib/i18n";
 
 const theme = createTheme({
   palette: {
@@ -13,6 +14,11 @@ const theme = createTheme({
 
 export default function App({ Component, pageProps }) {
   useEffect(() => {
+    // Restaurer la langue après hydratation (évite les erreurs React #418/#423/#425)
+    const savedLang = localStorage.getItem("immobf_lang");
+    if (savedLang && savedLang !== i18n.language) {
+      i18n.changeLanguage(savedLang);
+    }
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }

@@ -25,10 +25,12 @@
     "placeholder": "City, neighborhood, type…",
     "filters": "Filters",
     "type": "Type",
+    "city": "City",
     "price_min": "Min price",
     "price_max": "Max price",
     "area_min": "Min area",
-    "bedrooms": "Bedrooms"
+    "bedrooms": "Bedrooms",
+    "no_results": "No results for these filters."
   },
   "types": {
     "land": "Land / Plot",

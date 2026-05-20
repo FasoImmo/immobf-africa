@@ -4,11 +4,9 @@ import fr from "../locales/fr.json";
 import en from "../locales/en.json";
 
 if (!i18n.isInitialized) {
-  // Restaurer la langue sauvegardée (côté client uniquement)
-  const savedLang = typeof window !== "undefined"
-    ? localStorage.getItem("immobf_lang") || "fr"
-    : "fr";
-
+  // Toujours démarrer en "fr" pour éviter les erreurs d'hydratation React
+  // (SSR et CSR doivent avoir la même langue au premier rendu)
+  // La langue préférée est restaurée dans _app.js via useEffect après hydratation
   i18n
     .use(initReactI18next)
     .init({
@@ -16,7 +14,7 @@ if (!i18n.isInitialized) {
         fr: { translation: fr },
         en: { translation: en },
       },
-      lng: savedLang,
+      lng: "fr",
       fallbackLng: "fr",
       interpolation: { escapeValue: false },
     });
