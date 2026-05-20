@@ -1,5 +1,6 @@
-// Service Worker minimal — cache stale-while-revalidate pour les annonces.
-const CACHE = "immobf-v2";
+// Service Worker — cache uniquement les assets statiques Next.js (même origine).
+// Les appels API Railway sont laissés au navigateur sans interception.
+const CACHE = "immobf-v3";
 const PRECACHE = ["/", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
@@ -18,19 +19,13 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
-  if (event.request.method !== "GET") return;
 
-  // Stale-while-revalidate pour pages & API GET /properties
-  if (url.pathname.startsWith("/api/v1/properties") || url.pathname.startsWith("/properties")) {
-    event.respondWith(
-      caches.open(CACHE).then(async (cache) => {
-        const cached = await cache.match(event.request);
-        const network = fetch(event.request).then((res) => {
-          if (res.ok) cache.put(event.request, res.clone());
-          return res;
-        }).catch(() => cached);
-        return cached || network;
-      })
-    );
-  }
+  // Ne jamais intercepter les requêtes cross-origin (API Railway, etc.)
+  if (url.origin !== self.location.origin) return;
+
+  // Ne pas intercepter les requêtes API (proxy Vercel /api/*)
+  if (url.pathname.startsWith("/api/")) return;
+
+  // Laisser passer toutes les autres requêtes sans modification
+  // (Next.js gère son propre cache d'assets)
 });
