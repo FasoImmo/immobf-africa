@@ -30,22 +30,24 @@ export default function BrowsePage() {
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
 
-  // Lire les query params après hydratation Next.js (router.isReady)
+  // Lire les query params depuis window.location au montage (évite les problèmes
+  // de timing avec router.isReady et les re-renders i18n)
   useEffect(() => {
-    if (!router.isReady) return;
-    const q = router.query;
+    const params = new URLSearchParams(
+      typeof window !== "undefined" ? window.location.search : ""
+    );
     const f = {
-      q:                q.q                || "",
-      city:             q.city             || "",
-      type:             q.type             || "",
-      transaction_type: q.transaction_type || "",
-      min_price:        q.min_price        || "",
-      max_price:        q.max_price        || "",
+      q:                params.get("q")                || "",
+      city:             params.get("city")             || "",
+      type:             params.get("type")             || "",
+      transaction_type: params.get("transaction_type") || "",
+      min_price:        params.get("min_price")        || "",
+      max_price:        params.get("max_price")        || "",
     };
     setFilters(f);
     setReady(true);
     runSearch(f);
-  }, [router.isReady, router.asPath]); // eslint-disable-line
+  }, []); // eslint-disable-line
 
   async function runSearch(f) {
     const current = f || filters;
