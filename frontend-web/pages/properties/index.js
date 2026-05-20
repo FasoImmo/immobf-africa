@@ -84,4 +84,22 @@ export default function BrowsePage() {
         <TextField label={t("search.price_min")} type="number" size="small"
           value={filters.min_price} onChange={set("min_price")} />
         <TextField label={t("search.price_max")} type="number" size="small"
-          value={filters.max_price} o
+          value={filters.max_price} onChange={set("max_price")} />
+        <Button variant="contained" onClick={() => runSearch()}>{t("search.filters")}</Button>
+      </Box>
+
+      <Grid container spacing={2}>
+        {items.map((p) => (
+          <Grid item xs={12} sm={6} md={4} key={p.id}>
+            <PropertyCard property={p} />
+          </Grid>
+        ))}
+        {!loading && ready && items.length === 0 && (
+          <Grid item xs={12}>
+            <Typography color="text.secondary">Aucun résultat pour ces filtres.</Typography>
+          </Grid>
+        )}
+      </Grid>
+    </Layout>
+  );
+}
