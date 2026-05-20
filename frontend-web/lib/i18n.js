@@ -13,4 +13,13 @@ if (!i18n.isInitialized) {
     .use(initReactI18next)
     .init({
       resources: {
-        fr: { tr
+        fr: { translation: fr },
+        en: { translation: en },
+      },
+      lng: savedLang,
+      fallbackLng: "fr",
+      interpolation: { escapeValue: false },
+    });
+}
+
+export default i18n;

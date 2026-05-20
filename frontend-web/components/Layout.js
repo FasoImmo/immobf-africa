@@ -150,4 +150,12 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
             { key: "footer.legal", label: t("footer.legal") },
             { key: "footer.disclaimer", label: t("footer.disclaimer") },
           ].map(({ key, label }) => (
-            <Link key={key} href="/legal" style={{ color: "#999", fontSize: 12, textDecoration: "no
+            <Link key={key} href="/legal" style={{ color: "#999", fontSize: 12, textDecoration: "none" }}>
+              {label}
+            </Link>
+          ))}
+        </Box>
+      </Box>
+    </>
+  );
+}
