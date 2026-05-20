@@ -57,16 +57,16 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
             anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
             transformOrigin={{ vertical: "top", horizontal: "left" }}>
             <MenuItem onClick={() => { setBrowseAnchor(null); router.push("/properties"); }}>
-              🏠 Toutes les annonces
+              🏠 {t("nav.browse_all")}
             </MenuItem>
             <MenuItem onClick={() => { setBrowseAnchor(null); router.push("/properties?transaction_type=sale"); }}>
-              🏷️ Vente
+              🏷️ {t("nav.publish_sale")}
             </MenuItem>
             <MenuItem onClick={() => { setBrowseAnchor(null); router.push("/properties?transaction_type=rent_long"); }}>
-              🔑 Location longue durée
+              🔑 {t("nav.publish_rent_long")}
             </MenuItem>
             <MenuItem onClick={() => { setBrowseAnchor(null); router.push("/properties?transaction_type=rent_short"); }}>
-              🌙 Location courte durée
+              🌙 {t("nav.publish_rent_short")}
             </MenuItem>
           </Menu>
 
