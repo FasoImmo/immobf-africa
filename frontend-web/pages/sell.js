@@ -463,4 +463,8 @@ export default function SellPage() {
               {files.length ? "Uploader et terminer" : "Terminer sans photo"}
             </Button>
           </Box>
-        </Paper
+        </Paper>
+      )}
+    </Layout>
+  );
+}
