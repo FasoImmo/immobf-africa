@@ -1,5 +1,5 @@
 // Service Worker minimal — cache stale-while-revalidate pour les annonces.
-const CACHE = "immobf-v1";
+const CACHE = "immobf-v2";
 const PRECACHE = ["/", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
