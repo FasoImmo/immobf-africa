@@ -65,7 +65,7 @@
   "auth": {
     "login_tab": "Log in",
     "register_tab": "Create account",
-    "phone": "Phone (+226…)",
+    "phone": "Phone number",
     "password": "Password",
     "full_name": "Full name",
     "login_btn": "Log in",
