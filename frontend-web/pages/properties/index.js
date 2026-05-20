@@ -30,9 +30,10 @@ export default function BrowsePage() {
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
 
-  // Lire les query params depuis window.location au montage (évite les problèmes
-  // de timing avec router.isReady et les re-renders i18n)
+  // Utilise window.location.search (toujours à jour) + router.asPath comme
+  // dépendance pour relancer la recherche à chaque changement d'URL.
   useEffect(() => {
+    if (!router.isReady) return;
     const params = new URLSearchParams(
       typeof window !== "undefined" ? window.location.search : ""
     );
@@ -47,7 +48,7 @@ export default function BrowsePage() {
     setFilters(f);
     setReady(true);
     runSearch(f);
-  }, []); // eslint-disable-line
+  }, [router.isReady, router.asPath]); // eslint-disable-line
 
   async function runSearch(f) {
     const current = f || filters;
