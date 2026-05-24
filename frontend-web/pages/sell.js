@@ -4,11 +4,37 @@ import {
   Box, Paper, TextField, Button, Typography, MenuItem,
   Alert, Grid, LinearProgress, Chip, Stack,
   FormControlLabel, Switch, Divider, CircularProgress,
-  ToggleButton, ToggleButtonGroup
+  ToggleButton, ToggleButtonGroup, Select, FormControl,
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
 import { Properties, Photos, Payments } from "../lib/api";
+
+// Pays africains — utilisé pour le sélecteur pays et l'indicatif mobile money
+const AFRICAN_COUNTRIES = [
+  { code: "BF", dial: "+226", flag: "🇧🇫", name: "Burkina Faso" },
+  { code: "CI", dial: "+225", flag: "🇨🇮", name: "Côte d'Ivoire" },
+  { code: "SN", dial: "+221", flag: "🇸🇳", name: "Sénégal" },
+  { code: "ML", dial: "+223", flag: "🇲🇱", name: "Mali" },
+  { code: "NE", dial: "+227", flag: "🇳🇪", name: "Niger" },
+  { code: "TG", dial: "+228", flag: "🇹🇬", name: "Togo" },
+  { code: "BJ", dial: "+229", flag: "🇧🇯", name: "Bénin" },
+  { code: "GN", dial: "+224", flag: "🇬🇳", name: "Guinée" },
+  { code: "CM", dial: "+237", flag: "🇨🇲", name: "Cameroun" },
+  { code: "CD", dial: "+243", flag: "🇨🇩", name: "RD Congo" },
+  { code: "CG", dial: "+242", flag: "🇨🇬", name: "Congo" },
+  { code: "GH", dial: "+233", flag: "🇬🇭", name: "Ghana" },
+  { code: "NG", dial: "+234", flag: "🇳🇬", name: "Nigeria" },
+  { code: "KE", dial: "+254", flag: "🇰🇪", name: "Kenya" },
+  { code: "TZ", dial: "+255", flag: "🇹🇿", name: "Tanzanie" },
+  { code: "RW", dial: "+250", flag: "🇷🇼", name: "Rwanda" },
+  { code: "MA", dial: "+212", flag: "🇲🇦", name: "Maroc" },
+  { code: "DZ", dial: "+213", flag: "🇩🇿", name: "Algérie" },
+  { code: "TN", dial: "+216", flag: "🇹🇳", name: "Tunisie" },
+  { code: "EG", dial: "+20",  flag: "🇪🇬", name: "Égypte" },
+  { code: "MG", dial: "+261", flag: "🇲🇬", name: "Madagascar" },
+  { code: "MU", dial: "+230", flag: "🇲🇺", name: "Maurice" },
+];
 
 const TX_TYPES = [
   { value: "sale",       label: "Vente" },
@@ -56,7 +82,9 @@ export default function SellPage() {
   // ─── Étape 2 : paiement ───────────────────────────────────────────────────
   const [providers, setProviders] = useState([]);
   const [provider, setProvider] = useState("");
-  const [phone, setPhone] = useState("");
+  const [dialCode, setDialCode] = useState("+226");
+  const [localPhone, setLocalPhone] = useState("");
+  const phone = dialCode + localPhone.replace(/\D/g, "");
   const [payErr, setPayErr] = useState(null);
   const [payBusy, setPayBusy] = useState(false);
   const [txId, setTxId] = useState(null);
@@ -286,7 +314,13 @@ export default function SellPage() {
                 <TextField fullWidth label="Titre *" value={form.title} onChange={change("title")} required />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <TextField fullWidth label="Pays (ISO-2)" value={form.country_code} onChange={change("country_code")} />
+                <TextField select fullWidth label="Pays" value={form.country_code} onChange={change("country_code")}>
+                  {AFRICAN_COUNTRIES.map((c) => (
+                    <MenuItem key={c.code} value={c.code}>
+                      {c.flag} {c.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
               </Grid>
               <Grid item xs={12}>
                 <TextField fullWidth multiline minRows={3} label="Description" value={form.description} onChange={change("description")} />
@@ -359,11 +393,30 @@ export default function SellPage() {
               </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth label="Numéro mobile money (+226…)" value={phone}
-                onChange={function(e) { setPhone(e.target.value); }}
-                disabled={polling}
-              />
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <FormControl sx={{ minWidth: 120 }}>
+                  <Select
+                    value={dialCode}
+                    onChange={(e) => setDialCode(e.target.value)}
+                    size="small" sx={{ height: 56 }}
+                    disabled={polling}
+                  >
+                    {AFRICAN_COUNTRIES.map((c) => (
+                      <MenuItem key={c.code} value={c.dial}>
+                        {c.flag} {c.dial}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <TextField
+                  fullWidth label="Numéro mobile money"
+                  value={localPhone}
+                  onChange={(e) => setLocalPhone(e.target.value.replace(/\D/g, ""))}
+                  disabled={polling}
+                  placeholder="XXXXXXXX"
+                  inputMode="tel"
+                />
+              </Box>
             </Grid>
           </Grid>
 

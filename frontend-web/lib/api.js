@@ -35,6 +35,16 @@ export const Auth = {
   verifyOtp: (data) => api.post("/auth/otp/verify", data).then((r) => r.data),
 };
 
+export const Photos = {
+  upload: (propertyId, files) => {
+    const form = new FormData();
+    files.forEach((f) => form.append("photos", f));
+    return api.post(`/properties/${propertyId}/photos`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }).then((r) => r.data);
+  },
+};
+
 export const Payments = {
   providers: (country = "BF") => api.get("/payments/providers", { params: { country } }).then((r) => r.data),
   initiate: (data) => api.post("/payments/initiate", data).then((r) => r.data),
