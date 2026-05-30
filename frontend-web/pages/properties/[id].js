@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import { Box, Typography, Chip, Button, Grid, Paper, Divider, Stack } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../../components/Layout";
 import PaymentDialog from "../../components/PaymentDialog";
-import { Properties } from "../../lib/api";
+import PropertyCard from "../../components/PropertyCard";
+import { Properties, Analytics } from "../../lib/api";
 import { formatFCFA, formatArea } from "../../lib/format";
 
 const TX_LABEL = {
@@ -26,10 +28,23 @@ export default function PropertyDetail() {
   const [p, setP] = useState(null);
   const [payOpen, setPayOpen] = useState(false);
   const [photoIdx, setPhotoIdx] = useState(0);
+  const [similar, setSimilar] = useState([]);
 
   useEffect(() => {
     if (!id) return;
-    Properties.get(id).then((d) => setP(d.property)).catch(() => setP(null));
+    Properties.get(id).then((d) => {
+      setP(d.property);
+      // Tracking vue + annonces similaires en parallèle
+      Analytics.trackView(id, "view");
+      Analytics.similar(id).then((r) => setSimilar(r.items || [])).catch(() => {});
+      // Historique local des propriétés consultées
+      try {
+        const key = "immobf_recent";
+        const recent = JSON.parse(localStorage.getItem(key) || "[]");
+        const updated = [id, ...recent.filter((x) => x !== id)].slice(0, 10);
+        localStorage.setItem(key, JSON.stringify(updated));
+      } catch (_) {}
+    }).catch(() => setP(null));
   }, [id]);
 
   if (!p) return <Layout><Typography>Chargement…</Typography></Layout>;
@@ -143,6 +158,7 @@ export default function PropertyDetail() {
               <Button
                 fullWidth variant="contained" size="large"
                 sx={{ mt: 1, bgcolor: "#25D366", "&:hover": { bgcolor: "#1ebe5a" }, color: "white" }}
+                onClick={() => Analytics.trackView(id, "whatsapp_click")}
                 href={`https://wa.me/${p.owner_whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(
                   `Bonjour, je suis intéressé(e) par votre annonce "${p.title}" sur ImmoBF Africa.`
                 )}`}
@@ -155,6 +171,20 @@ export default function PropertyDetail() {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* ─── Annonces similaires ─────────────────────────────────────────── */}
+      {similar.length > 0 && (
+        <Box sx={{ mt: 5 }}>
+          <Typography variant="h5" gutterBottom>Annonces similaires</Typography>
+          <Grid container spacing={2}>
+            {similar.map((s) => (
+              <Grid item xs={12} sm={6} md={3} key={s.id}>
+                <PropertyCard property={s} />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
 
       <PaymentDialog
         open={payOpen}

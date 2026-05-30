@@ -4,7 +4,7 @@ import { Grid, TextField, MenuItem, Typography, Box, Button } from "@mui/materia
 import { useTranslation } from "react-i18next";
 import Layout from "../../components/Layout";
 import PropertyCard from "../../components/PropertyCard";
-import { Properties } from "../../lib/api";
+import { Properties, Analytics } from "../../lib/api";
 
 export default function BrowsePage() {
   const router = useRouter();
@@ -58,6 +58,8 @@ export default function BrowsePage() {
     try {
       const d = await Properties.search(params);
       setItems(d.items || []);
+      // Tracker la recherche pour personnalisation
+      Analytics.trackSearch(params, (d.items || []).length);
     } finally { setLoading(false); }
   }
 

@@ -11,6 +11,7 @@ const authCtl  = require("../controllers/authController");
 const propCtl  = require("../controllers/propertiesController");
 const payCtl   = require("../controllers/paymentsController");
 const photoCtl = require("../controllers/photosController");
+const analytics = require("../controllers/analyticsController");
 
 const router = express.Router();
 
@@ -46,6 +47,15 @@ router.post("/payments/:id/escrow/release", requireAuth, asyncHandler(payCtl.rel
 
 // Webhooks — raw body parser (HMAC verification)
 router.post("/payments/webhooks/:provider", rawBody, asyncHandler(payCtl.webhook));
+
+// --- Analytics ---
+const analyticsLimiter = rateLimit({ windowMs: 10_000, max: 30 });
+router.post("/properties/:id/view",     analyticsLimiter, asyncHandler(analytics.trackView));
+router.post("/events/search",           analyticsLimiter, asyncHandler(analytics.trackSearch));
+router.get ("/properties/:id/similar",  publicLimiter,    asyncHandler(analytics.similar));
+router.get ("/properties/:id/stats",    requireAuth,      asyncHandler(analytics.propertyStats));
+router.get ("/my/stats",                requireAuth,      asyncHandler(analytics.myStats));
+router.get ("/suggestions",             asyncHandler(analytics.suggestions));
 
 // Dev mocks
 router.post("/payments/mock/:reference/succeed", asyncHandler(payCtl.mockSucceed));

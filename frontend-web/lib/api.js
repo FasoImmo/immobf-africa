@@ -35,6 +35,31 @@ export const Auth = {
   verifyOtp: (data) => api.post("/auth/otp/verify", data).then((r) => r.data),
 };
 
+export const Analytics = {
+  trackView: (id, eventType = "view") => {
+    if (typeof window === "undefined") return;
+    const session_id = sessionStorage.getItem("immobf_sid") || (() => {
+      const sid = Math.random().toString(36).slice(2);
+      sessionStorage.setItem("immobf_sid", sid);
+      return sid;
+    })();
+    return api.post(`/properties/${id}/view`, {
+      event_type: eventType,
+      session_id,
+      referrer: document.referrer || null,
+    }).catch(() => {}); // non bloquant
+  },
+  trackSearch: (params, resultsCount) => {
+    if (typeof window === "undefined") return;
+    const session_id = sessionStorage.getItem("immobf_sid") || "";
+    return api.post("/events/search", { ...params, session_id, results_count: resultsCount })
+      .catch(() => {});
+  },
+  similar: (id) => api.get(`/properties/${id}/similar`).then((r) => r.data),
+  suggestions: (sessionId) => api.get("/suggestions", { params: { session_id: sessionId } }).then((r) => r.data),
+  myStats: () => api.get("/my/stats").then((r) => r.data),
+};
+
 export const Photos = {
   upload: (propertyId, files) => {
     const form = new FormData();

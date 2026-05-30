@@ -7,7 +7,7 @@ import {
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
-import { Properties } from "../lib/api";
+import { Analytics } from "../lib/api";
 import api from "../lib/api";
 import { formatFCFA } from "../lib/format";
 
@@ -52,8 +52,8 @@ export default function AccountPage() {
     if (!stored || !token) { router.replace("/login?redirect=/account"); return; }
     setUser(JSON.parse(stored));
 
-    api.get("/my/listings")
-      .then((r) => setListings(r.data.items || []))
+    Analytics.myStats()
+      .then((r) => setListings(r.listings || []))
       .catch(() => setErr("Impossible de charger vos annonces."))
       .finally(() => setLoading(false));
   }, []); // eslint-disable-line
@@ -134,10 +134,28 @@ export default function AccountPage() {
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                     {p.city} · {formatFCFA(p.price, p.currency)}
                   </Typography>
-                  <SubscriptionBadge
-                    status={p.subscription_status}
-                    daysRemaining={p.days_remaining}
-                  />
+                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
+                    <SubscriptionBadge
+                      status={p.subscription_status}
+                      daysRemaining={p.days_remaining}
+                    />
+                  </Box>
+                  <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      👁 {p.total_views || 0} vues
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      👤 {p.unique_visitors || 0} visiteurs uniques
+                    </Typography>
+                    <Typography variant="caption" color="success.main">
+                      💬 {p.whatsapp_clicks || 0} contacts WhatsApp
+                    </Typography>
+                  </Box>
+                  {Number(p.views_7d) > 0 && (
+                    <Typography variant="caption" color="primary.main">
+                      +{p.views_7d} vues cette semaine
+                    </Typography>
+                  )}
                   {p.listing_expires_at && (
                     <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
                       Expire le {new Date(p.listing_expires_at).toLocaleDateString("fr-FR")}
