@@ -198,7 +198,7 @@ export default function SellPage() {
         property_id: propertyId,
         purpose: "listing_fee",
         customer_phone: phone,
-        description: "Frais de publication ImmoBF — 1 000 FCFA",
+        description: `Abonnement ImmoBF Africa — ${LISTING_FEE.toLocaleString()} FCFA/mois`,
       });
       setTxId(res.transaction_id);
       if (res.payment_url) setPaymentUrl(res.payment_url);
@@ -364,7 +364,7 @@ export default function SellPage() {
             {formErr && <Alert severity="error" sx={{ mt: 2 }}>{formErr}</Alert>}
             <Box sx={{ mt: 3, textAlign: "right" }}>
               <Button type="submit" variant="contained" disabled={formBusy}>
-                Suivant : payer les frais (1 000 FCFA)
+                Suivant : abonnement {LISTING_FEE.toLocaleString()} FCFA/mois
               </Button>
             </Box>
           </form>
