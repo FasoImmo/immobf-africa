@@ -1,14 +1,56 @@
 {
   "name": "ImmoBF Africa",
   "short_name": "ImmoBF",
-  "description": "Plateforme immobilière Burkina Faso + Afrique — mobile money friendly",
-  "start_url": "/",
+  "description": "Plateforme immobilière africaine — achat, location, mobile money",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#0E7C66",
   "theme_color": "#0E7C66",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "lang": "fr",
+  "categories": ["lifestyle", "finance", "business"],
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
-  ]
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Parcourir les annonces immobilières"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Parcourir les annonces",
+      "url": "/properties",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Publier une annonce",
+      "url": "/sell",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
 }
