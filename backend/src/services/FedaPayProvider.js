@@ -62,14 +62,14 @@ class FedaPayProvider extends PaymentProvider {
   }) {
     const { secretKey, notifyUrl, returnUrl } = config.providers.fedapay;
 
-    // Stub mode : pas de clé -> on simule sans appeler le réseau
+    // Stub mode : pas de clé -> succès immédiat simulé (pas de redirection localhost)
     if (!secretKey) {
       return {
         external_id: `fp_stub_${reference}`,
-        status: "pending",
-        payment_url: `${config.webUrl}/mock-checkout?provider=fedapay&ref=${reference}`,
-        ussd_code: this._stubUssdFor(preferredOperator),
-        raw: { stub: true, note: "FEDAPAY_SECRET_KEY not set — using stub" },
+        status: "succeeded",
+        payment_url: null,
+        ussd_code: null,
+        raw: { stub: true, note: "FEDAPAY_SECRET_KEY not set — auto-succeeded" },
       };
     }
 

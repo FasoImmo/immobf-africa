@@ -68,18 +68,32 @@ async function initiate(req, res) {
     throw e;
   }
 
-  await Transaction.updateStatus(tx.id, result.status || "pending", {
+  const finalStatus = result.status || "pending";
+  await Transaction.updateStatus(tx.id, finalStatus, {
     external_id: result.external_id,
     raw_payload: result.raw,
     payment_url: result.payment_url,
   });
   await Transaction.logEvent(tx.id, "initiate", result);
 
+  // Stub mode : succès immédiat — déclencher les effets post-paiement inline
+  if (finalStatus === "succeeded") {
+    if (value.purpose === "listing_fee" && value.property_id) {
+      try {
+        await Property.markListingFeePaid(value.property_id);
+        await Property.setExpiry(value.property_id, 30);
+        logger.info({ property_id: value.property_id }, "stub: listing_fee succeeded");
+      } catch (e) {
+        logger.warn({ err: e.message }, "stub: markListingFeePaid failed");
+      }
+    }
+  }
+
   res.status(201).json({
     transaction_id: tx.id,
     reference: tx.reference,
     provider: provider.name,
-    status: "pending",
+    status: finalStatus,
     payment_url: result.payment_url || null,
     ussd_code: result.ussd_code || null,
   });

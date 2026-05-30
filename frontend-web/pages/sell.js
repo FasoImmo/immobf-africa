@@ -201,6 +201,11 @@ export default function SellPage() {
         description: `Abonnement ImmoBF Africa — ${LISTING_FEE.toLocaleString()} FCFA/mois`,
       });
       setTxId(res.transaction_id);
+      // Stub mode : succès immédiat → passer directement à l'étape photos
+      if (res.status === "succeeded") {
+        setStep(3);
+        return;
+      }
       if (res.payment_url) setPaymentUrl(res.payment_url);
       if (res.ussd_code) setUssdCode(res.ussd_code);
       setPolling(true);
