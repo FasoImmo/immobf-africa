@@ -7,6 +7,7 @@ const moderation = require("../services/moderation");
 const valuation = require("../services/valuation");
 
 const propertySchema = Joi.object({
+  transaction_type: Joi.string().valid("sale", "rent_long", "rent_short").default("sale"),
   type: Joi.string().valid("land", "house", "apartment", "office", "commercial").required(),
   title: Joi.string().min(5).max(200).required(),
   description: Joi.string().max(5000).allow("", null),
@@ -21,6 +22,8 @@ const propertySchema = Joi.object({
   lat: Joi.number().min(-90).max(90).allow(null),
   lng: Joi.number().min(-180).max(180).allow(null),
   deposit_pct: Joi.number().min(0).max(100).default(5),
+  is_furnished: Joi.boolean().default(false),
+  rent_period: Joi.string().valid("monthly", "weekly", "nightly").allow(null),
   features: Joi.object().unknown(true).default({}),
 });
 
