@@ -172,7 +172,7 @@ export default function AccountPage() {
                       size="small" variant="contained" color="warning"
                       onClick={() => renew(p.id)}
                     >
-                      Renouveler — {LISTING_FEE.toLocaleString()} FCFA
+                      Renouveler — {LISTING_FEE.toLocaleString("fr-FR")} FCFA
                       <Typography component="span" variant="caption" sx={{ ml: 0.5, opacity: 0.8 }}>
                         (≈ {(LISTING_FEE / EUR_RATE).toFixed(2)}€)
                       </Typography>

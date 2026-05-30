@@ -54,6 +54,7 @@ const EUR_RATE = 655.957; // taux fixe FCFA/EUR (parité officielle)
 const USD_RATE = 600;     // taux indicatif XOF/USD
 const feeEur = (LISTING_FEE / EUR_RATE).toFixed(2);
 const feeUsd = (LISTING_FEE / USD_RATE).toFixed(2);
+const feeFmt = LISTING_FEE.toLocaleString("fr-FR"); // "2 000"
 
 // ─── Provider labels ─────────────────────────────────────────────────────────
 const PROVIDER_LABELS = {
@@ -198,7 +199,7 @@ export default function SellPage() {
         property_id: propertyId,
         purpose: "listing_fee",
         customer_phone: phone,
-        description: `Abonnement ImmoBF Africa — ${LISTING_FEE.toLocaleString()} FCFA/mois`,
+        description: `Abonnement ImmoBF Africa — ${feeFmt} FCFA/mois`,
       });
       setTxId(res.transaction_id);
       // Stub mode : succès immédiat → passer directement à l'étape photos
@@ -244,7 +245,7 @@ export default function SellPage() {
   }
 
   // ─── Stepper header ───────────────────────────────────────────────────────
-  var steps = ["1. Détails", `2. Abonnement (${LISTING_FEE.toLocaleString()} FCFA/mois)`, "3. Photos"];
+  var steps = ["1. Détails", `2. Abonnement (${feeFmt} FCFA/mois)`, "3. Photos"];
 
   return (
     <Layout title="Publier une annonce — ImmoBF">
@@ -369,7 +370,7 @@ export default function SellPage() {
             {formErr && <Alert severity="error" sx={{ mt: 2 }}>{formErr}</Alert>}
             <Box sx={{ mt: 3, textAlign: "right" }}>
               <Button type="submit" variant="contained" disabled={formBusy}>
-                Suivant : abonnement {LISTING_FEE.toLocaleString()} FCFA/mois
+                Suivant : abonnement {feeFmt} FCFA/mois
               </Button>
             </Box>
           </form>
@@ -382,7 +383,7 @@ export default function SellPage() {
           <Typography variant="h6" gutterBottom>Frais de publication</Typography>
           <Alert severity="info" sx={{ mb: 3 }}>
             La publication d'une annonce sur ImmoBF Africa coûte{" "}
-            <strong>{LISTING_FEE.toLocaleString()} FCFA / mois</strong>{" "}
+            <strong>{feeFmt} FCFA / mois</strong>{" "}
             <Typography component="span" variant="body2" color="text.secondary">
               (≈ {feeEur} € · ≈ ${feeUsd})
             </Typography>
@@ -468,7 +469,7 @@ export default function SellPage() {
               disabled={payBusy || polling || !phone || !provider}
               onClick={payListingFee}
             >
-              {payBusy ? "Initialisation…" : `Payer ${LISTING_FEE.toLocaleString()} FCFA`}
+              {payBusy ? "Initialisation…" : `Payer ${feeFmt} FCFA`}
             </Button>
           </Box>
         </Paper>
