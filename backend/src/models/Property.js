@@ -10,7 +10,7 @@ const BASE_COLS = `
   p.lat, p.lng,
   p.status, p.verified, p.boosted_until, p.deposit_pct,
   p.is_furnished, p.rent_period,
-  p.listing_fee_paid_at,
+  p.listing_fee_paid_at, p.listing_expires_at,
   p.features, p.published_at, p.created_at, p.updated_at,
   p.title_translations, p.description_translations
 `;
@@ -122,7 +122,11 @@ async function search(filters, opts) {
   var offset = options.offset !== undefined ? options.offset : 0;
   var lang = options.lang;
 
-  const clauses = ["p.status = 'published'"];
+  // Exclure les annonces expirées (listing_expires_at passé)
+  const clauses = [
+    "p.status = 'published'",
+    "(p.listing_expires_at IS NULL OR p.listing_expires_at > NOW())",
+  ];
   const params = [];
 
   const push = function(sql) {
@@ -256,7 +260,40 @@ async function photosFor(property_id) {
   return rows;
 }
 
+// Définir la date d'expiration (30 jours à partir d'aujourd'hui ou renouvellement)
+async function setExpiry(id, days) {
+  var d = days || 30;
+  const { rows } = await query(
+    `UPDATE properties
+     SET listing_expires_at = GREATEST(COALESCE(listing_expires_at, NOW()), NOW()) + ($2 || ' days')::interval,
+         updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, listing_expires_at`,
+    [id, String(d)]
+  );
+  return rows[0];
+}
+
+// Annonces d'un propriétaire avec statut abonnement
+async function listForOwner(owner_id) {
+  const { rows } = await query(
+    `SELECT ${BASE_COLS},
+       CASE
+         WHEN listing_expires_at IS NULL THEN 'no_subscription'
+         WHEN listing_expires_at < NOW() THEN 'expired'
+         WHEN listing_expires_at < NOW() + INTERVAL '7 days' THEN 'expiring_soon'
+         ELSE 'active'
+       END AS subscription_status,
+       EXTRACT(DAY FROM (listing_expires_at - NOW()))::int AS days_remaining
+     FROM properties p
+     WHERE p.owner_id = $1
+     ORDER BY p.created_at DESC`,
+    [owner_id]
+  );
+  return rows.map(hydrate);
+}
+
 module.exports = {
   create, findById, search, publish, markListingFeePaid, updateStatus, boost,
-  addPhoto, photosFor, withTransaction,
+  addPhoto, photosFor, setExpiry, listForOwner, withTransaction,
 };

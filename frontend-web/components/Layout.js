@@ -121,11 +121,14 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
                 <MenuItem disabled sx={{ opacity: 0.7, fontSize: 13 }}>
                   {user.full_name || user.phone}
                 </MenuItem>
+                <MenuItem onClick={() => { setAccountAnchor(null); router.push("/account"); }}>
+                  📋 Mes annonces
+                </MenuItem>
                 <MenuItem onClick={() => { setAccountAnchor(null); router.push("/sell?tx=sale"); }}>
                   📝 {t("nav.publish")}
                 </MenuItem>
                 <MenuItem onClick={logout} sx={{ color: "error.main" }}>
-                  Déconnexion
+                  {t("nav.logout")}
                 </MenuItem>
               </Menu>
             </>

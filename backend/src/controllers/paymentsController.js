@@ -33,7 +33,7 @@ async function initiate(req, res) {
   const { value, error } = initiateSchema.validate(req.body);
   if (error) throw BadRequest(error.message);
 
-  // Frais de publication : montant fixe 1 000 FCFA, pas négociable
+  // Frais de publication : montant fixe 2 000 FCFA/mois, pas négociable
   if (value.purpose === "listing_fee" && value.amount !== config.commissions.listingFeeXof) {
     throw BadRequest(`Frais de publication : montant attendu ${config.commissions.listingFeeXof} XOF`);
   }
@@ -122,7 +122,8 @@ async function webhook(req, res) {
     if (tx.purpose === "listing_fee" && tx.property_id) {
       try {
         await Property.markListingFeePaid(tx.property_id);
-        logger.info({ property_id: tx.property_id }, "listing_fee paid — annonce publiée");
+        await Property.setExpiry(tx.property_id, 30);
+        logger.info({ property_id: tx.property_id }, "listing_fee paid — annonce publiée + expiry 30j");
       } catch (e) {
         logger.error({ err: e.message, property_id: tx.property_id }, "markListingFeePaid failed");
       }
@@ -184,6 +185,7 @@ async function mockSucceed(req, res) {
   // Déclencher les effets du webhook en mode mock
   if (tx.purpose === "listing_fee" && tx.property_id) {
     await Property.markListingFeePaid(tx.property_id);
+    await Property.setExpiry(tx.property_id, 30);
   }
   if (tx.purpose === "boost" && tx.property_id) {
     await Property.boost(tx.property_id, updated.buyer_id, 7);

@@ -35,6 +35,7 @@ router.get ("/properties/:id",          publicLimiter, asyncHandler(propCtl.get)
 router.post("/properties",              requireAuth,   asyncHandler(propCtl.create));
 router.post("/properties/:id/publish",  requireAuth,   asyncHandler(propCtl.publish));
 router.post("/properties/:id/photos",   requireAuth,   asyncHandler(photoCtl.uploadPhotos));
+router.get ("/my/listings",             requireAuth,   asyncHandler(propCtl.myListings));
 
 // --- Payments ---
 router.get ("/payments/providers",       asyncHandler(payCtl.listProviders));

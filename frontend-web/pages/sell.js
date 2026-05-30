@@ -49,7 +49,11 @@ const RENT_PERIODS = [
 ];
 
 const PROP_TYPES = ["land","house","apartment","office","commercial"];
-const LISTING_FEE = 1000; // XOF
+const LISTING_FEE = 2000; // XOF/mois
+const EUR_RATE = 655.957; // taux fixe FCFA/EUR (parité officielle)
+const USD_RATE = 600;     // taux indicatif XOF/USD
+const feeEur = (LISTING_FEE / EUR_RATE).toFixed(2);
+const feeUsd = (LISTING_FEE / USD_RATE).toFixed(2);
 
 // ─── Provider labels ─────────────────────────────────────────────────────────
 const PROVIDER_LABELS = {
@@ -235,7 +239,7 @@ export default function SellPage() {
   }
 
   // ─── Stepper header ───────────────────────────────────────────────────────
-  var steps = ["1. Détails", "2. Paiement (1 000 FCFA)", "3. Photos"];
+  var steps = ["1. Détails", `2. Abonnement (${LISTING_FEE.toLocaleString()} FCFA/mois)`, "3. Photos"];
 
   return (
     <Layout title="Publier une annonce — ImmoBF">
@@ -372,8 +376,13 @@ export default function SellPage() {
         <Paper sx={{ p: 3 }} elevation={1}>
           <Typography variant="h6" gutterBottom>Frais de publication</Typography>
           <Alert severity="info" sx={{ mb: 3 }}>
-            Chaque annonce publiée sur ImmoBF coûte <strong>1 000 FCFA</strong>. Ce frais unique couvre
-            la modération, l'hébergement et la mise en avant de votre annonce.
+            La publication d'une annonce sur ImmoBF Africa coûte{" "}
+            <strong>{LISTING_FEE.toLocaleString()} FCFA / mois</strong>{" "}
+            <Typography component="span" variant="body2" color="text.secondary">
+              (≈ {feeEur} € · ≈ ${feeUsd})
+            </Typography>
+            . Votre annonce sera visible pendant <strong>30 jours</strong> et
+            doit être renouvelée pour rester active.
           </Alert>
 
           <Grid container spacing={2}>
@@ -454,7 +463,7 @@ export default function SellPage() {
               disabled={payBusy || polling || !phone || !provider}
               onClick={payListingFee}
             >
-              {payBusy ? "Initialisation…" : "Payer 1 000 FCFA"}
+              {payBusy ? "Initialisation…" : `Payer ${LISTING_FEE.toLocaleString()} FCFA`}
             </Button>
           </Box>
         </Paper>
