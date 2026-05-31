@@ -37,8 +37,8 @@ class CinetPayProvider extends PaymentProvider {
     if (!apiKey || !siteId) {
       return {
         external_id: `cp_stub_${reference}`,
-        status: "pending",
-        payment_url: `${config.webUrl}/mock-checkout?ref=${reference}`,
+        status: "succeeded",
+        payment_url: null,
         raw: { stub: true, payload },
       };
     }

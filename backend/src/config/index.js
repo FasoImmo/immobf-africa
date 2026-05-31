@@ -40,6 +40,13 @@ module.exports = {
     boostXof: parseInt(process.env.BOOST_PRICE_XOF || "5000", 10),
     agencySubXof: parseInt(process.env.AGENCY_SUBSCRIPTION_XOF || "20000", 10),
     listingFeeXof: parseInt(process.env.LISTING_FEE_XOF || "2000", 10),
+    // Tarifs dégressifs par durée (FCFA)
+    listingPlans: {
+      1:  parseInt(process.env.LISTING_FEE_1M  || "2000",  10), // 1 mois
+      3:  parseInt(process.env.LISTING_FEE_3M  || "5500",  10), // 3 mois (-8%)
+      6:  parseInt(process.env.LISTING_FEE_6M  || "10000", 10), // 6 mois (-17%)
+      12: parseInt(process.env.LISTING_FEE_12M || "18000", 10), // 12 mois (-25%)
+    },
   },
 
   providers: {

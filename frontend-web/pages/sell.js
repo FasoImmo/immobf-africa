@@ -49,12 +49,16 @@ const RENT_PERIODS = [
 ];
 
 const PROP_TYPES = ["land","house","apartment","office","commercial"];
-const LISTING_FEE = 2000; // XOF/mois
-const EUR_RATE = 655.957; // taux fixe FCFA/EUR (parité officielle)
-const USD_RATE = 600;     // taux indicatif XOF/USD
-const feeEur = (LISTING_FEE / EUR_RATE).toFixed(2);
-const feeUsd = (LISTING_FEE / USD_RATE).toFixed(2);
-const feeFmt = LISTING_FEE.toLocaleString("fr-FR"); // "2 000"
+const EUR_RATE = 655.957;
+const USD_RATE = 600;
+
+// Plans d'abonnement avec tarifs dégressifs
+const LISTING_PLANS = [
+  { months: 1,  price: 2000,  label: "1 mois",  saving: null },
+  { months: 3,  price: 5500,  label: "3 mois",  saving: "−8%" },
+  { months: 6,  price: 10000, label: "6 mois",  saving: "−17%" },
+  { months: 12, price: 18000, label: "12 mois", saving: "−25%" },
+];
 
 // ─── Provider labels ─────────────────────────────────────────────────────────
 const PROVIDER_LABELS = {
@@ -90,6 +94,7 @@ export default function SellPage() {
   const [dialCode, setDialCode] = useState("+226");
   const [localPhone, setLocalPhone] = useState("");
   const phone = dialCode + localPhone.replace(/\D/g, "");
+  const [selectedPlan, setSelectedPlan] = useState(LISTING_PLANS[0]);
   const [payErr, setPayErr] = useState(null);
   const [payBusy, setPayBusy] = useState(false);
   const [txId, setTxId] = useState(null);
@@ -194,7 +199,7 @@ export default function SellPage() {
     try {
       var res = await Payments.initiate({
         provider: provider,
-        amount: LISTING_FEE,
+        amount: selectedPlan.price,
         currency: "XOF",
         property_id: propertyId,
         purpose: "listing_fee",
@@ -245,7 +250,7 @@ export default function SellPage() {
   }
 
   // ─── Stepper header ───────────────────────────────────────────────────────
-  var steps = ["1. Détails", `2. Abonnement (${feeFmt} FCFA/mois)`, "3. Photos"];
+  var steps = ["1. Détails", `2. Abonnement`, "3. Photos"];
 
   return (
     <Layout title="Publier une annonce — ImmoBF">
@@ -375,7 +380,7 @@ export default function SellPage() {
             {formErr && <Alert severity="error" sx={{ mt: 2 }}>{formErr}</Alert>}
             <Box sx={{ mt: 3, textAlign: "right" }}>
               <Button type="submit" variant="contained" disabled={formBusy}>
-                Suivant : abonnement {feeFmt} FCFA/mois
+                Suivant : choisir la durée
               </Button>
             </Box>
           </form>
@@ -386,14 +391,51 @@ export default function SellPage() {
       {step === 2 && (
         <Paper sx={{ p: 3 }} elevation={1}>
           <Typography variant="h6" gutterBottom>Frais de publication</Typography>
-          <Alert severity="info" sx={{ mb: 3 }}>
-            La publication d'une annonce sur ImmoBF Africa coûte{" "}
-            <strong>{feeFmt} FCFA / mois</strong>{" "}
+          {/* Sélecteur de durée */}
+          <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
+            Choisissez votre durée de publication
+          </Typography>
+          <Grid container spacing={1} sx={{ mb: 3 }}>
+            {LISTING_PLANS.map((plan) => {
+              const selected = selectedPlan.months === plan.months;
+              const eur = (plan.price / EUR_RATE).toFixed(2);
+              return (
+                <Grid item xs={6} sm={3} key={plan.months}>
+                  <Paper
+                    elevation={selected ? 4 : 1}
+                    onClick={() => setSelectedPlan(plan)}
+                    sx={{
+                      p: 1.5, textAlign: "center", cursor: "pointer",
+                      border: selected ? "2px solid #0E7C66" : "2px solid transparent",
+                      borderRadius: 2, position: "relative",
+                      "&:hover": { borderColor: "#0E7C66" },
+                    }}
+                  >
+                    {plan.saving && (
+                      <Chip label={plan.saving} color="success" size="small"
+                        sx={{ position: "absolute", top: -10, right: -10, fontSize: 10 }} />
+                    )}
+                    <Typography variant="h6" color="primary" fontWeight={700}>
+                      {plan.label}
+                    </Typography>
+                    <Typography variant="body2" fontWeight={600}>
+                      {plan.price.toLocaleString("fr-FR")} FCFA
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      ≈ {eur} €
+                    </Typography>
+                  </Paper>
+                </Grid>
+              );
+            })}
+          </Grid>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Plan sélectionné : <strong>{selectedPlan.label}</strong> —{" "}
+            <strong>{selectedPlan.price.toLocaleString("fr-FR")} FCFA</strong>{" "}
             <Typography component="span" variant="body2" color="text.secondary">
-              (≈ {feeEur} € · ≈ ${feeUsd})
+              (≈ {(selectedPlan.price / EUR_RATE).toFixed(2)} € · ≈ ${(selectedPlan.price / USD_RATE).toFixed(2)})
             </Typography>
-            . Votre annonce sera visible pendant <strong>30 jours</strong> et
-            doit être renouvelée pour rester active.
+            . Votre annonce sera visible pendant <strong>{selectedPlan.months * 30} jours</strong>.
           </Alert>
 
           <Grid container spacing={2}>
@@ -474,7 +516,7 @@ export default function SellPage() {
               disabled={payBusy || polling || !phone || !provider}
               onClick={payListingFee}
             >
-              {payBusy ? "Initialisation…" : `Payer ${feeFmt} FCFA`}
+              {payBusy ? "Initialisation…" : `Payer ${selectedPlan.price.toLocaleString("fr-FR")} FCFA`}
             </Button>
           </Box>
         </Paper>

@@ -18,9 +18,9 @@ class MoovMoneyProvider extends PaymentProvider {
     if (!username || !password) {
       return {
         external_id: `moov_stub_${reference}`,
-        status: "pending",
-        ussd_code: "*555*6#",
-        payment_url: `${config.webUrl}/mock-checkout?ref=${reference}&provider=moov_money`,
+        status: "succeeded",
+        ussd_code: null,
+        payment_url: null,
         raw: { stub: true, amount, currency, customerPhone, description },
       };
     }

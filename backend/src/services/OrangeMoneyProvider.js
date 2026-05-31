@@ -20,9 +20,9 @@ class OrangeMoneyProvider extends PaymentProvider {
     if (!merchantKey || !authHeader) {
       return {
         external_id: `om_stub_${reference}`,
-        status: "pending",
-        ussd_code: "*144*4*6#",
-        payment_url: `${config.webUrl}/mock-checkout?ref=${reference}&provider=orange_money`,
+        status: "succeeded",
+        ussd_code: null,
+        payment_url: null,
         raw: { stub: true, amount, currency, customerPhone, description },
       };
     }

@@ -17,8 +17,8 @@ class WaveProvider extends PaymentProvider {
     if (!apiKey) {
       return {
         external_id: `wave_stub_${reference}`,
-        status: "pending",
-        payment_url: `${config.webUrl}/mock-checkout?ref=${reference}&provider=wave`,
+        status: "succeeded",
+        payment_url: null,
         raw: { stub: true, amount, currency, description },
       };
     }

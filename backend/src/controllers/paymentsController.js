@@ -33,9 +33,12 @@ async function initiate(req, res) {
   const { value, error } = initiateSchema.validate(req.body);
   if (error) throw BadRequest(error.message);
 
-  // Frais de publication : montant fixe 2 000 FCFA/mois, pas négociable
-  if (value.purpose === "listing_fee" && value.amount !== config.commissions.listingFeeXof) {
-    throw BadRequest(`Frais de publication : montant attendu ${config.commissions.listingFeeXof} XOF`);
+  // Frais de publication : montant doit correspondre à un plan valide
+  if (value.purpose === "listing_fee") {
+    const validAmounts = Object.values(config.commissions.listingPlans);
+    if (!validAmounts.includes(value.amount)) {
+      throw BadRequest(`Montant invalide. Plans disponibles (FCFA) : ${validAmounts.join(", ")}`);
+    }
   }
 
   const provider = registry.get(value.provider);
@@ -80,9 +83,13 @@ async function initiate(req, res) {
   if (finalStatus === "succeeded") {
     if (value.purpose === "listing_fee" && value.property_id) {
       try {
+        // Déterminer la durée en jours selon le plan choisi
+        const plans = config.commissions.listingPlans;
+        const months = Object.entries(plans).find(([, v]) => v === value.amount)?.[0] || 1;
+        const days = Number(months) * 30;
         await Property.markListingFeePaid(value.property_id);
-        await Property.setExpiry(value.property_id, 30);
-        logger.info({ property_id: value.property_id }, "stub: listing_fee succeeded");
+        await Property.setExpiry(value.property_id, days);
+        logger.info({ property_id: value.property_id, days }, "stub: listing_fee succeeded");
       } catch (e) {
         logger.warn({ err: e.message }, "stub: markListingFeePaid failed");
       }
@@ -135,9 +142,12 @@ async function webhook(req, res) {
     // --- Frais de publication → auto-publier l'annonce ---
     if (tx.purpose === "listing_fee" && tx.property_id) {
       try {
+        const plans = config.commissions.listingPlans;
+        const months = Object.entries(plans).find(([, v]) => v === Number(tx.amount))?.[0] || 1;
+        const days = Number(months) * 30;
         await Property.markListingFeePaid(tx.property_id);
-        await Property.setExpiry(tx.property_id, 30);
-        logger.info({ property_id: tx.property_id }, "listing_fee paid — annonce publiée + expiry 30j");
+        await Property.setExpiry(tx.property_id, days);
+        logger.info({ property_id: tx.property_id, days }, "listing_fee paid — annonce publiée");
       } catch (e) {
         logger.error({ err: e.message, property_id: tx.property_id }, "markListingFeePaid failed");
       }
