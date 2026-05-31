@@ -337,14 +337,19 @@ export default function SellPage() {
               </Grid>
 
               <Grid item xs={12} sm={4}>
-                <TextField fullWidth type="number" label={priceLabel} value={form.price} onChange={change("price")} required />
+                <TextField fullWidth type="number" label={priceLabel} value={form.price} onChange={change("price")} required
+                  helperText={form.price ? `${Number(form.price).toLocaleString("fr-FR")} FCFA` : " "} />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <TextField fullWidth type="number" label="Superficie (m²)" value={form.area_m2} onChange={change("area_m2")} />
+                <TextField fullWidth type="number" label="Superficie (m²)" value={form.area_m2} onChange={change("area_m2")}
+                  helperText={form.area_m2 ? `${Number(form.area_m2).toLocaleString("fr-FR")} m²` : " "} />
               </Grid>
               {form.transaction_type === "sale" && (
                 <Grid item xs={12} sm={4}>
-                  <TextField fullWidth type="number" label="Acompte (%)" value={form.deposit_pct} onChange={change("deposit_pct")} />
+                  <TextField fullWidth type="number" label="Acompte (%)" value={form.deposit_pct} onChange={change("deposit_pct")}
+                    helperText={form.price && form.deposit_pct
+                      ? `= ${Math.round(Number(form.price) * Number(form.deposit_pct) / 100).toLocaleString("fr-FR")} FCFA`
+                      : " "} />
                 </Grid>
               )}
 
