@@ -167,9 +167,9 @@ export default function SellPage() {
   }
 
   var isRent = form.transaction_type !== "sale";
-  var priceLabel = form.transaction_type === "sale" ? "Prix de vente (XOF) *"
-    : form.transaction_type === "rent_short" ? "Prix / nuit ou semaine (XOF) *"
-    : "Loyer mensuel (XOF) *";
+  var priceLabel = form.transaction_type === "sale" ? t("sell.price_sale")
+    : form.transaction_type === "rent_short" ? t("sell.price_rent_short")
+    : t("sell.price_rent_long");
 
   // ─── Étape 1 : soumettre le formulaire ───────────────────────────────────
   async function submitProperty(e) {
@@ -250,11 +250,15 @@ export default function SellPage() {
   }
 
   // ─── Stepper header ───────────────────────────────────────────────────────
-  var steps = ["1. Détails", `2. Abonnement`, "3. Photos"];
+  var steps = [
+    `1. ${t("sell.step_details")}`,
+    `2. ${t("sell.step_payment")}`,
+    `3. ${t("sell.step_photos")}`,
+  ];
 
   return (
-    <Layout title="Publier une annonce — ImmoBF">
-      <Typography variant="h4" gutterBottom>Publier une annonce</Typography>
+    <Layout title={`${t("sell.title")} — ImmoBF`}>
+      <Typography variant="h4" gutterBottom>{t("sell.title")}</Typography>
 
       {/* Progress steps */}
       <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
@@ -281,7 +285,7 @@ export default function SellPage() {
               {/* ── Sélecteur type de transaction (boutons visibles) ── */}
               <Grid item xs={12}>
                 <Typography variant="subtitle2" sx={{ mb: 1, color: "text.secondary" }}>
-                  Type de transaction *
+                  {t("sell.transaction_type")} *
                 </Typography>
                 <ToggleButtonGroup
                   exclusive fullWidth
@@ -290,13 +294,13 @@ export default function SellPage() {
                   sx={{ gap: 1 }}
                 >
                   <ToggleButton value="sale" sx={{ flex: 1, py: 1.5, fontWeight: 600, borderRadius: "8px !important" }}>
-                    🏷️ Vente
+                    🏷️ {t("nav.publish_sale")}
                   </ToggleButton>
                   <ToggleButton value="rent_long" sx={{ flex: 1, py: 1.5, fontWeight: 600, borderRadius: "8px !important" }}>
-                    🔑 Location
+                    🔑 {t("nav.publish_rent_long")}
                   </ToggleButton>
                   <ToggleButton value="rent_short" sx={{ flex: 1, py: 1.5, fontWeight: 600, borderRadius: "8px !important" }}>
-                    🌙 Courte durée
+                    🌙 {t("nav.publish_rent_short")}
                   </ToggleButton>
                 </ToggleButtonGroup>
               </Grid>
@@ -310,14 +314,14 @@ export default function SellPage() {
               {isRent && (
                 <>
                   <Grid item xs={12} sm={6}>
-                    <TextField select fullWidth label="Période de location" value={form.rent_period} onChange={change("rent_period")}>
+                    <TextField select fullWidth label={t("sell.rent_period")} value={form.rent_period} onChange={change("rent_period")}>
                       {RENT_PERIODS.map(function(o) { return <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>; })}
                     </TextField>
                   </Grid>
                   <Grid item xs={12} sm={6} sx={{ display: "flex", alignItems: "center" }}>
                     <FormControlLabel
                       control={<Switch checked={form.is_furnished} onChange={change("is_furnished")} />}
-                      label="Meublé / équipé"
+                      label={t("sell.furnished")}
                     />
                   </Grid>
                 </>
@@ -326,10 +330,10 @@ export default function SellPage() {
               <Grid item xs={12}><Divider /></Grid>
 
               <Grid item xs={12} sm={8}>
-                <TextField fullWidth label="Titre *" value={form.title} onChange={change("title")} required />
+                <TextField fullWidth label={`${t("sell.title_field")} *`} value={form.title} onChange={change("title")} required />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <TextField select fullWidth label="Pays" value={form.country_code} onChange={change("country_code")}>
+                <TextField select fullWidth label={t("sell.country")} value={form.country_code} onChange={change("country_code")}>
                   {AFRICAN_COUNTRIES.map((c) => (
                     <MenuItem key={c.code} value={c.code}>
                       {c.flag} {c.name}
@@ -338,7 +342,7 @@ export default function SellPage() {
                 </TextField>
               </Grid>
               <Grid item xs={12}>
-                <TextField fullWidth multiline minRows={3} label="Description" value={form.description} onChange={change("description")} />
+                <TextField fullWidth multiline minRows={3} label={t("sell.description")} value={form.description} onChange={change("description")} />
               </Grid>
 
               <Grid item xs={12} sm={4}>
@@ -346,12 +350,12 @@ export default function SellPage() {
                   helperText={form.price ? `${Number(form.price).toLocaleString("fr-FR")} FCFA` : " "} />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <TextField fullWidth type="number" label="Superficie (m²)" value={form.area_m2} onChange={change("area_m2")}
+                <TextField fullWidth type="number" label={t("sell.area")} value={form.area_m2} onChange={change("area_m2")}
                   helperText={form.area_m2 ? `${Number(form.area_m2).toLocaleString("fr-FR")} m²` : " "} />
               </Grid>
               {form.transaction_type === "sale" && (
                 <Grid item xs={12} sm={4}>
-                  <TextField fullWidth type="number" label="Acompte (%)" value={form.deposit_pct} onChange={change("deposit_pct")}
+                  <TextField fullWidth type="number" label={t("sell.deposit_pct")} value={form.deposit_pct} onChange={change("deposit_pct")}
                     helperText={form.price && form.deposit_pct
                       ? `= ${Math.round(Number(form.price) * Number(form.deposit_pct) / 100).toLocaleString("fr-FR")} FCFA`
                       : " "} />
@@ -359,19 +363,19 @@ export default function SellPage() {
               )}
 
               <Grid item xs={12} sm={6}>
-                <TextField fullWidth label="Ville *" value={form.city} onChange={change("city")} required />
+                <TextField fullWidth label={`${t("sell.city")} *`} value={form.city} onChange={change("city")} required />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField fullWidth label="Adresse" value={form.address} onChange={change("address")} />
+                <TextField fullWidth label={t("sell.address")} value={form.address} onChange={change("address")} />
               </Grid>
 
               {form.type !== "land" && (
                 <>
                   <Grid item xs={6} sm={3}>
-                    <TextField fullWidth type="number" label="Chambres" value={form.bedrooms} onChange={change("bedrooms")} />
+                    <TextField fullWidth type="number" label={t("sell.bedrooms")} value={form.bedrooms} onChange={change("bedrooms")} />
                   </Grid>
                   <Grid item xs={6} sm={3}>
-                    <TextField fullWidth type="number" label="Salles de bain" value={form.bathrooms} onChange={change("bathrooms")} />
+                    <TextField fullWidth type="number" label={t("sell.bathrooms")} value={form.bathrooms} onChange={change("bathrooms")} />
                   </Grid>
                 </>
               )}
@@ -380,7 +384,7 @@ export default function SellPage() {
             {formErr && <Alert severity="error" sx={{ mt: 2 }}>{formErr}</Alert>}
             <Box sx={{ mt: 3, textAlign: "right" }}>
               <Button type="submit" variant="contained" disabled={formBusy}>
-                Suivant : choisir la durée
+                {t("sell.next_btn")}
               </Button>
             </Box>
           </form>
@@ -390,10 +394,10 @@ export default function SellPage() {
       {/* ─── ÉTAPE 2 : Paiement frais de publication ─────────────────────── */}
       {step === 2 && (
         <Paper sx={{ p: 3 }} elevation={1}>
-          <Typography variant="h6" gutterBottom>Frais de publication</Typography>
+          <Typography variant="h6" gutterBottom>{t("sell.step_payment")}</Typography>
           {/* Sélecteur de durée */}
           <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
-            Choisissez votre durée de publication
+            {t("sell.choose_duration")}
           </Typography>
           <Grid container spacing={1} sx={{ mb: 3 }}>
             {LISTING_PLANS.map((plan) => {
@@ -430,18 +434,18 @@ export default function SellPage() {
             })}
           </Grid>
           <Alert severity="info" sx={{ mb: 2 }}>
-            Plan sélectionné : <strong>{selectedPlan.label}</strong> —{" "}
+            {t("sell.plan_selected")} : <strong>{selectedPlan.label}</strong> —{" "}
             <strong>{selectedPlan.price.toLocaleString("fr-FR")} FCFA</strong>{" "}
             <Typography component="span" variant="body2" color="text.secondary">
               (≈ {(selectedPlan.price / EUR_RATE).toFixed(2)} € · ≈ ${(selectedPlan.price / USD_RATE).toFixed(2)})
             </Typography>
-            . Votre annonce sera visible pendant <strong>{selectedPlan.months * 30} jours</strong>.
+            . {t("sell.plan_visible")} <strong>{selectedPlan.months * 30} {t("sell.days")}</strong>.
           </Alert>
 
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <TextField
-                select fullWidth label="Moyen de paiement" value={provider}
+                select fullWidth label={t("sell.payment_method")} value={provider}
                 onChange={function(e) { setProvider(e.target.value); }}
                 disabled={polling}
               >
@@ -471,7 +475,7 @@ export default function SellPage() {
                   </Select>
                 </FormControl>
                 <TextField
-                  fullWidth label="Numéro mobile money"
+                  fullWidth label={t("sell.mobile_money")}
                   value={localPhone}
                   onChange={(e) => setLocalPhone(e.target.value.replace(/\D/g, ""))}
                   disabled={polling}
@@ -509,14 +513,14 @@ export default function SellPage() {
 
           <Box sx={{ mt: 3, display: "flex", justifyContent: "space-between" }}>
             <Button variant="text" disabled={polling} onClick={function() { setStep(1); }}>
-              ← Retour
+              {t("sell.back_btn")}
             </Button>
             <Button
               variant="contained" size="large"
               disabled={payBusy || polling || !phone || !provider}
               onClick={payListingFee}
             >
-              {payBusy ? "Initialisation…" : `Payer ${selectedPlan.price.toLocaleString("fr-FR")} FCFA`}
+              {payBusy ? "…" : `${t("sell.pay_btn")} ${selectedPlan.price.toLocaleString("fr-FR")} FCFA`}
             </Button>
           </Box>
         </Paper>
@@ -526,11 +530,11 @@ export default function SellPage() {
       {step === 3 && (
         <Paper sx={{ p: 3 }} elevation={1}>
           <Alert severity="success" sx={{ mb: 2 }}>
-            ✓ Paiement confirmé — votre annonce est publiée !
+            {t("sell.payment_confirmed")}
           </Alert>
-          <Typography variant="h6" gutterBottom>Ajouter des photos et vidéos (optionnel)</Typography>
+          <Typography variant="h6" gutterBottom>{t("sell.photos_title")}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            JPG, PNG, WebP, GIF, MP4 — 10 fichiers max, 50 MB chacun.
+            {t("sell.photos_hint")}
           </Typography>
           <Box
             onDrop={onDrop}
@@ -543,7 +547,7 @@ export default function SellPage() {
               "&:hover": { bgcolor: "rgba(14,124,102,0.08)" }
             }}
           >
-            <Typography>Glissez vos fichiers ici ou cliquez pour sélectionner</Typography>
+            <Typography>{t("sell.photos_drop")}</Typography>
             <input id="file-input" type="file" multiple
               accept="image/*,video/mp4,video/quicktime,video/webm"
               style={{ display: "none" }} onChange={onFilePick} />
@@ -572,10 +576,10 @@ export default function SellPage() {
 
           <Box sx={{ mt: 3, display: "flex", justifyContent: "space-between" }}>
             <Button variant="text" onClick={function() { router.push("/properties/" + propertyId); }} disabled={uploadBusy}>
-              Passer cette étape
+              {t("sell.skip_photos")}
             </Button>
             <Button variant="contained" onClick={uploadFiles} disabled={uploadBusy}>
-              {files.length ? "Uploader et terminer" : "Terminer sans photo"}
+              {files.length ? t("sell.upload_btn") : t("sell.finish_btn")}
             </Button>
           </Box>
         </Paper>
