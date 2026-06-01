@@ -204,7 +204,7 @@ export default function SellPage() {
         property_id: propertyId,
         purpose: "listing_fee",
         customer_phone: phone,
-        description: `Abonnement ImmoBF Africa — ${feeFmt} FCFA/mois`,
+        description: `Abonnement ImmoBF Africa — ${selectedPlan.price.toLocaleString("fr-FR")} FCFA / ${selectedPlan.label}`,
       });
       setTxId(res.transaction_id);
       // Stub mode : succès immédiat → passer directement à l'étape photos
