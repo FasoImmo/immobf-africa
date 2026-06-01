@@ -59,6 +59,26 @@ router.get ("/properties/:id/stats",    requireAuth,      asyncHandler(analytics
 router.get ("/my/stats",                requireAuth,      asyncHandler(analytics.myStats));
 router.get ("/suggestions",             asyncHandler(analytics.suggestions));
 
+// Newsletter
+router.post("/newsletter/subscribe", publicLimiter, asyncHandler(async (req, res) => {
+  const { email, name } = req.body || {};
+  if (!email || !email.includes("@")) {
+    return res.status(400).json({ error: { message: "Email invalide" } });
+  }
+  const { sendNewsletterConfirmation } = require("../services/email");
+  await sendNewsletterConfirmation(email);
+  // Optionnel : stocker en DB
+  try {
+    const { query: dbQ } = require("../config/db");
+    await dbQ(
+      `INSERT INTO newsletter_subscribers (email, name) VALUES ($1, $2)
+       ON CONFLICT (email) DO NOTHING`,
+      [email, name || null]
+    );
+  } catch (_) {}
+  res.json({ subscribed: true });
+}));
+
 // Dev mocks
 router.post("/payments/mock/:reference/succeed", asyncHandler(payCtl.mockSucceed));
 

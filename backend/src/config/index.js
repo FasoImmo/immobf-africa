@@ -19,6 +19,11 @@ module.exports = {
   appUrl: process.env.APP_URL || "http://localhost:4000",
   webUrl: process.env.WEB_URL || "http://localhost:3000",
 
+  email: {
+    resendKey: process.env.RESEND_API_KEY || null,
+    from: process.env.EMAIL_FROM || "ImmoBF Africa <noreply@immoafrica.online>",
+  },
+
   db: {
     url: required("DATABASE_URL", "postgres://immobf:immobf_dev@localhost:5432/immobf"),
   },

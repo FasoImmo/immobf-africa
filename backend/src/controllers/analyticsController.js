@@ -32,6 +32,27 @@ async function trackView(req, res) {
     [property_id, user_id, session_id, event_type, country_code, referrer]
   );
 
+  // Notifier le propriétaire par email lors d'un clic WhatsApp
+  if (event_type === "whatsapp_click") {
+    try {
+      const { query: dbQuery } = require("../config/db");
+      const { sendWhatsAppNotification } = require("../services/email");
+      const { rows } = await dbQuery(
+        `SELECT p.title, u.email FROM properties p
+         JOIN users u ON u.id = p.owner_id
+         WHERE p.id = $1 AND u.email IS NOT NULL`,
+        [property_id]
+      );
+      if (rows[0]?.email) {
+        await sendWhatsAppNotification(rows[0].email, {
+          propertyTitle: rows[0].title,
+          propertyId: property_id,
+          visitorCountry: country_code,
+        });
+      }
+    } catch (_) {}
+  }
+
   res.json({ ok: true });
 }
 

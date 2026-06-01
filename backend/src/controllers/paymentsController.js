@@ -164,11 +164,25 @@ async function webhook(req, res) {
       await Property.boost(tx.property_id, updated.buyer_id, 7);
     }
 
-    // --- Reçu ---
+    // --- Reçu PDF + Email ---
     try {
       const buyer = await User.findById(updated.buyer_id);
       const property = updated.property_id ? await Property.findById(updated.property_id) : null;
       await generateReceipt(updated, { buyer, property });
+      // Email reçu si l'utilisateur a un email
+      if (buyer?.email) {
+        const { sendPaymentReceipt } = require("../services/email");
+        const plans = config.commissions.listingPlans;
+        const months = Object.entries(plans).find(([, v]) => v === Number(updated.amount))?.[0] || 1;
+        await sendPaymentReceipt(buyer.email, {
+          amount: updated.amount,
+          currency: updated.currency,
+          reference: updated.reference,
+          purpose: updated.purpose,
+          propertyTitle: property?.title,
+          months: Number(months),
+        });
+      }
     } catch (e) {
       logger.warn({ err: e.message }, "Receipt generation failed");
     }

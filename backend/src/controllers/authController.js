@@ -81,7 +81,7 @@ async function forgotPassword(req, res) {
   if (error) throw BadRequest(error.message);
   const user = await User.findByPhone(value.phone);
   // Toujours répondre OK (évite l'énumération de numéros)
-  if (user) await sendOtp(value.phone);
+  if (user) await sendOtp(value.phone, user.email || null, "reset");
   res.json({ sent: true, message: "Si ce numéro est enregistré, un code a été envoyé." });
 }
 

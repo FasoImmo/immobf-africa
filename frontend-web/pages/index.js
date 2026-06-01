@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Box, Button, Grid, Typography, Paper, TextField, MenuItem, Divider, Chip } from "@mui/material";
+import { Box, Button, Grid, Typography, Paper, TextField, MenuItem, Divider, Chip, Alert } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
 import PropertyCard from "../components/PropertyCard";
 import { Properties, Analytics } from "../lib/api";
+import api from "../lib/api";
 
 export default function Home() {
   const { t } = useTranslation();
@@ -16,6 +17,9 @@ export default function Home() {
   const [suggestions, setSuggestions] = useState([]);
   const [recentItems, setRecentItems] = useState([]);
   const [suggestContext, setSuggestContext] = useState(null);
+  const [nlEmail, setNlEmail] = useState("");
+  const [nlDone, setNlDone] = useState(false);
+  const [nlLoading, setNlLoading] = useState(false);
 
   useEffect(() => {
     // Annonces récentes
@@ -158,12 +162,49 @@ export default function Home() {
         ))}
         {items.length === 0 && (
           <Grid item xs={12}>
-            <Typography color="text.secondary">
-              Aucune annonce pour l'instant.
-            </Typography>
+            <Typography color="text.secondary">Aucune annonce pour l'instant.</Typography>
           </Grid>
         )}
       </Grid>
+
+      {/* ── Newsletter ── */}
+      <Paper elevation={0} sx={{
+        mt: 6, p: 4, textAlign: "center",
+        background: "linear-gradient(135deg,#0E7C66,#13a48c)", color: "white", borderRadius: 3,
+      }}>
+        <Typography variant="h5" gutterBottom>📬 Restez informé</Typography>
+        <Typography variant="body1" sx={{ mb: 3, opacity: 0.9 }}>
+          Recevez en avant-première les nouvelles annonces et tendances du marché immobilier africain.
+        </Typography>
+        {nlDone ? (
+          <Alert severity="success" sx={{ maxWidth: 400, mx: "auto" }}>
+            ✓ Inscription confirmée ! Vérifiez votre email.
+          </Alert>
+        ) : (
+          <Box sx={{ display: "flex", gap: 1, maxWidth: 420, mx: "auto", flexWrap: "wrap" }}>
+            <TextField
+              fullWidth size="small" placeholder="Votre email"
+              value={nlEmail} onChange={(e) => setNlEmail(e.target.value)}
+              sx={{ bgcolor: "white", borderRadius: 1, flex: "1 1 200px" }}
+              inputProps={{ type: "email" }}
+            />
+            <Button
+              variant="contained" color="secondary"
+              disabled={nlLoading || !nlEmail}
+              onClick={async () => {
+                setNlLoading(true);
+                try {
+                  await api.post("/newsletter/subscribe", { email: nlEmail });
+                  setNlDone(true);
+                } catch (_) {}
+                setNlLoading(false);
+              }}
+            >
+              {nlLoading ? "…" : "S'inscrire"}
+            </Button>
+          </Box>
+        )}
+      </Paper>
     </Layout>
   );
 }
