@@ -45,4 +45,9 @@ async function markPhoneVerified(id) {
   await query(`UPDATE users SET phone_verified = TRUE WHERE id = $1`, [id]);
 }
 
-module.exports = { create, findByPhone, findById, verifyPassword, markPhoneVerified };
+async function updatePassword(phone, newPassword) {
+  const password_hash = await argon2.hash(newPassword, { type: argon2.argon2id });
+  await query(`UPDATE users SET password_hash = $1 WHERE phone = $2`, [password_hash, phone]);
+}
+
+module.exports = { create, findByPhone, findById, verifyPassword, markPhoneVerified, updatePassword };

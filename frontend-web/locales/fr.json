@@ -144,7 +144,21 @@
     "privacy_link": "Politique de Confidentialité",
     "cgu_suffix": "d'ImmoBF Africa.",
     "cgu_required": "Vous devez accepter les CGU pour créer un compte.",
-    "cgu_notice": "En créant un compte, vous certifiez avoir lu et accepté nos documents juridiques. Version 1.0 — 12 mai 2026."
+    "cgu_notice": "En créant un compte, vous certifiez avoir lu et accepté nos documents juridiques. Version 1.0 — 12 mai 2026.",
+    "forgot_password": "Mot de passe oublié ?",
+    "forgot_title": "Réinitialiser le mot de passe",
+    "forgot_hint": "Entrez votre numéro de téléphone pour recevoir un code de vérification.",
+    "send_otp": "Envoyer le code",
+    "otp_sent_to": "Code envoyé au",
+    "otp_code": "Code de vérification (6 chiffres)",
+    "verify_otp": "Vérifier le code",
+    "resend_otp": "Renvoyer le code",
+    "new_password": "Nouveau mot de passe",
+    "confirm_password": "Confirmer le mot de passe",
+    "passwords_mismatch": "Les mots de passe ne correspondent pas.",
+    "reset_btn": "Réinitialiser le mot de passe",
+    "reset_success": "Mot de passe réinitialisé avec succès ! Redirection vers la connexion…",
+    "back_to_login": "Retour à la connexion"
   },
   "footer": {
     "cgu": "CGU",

@@ -158,6 +158,11 @@ export default function Login() {
                 <Button type="submit" fullWidth variant="contained" sx={{ mt: 3 }}>
                   {t("auth.login_btn")}
                 </Button>
+                <Box sx={{ textAlign: "right", mt: 1 }}>
+                  <Link href="/forgot-password" style={{ fontSize: 13, color: "#0E7C66" }}>
+                    {t("auth.forgot_password")}
+                  </Link>
+                </Box>
               </form>
             )}
 

@@ -144,7 +144,21 @@
     "privacy_link": "Privacy Policy",
     "cgu_suffix": "of ImmoBF Africa.",
     "cgu_required": "You must accept the Terms and Conditions to create an account.",
-    "cgu_notice": "By creating an account, you confirm that you have read and accepted our legal documents. Version 1.0 — May 12, 2026."
+    "cgu_notice": "By creating an account, you confirm that you have read and accepted our legal documents. Version 1.0 — May 12, 2026.",
+    "forgot_password": "Forgot password?",
+    "forgot_title": "Reset password",
+    "forgot_hint": "Enter your phone number to receive a verification code.",
+    "send_otp": "Send code",
+    "otp_sent_to": "Code sent to",
+    "otp_code": "Verification code (6 digits)",
+    "verify_otp": "Verify code",
+    "resend_otp": "Resend code",
+    "new_password": "New password",
+    "confirm_password": "Confirm password",
+    "passwords_mismatch": "Passwords do not match.",
+    "reset_btn": "Reset password",
+    "reset_success": "Password reset successfully! Redirecting to login…",
+    "back_to_login": "Back to login"
   },
   "footer": {
     "cgu": "Terms",

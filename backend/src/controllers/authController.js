@@ -75,4 +75,34 @@ async function resendOtp(req, res) {
   res.json({ sent: true });
 }
 
-module.exports = { register, login, verifyPhone, me, resendOtp };
+// Étape 1 : demander un OTP de réinitialisation
+async function forgotPassword(req, res) {
+  const { value, error } = Joi.object({ phone: phoneSchema }).validate(req.body);
+  if (error) throw BadRequest(error.message);
+  const user = await User.findByPhone(value.phone);
+  // Toujours répondre OK (évite l'énumération de numéros)
+  if (user) await sendOtp(value.phone);
+  res.json({ sent: true, message: "Si ce numéro est enregistré, un code a été envoyé." });
+}
+
+// Étape 2 : vérifier OTP + nouveau mot de passe
+async function resetPassword(req, res) {
+  const schema = Joi.object({
+    phone: phoneSchema,
+    code: Joi.string().length(6).required(),
+    new_password: Joi.string().min(8).max(128).required(),
+  });
+  const { value, error } = schema.validate(req.body);
+  if (error) throw BadRequest(error.message);
+
+  const ok = await verifyOtp(value.phone, value.code);
+  if (!ok) throw BadRequest("Code OTP invalide ou expiré");
+
+  const user = await User.findByPhone(value.phone);
+  if (!user) throw BadRequest("Utilisateur introuvable");
+
+  await User.updatePassword(value.phone, value.new_password);
+  res.json({ success: true, message: "Mot de passe réinitialisé avec succès." });
+}
+
+module.exports = { register, login, verifyPhone, me, resendOtp, forgotPassword, resetPassword };

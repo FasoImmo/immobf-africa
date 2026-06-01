@@ -33,6 +33,8 @@ export const Auth = {
   login: (data) => api.post("/auth/login", data).then((r) => r.data),
   me: () => api.get("/auth/me").then((r) => r.data),
   verifyOtp: (data) => api.post("/auth/otp/verify", data).then((r) => r.data),
+  forgotPassword: (phone) => api.post("/auth/forgot-password", { phone }).then((r) => r.data),
+  resetPassword: (data) => api.post("/auth/reset-password", data).then((r) => r.data),
 };
 
 export const Analytics = {

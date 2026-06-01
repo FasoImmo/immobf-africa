@@ -25,9 +25,11 @@ router.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 // --- Auth ---
 router.post("/auth/register",   authLimiter, asyncHandler(authCtl.register));
 router.post("/auth/login",      authLimiter, asyncHandler(authCtl.login));
-router.post("/auth/otp/verify", authLimiter, asyncHandler(authCtl.verifyPhone));
-router.post("/auth/otp/resend", authLimiter, asyncHandler(authCtl.resendOtp));
-router.get ("/auth/me",         requireAuth, asyncHandler(authCtl.me));
+router.post("/auth/otp/verify",       authLimiter, asyncHandler(authCtl.verifyPhone));
+router.post("/auth/otp/resend",       authLimiter, asyncHandler(authCtl.resendOtp));
+router.post("/auth/forgot-password",  authLimiter, asyncHandler(authCtl.forgotPassword));
+router.post("/auth/reset-password",   authLimiter, asyncHandler(authCtl.resetPassword));
+router.get ("/auth/me",               requireAuth, asyncHandler(authCtl.me));
 
 // --- Properties ---
 router.get ("/properties",              publicLimiter, asyncHandler(propCtl.search));
