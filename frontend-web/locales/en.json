@@ -12,7 +12,9 @@
     "agencies": "Agencies",
     "login": "Log in",
     "register": "Sign up",
-    "logout": "Log out"
+    "logout": "Log out",
+    "my_account": "My account",
+    "my_listings": "My listings"
   },
   "browse": {
     "all": "Sale & Rental",
@@ -31,6 +33,30 @@
     "area_min": "Min area",
     "bedrooms": "Bedrooms",
     "no_results": "No results for these filters."
+  },
+  "account": {
+    "title": "My account",
+    "total": "Total listings",
+    "active": "Active",
+    "expiring": "Expiring soon",
+    "expired": "Expired",
+    "my_listings": "My listings",
+    "new_listing": "+ New listing",
+    "no_listings": "You don't have any listings yet.",
+    "post_first": "Post your first listing",
+    "view": "View",
+    "renew": "Renew",
+    "expires_on": "Expires on",
+    "status_active": "Active",
+    "status_expiring": "Expires in",
+    "status_expired": "Expired — listing hidden",
+    "status_none": "No subscription",
+    "days_left": "days left",
+    "total_views": "views",
+    "unique_visitors": "unique visitors",
+    "whatsapp_clicks": "WhatsApp contacts",
+    "views_week": "views this week",
+    "loading_error": "Unable to load your listings."
   },
   "sell": {
     "title": "Post a listing",

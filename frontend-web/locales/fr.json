@@ -12,7 +12,9 @@
     "agencies": "Agences",
     "login": "Connexion",
     "register": "S'inscrire",
-    "logout": "Déconnexion"
+    "logout": "Déconnexion",
+    "my_account": "Mon compte",
+    "my_listings": "Mes annonces"
   },
   "browse": {
     "all": "Vente & Location",
@@ -31,6 +33,30 @@
     "area_min": "Superficie min",
     "bedrooms": "Chambres",
     "no_results": "Aucun résultat pour ces filtres."
+  },
+  "account": {
+    "title": "Mon compte",
+    "total": "Annonces totales",
+    "active": "Actives",
+    "expiring": "Expirent bientôt",
+    "expired": "Expirées",
+    "my_listings": "Mes annonces",
+    "new_listing": "+ Nouvelle annonce",
+    "no_listings": "Vous n'avez pas encore d'annonce.",
+    "post_first": "Publiez votre première annonce",
+    "view": "Voir",
+    "renew": "Renouveler",
+    "expires_on": "Expire le",
+    "status_active": "Actif",
+    "status_expiring": "Expire dans",
+    "status_expired": "Expiré — annonce masquée",
+    "status_none": "Aucun abonnement",
+    "days_left": "j restants",
+    "total_views": "vues",
+    "unique_visitors": "visiteurs uniques",
+    "whatsapp_clicks": "contacts WhatsApp",
+    "views_week": "vues cette semaine",
+    "loading_error": "Impossible de charger vos annonces."
   },
   "sell": {
     "title": "Publier une annonce",

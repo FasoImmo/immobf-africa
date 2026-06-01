@@ -15,27 +15,25 @@ const EUR_RATE = 655.957;
 const USD_RATE = 600;
 const LISTING_FEE = 2000;
 
-function SubscriptionBadge({ status, daysRemaining }) {
+function SubscriptionBadge({ status, daysRemaining, t }) {
   if (status === "active") {
     return (
-      <Chip
-        size="small" color="success"
-        label={`Actif — ${daysRemaining}j restants`}
+      <Chip size="small" color="success"
+        label={`${t("account.status_active")} — ${daysRemaining} ${t("account.days_left")}`}
       />
     );
   }
   if (status === "expiring_soon") {
     return (
-      <Chip
-        size="small" color="warning"
-        label={`Expire dans ${daysRemaining}j`}
+      <Chip size="small" color="warning"
+        label={`${t("account.status_expiring")} ${daysRemaining} ${t("account.days_left")}`}
       />
     );
   }
   if (status === "expired") {
-    return <Chip size="small" color="error" label="Expiré — annonce masquée" />;
+    return <Chip size="small" color="error" label={t("account.status_expired")} />;
   }
-  return <Chip size="small" color="default" label="Aucun abonnement" />;
+  return <Chip size="small" color="default" label={t("account.status_none")} />;
 }
 
 export default function AccountPage() {
@@ -70,8 +68,8 @@ export default function AccountPage() {
   };
 
   return (
-    <Layout title="Mon compte — ImmoBF Africa">
-      <Typography variant="h4" gutterBottom>Mon compte</Typography>
+    <Layout title={`${t("account.title")} — ImmoBF Africa`}>
+      <Typography variant="h4" gutterBottom>{t("account.title")}</Typography>
 
       {user && (
         <Paper elevation={0} sx={{ p: 2, mb: 3, bgcolor: "#f5f5f5", borderRadius: 2 }}>
@@ -83,10 +81,10 @@ export default function AccountPage() {
       {/* Résumé abonnements */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {[
-          { label: "Annonces totales", value: stats.total, color: "primary.main" },
-          { label: "Actives", value: stats.active, color: "success.main" },
-          { label: "Expirent bientôt", value: stats.expiring, color: "warning.main" },
-          { label: "Expirées", value: stats.expired, color: "error.main" },
+          { label: t("account.total"), value: stats.total, color: "primary.main" },
+          { label: t("account.active"), value: stats.active, color: "success.main" },
+          { label: t("account.expiring"), value: stats.expiring, color: "warning.main" },
+          { label: t("account.expired"), value: stats.expired, color: "error.main" },
         ].map((s) => (
           <Grid item xs={6} sm={3} key={s.label}>
             <Paper elevation={1} sx={{ p: 2, textAlign: "center" }}>
@@ -98,9 +96,9 @@ export default function AccountPage() {
       </Grid>
 
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-        <Typography variant="h5">Mes annonces</Typography>
+        <Typography variant="h5">{t("account.my_listings")}</Typography>
         <Button variant="contained" component={Link} href="/sell">
-          + Nouvelle annonce
+          {t("account.new_listing")}
         </Button>
       </Box>
 
@@ -114,8 +112,8 @@ export default function AccountPage() {
 
       {!loading && listings.length === 0 && (
         <Alert severity="info">
-          Vous n'avez pas encore d'annonce.{" "}
-          <Link href="/sell" style={{ color: "#0E7C66" }}>Publiez votre première annonce</Link>.
+          {t("account.no_listings")}{" "}
+          <Link href="/sell" style={{ color: "#0E7C66" }}>{t("account.post_first")}</Link>.
         </Alert>
       )}
 
@@ -138,41 +136,42 @@ export default function AccountPage() {
                     <SubscriptionBadge
                       status={p.subscription_status}
                       daysRemaining={p.days_remaining}
+                      t={t}
                     />
                   </Box>
                   <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
                     <Typography variant="caption" color="text.secondary">
-                      👁 {p.total_views || 0} vues
+                      👁 {p.total_views || 0} {t("account.total_views")}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      👤 {p.unique_visitors || 0} visiteurs uniques
+                      👤 {p.unique_visitors || 0} {t("account.unique_visitors")}
                     </Typography>
                     <Typography variant="caption" color="success.main">
-                      💬 {p.whatsapp_clicks || 0} contacts WhatsApp
+                      💬 {p.whatsapp_clicks || 0} {t("account.whatsapp_clicks")}
                     </Typography>
                   </Box>
                   {Number(p.views_7d) > 0 && (
                     <Typography variant="caption" color="primary.main">
-                      +{p.views_7d} vues cette semaine
+                      +{p.views_7d} {t("account.views_week")}
                     </Typography>
                   )}
                   {p.listing_expires_at && (
                     <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-                      Expire le {new Date(p.listing_expires_at).toLocaleDateString("fr-FR")}
+                      {t("account.expires_on")} {new Date(p.listing_expires_at).toLocaleDateString()}
                     </Typography>
                   )}
                 </CardContent>
                 <Divider />
                 <CardActions sx={{ justifyContent: "space-between", px: 2 }}>
                   <Button size="small" component={Link} href={`/properties/${p.id}`}>
-                    Voir
+                    {t("account.view")}
                   </Button>
                   {(isExpiringSoon || isExpired) && (
                     <Button
                       size="small" variant="contained" color="warning"
                       onClick={() => renew(p.id)}
                     >
-                      Renouveler — {LISTING_FEE.toLocaleString("fr-FR")} FCFA
+                      {t("account.renew")} — {LISTING_FEE.toLocaleString("fr-FR")} FCFA
                       <Typography component="span" variant="caption" sx={{ ml: 0.5, opacity: 0.8 }}>
                         (≈ {(LISTING_FEE / EUR_RATE).toFixed(2)}€)
                       </Typography>

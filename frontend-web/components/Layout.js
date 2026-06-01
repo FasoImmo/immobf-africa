@@ -112,7 +112,7 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
               <Button color="inherit" endIcon={<AccountCircleIcon />}
                 onClick={(e) => setAccountAnchor(e.currentTarget)}
                 sx={{ ml: 1 }}>
-                Mon compte
+                {t("nav.my_account")}
               </Button>
               <Menu anchorEl={accountAnchor} open={Boolean(accountAnchor)}
                 onClose={() => setAccountAnchor(null)}
@@ -122,7 +122,7 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
                   {user.full_name || user.phone}
                 </MenuItem>
                 <MenuItem onClick={() => { setAccountAnchor(null); router.push("/account"); }}>
-                  📋 Mes annonces
+                  📋 {t("nav.my_listings")}
                 </MenuItem>
                 <MenuItem onClick={() => { setAccountAnchor(null); router.push("/sell?tx=sale"); }}>
                   📝 {t("nav.publish")}
