@@ -287,7 +287,7 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
 
       <Box component="footer" sx={{ py: 3, textAlign: "center", borderTop: "1px solid #eee", mt: 6 }}>
         <Typography variant="body2" color="text.secondary">
-          © 2026 ImmoBF Africa — contact@immobf.africa
+          © 2026 ImmoBF Africa — contact@immoafrica.online
         </Typography>
         <Box sx={{ mt: 1, display: "flex", justifyContent: "center", gap: 2, flexWrap: "wrap" }}>
           {[
