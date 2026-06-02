@@ -36,7 +36,7 @@ const AFRICAN_CODES = [
   { code: "+230", country: "MU", flag: "🇲🇺", name: "Maurice" },
 ];
 
-function PhoneInput({ value, onChange, label, required }) {
+function PhoneInput({ value, onChange, label, helperText, required }) {
   const [dialCode, setDialCode] = useState("+226");
   const [localNumber, setLocalNumber] = useState("");
 
@@ -76,6 +76,7 @@ function PhoneInput({ value, onChange, label, required }) {
         required={required}
         inputMode="tel"
         placeholder="XXXXXXXX"
+        helperText={helperText}
       />
     </Box>
   );
@@ -175,6 +176,7 @@ export default function Login() {
                   value={regName} onChange={(e) => setRegName(e.target.value)} required />
                 <PhoneInput
                   label={t("auth.phone")}
+                  helperText={t("auth.phone_helper")}
                   value={regPhone}
                   onChange={setRegPhone}
                   required

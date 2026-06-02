@@ -140,7 +140,8 @@
   "auth": {
     "login_tab": "Se connecter",
     "register_tab": "Créer un compte",
-    "phone": "Numéro de téléphone",
+    "phone": "Numéro WhatsApp",
+    "phone_helper": "Ce numéro sera utilisé pour les contacts WhatsApp sur vos annonces.",
     "email_recommended": "Email (recommandé)",
     "email_helper": "Nécessaire pour réinitialiser votre mot de passe et recevoir vos reçus de paiement.",
     "password": "Mot de passe",

@@ -140,7 +140,8 @@
   "auth": {
     "login_tab": "Log in",
     "register_tab": "Create account",
-    "phone": "Phone number",
+    "phone": "WhatsApp number",
+    "phone_helper": "This number will be used for WhatsApp contacts on your listings.",
     "email_recommended": "Email (recommended)",
     "email_helper": "Required to reset your password and receive payment receipts.",
     "password": "Password",
