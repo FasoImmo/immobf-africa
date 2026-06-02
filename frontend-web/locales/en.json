@@ -141,6 +141,8 @@
     "login_tab": "Log in",
     "register_tab": "Create account",
     "phone": "Phone number",
+    "email_recommended": "Email (recommended)",
+    "email_helper": "Required to reset your password and receive payment receipts.",
     "password": "Password",
     "full_name": "Full name",
     "login_btn": "Log in",

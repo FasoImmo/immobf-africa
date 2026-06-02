@@ -94,6 +94,7 @@ export default function Login() {
 
   // Inscription
   const [regPhone, setRegPhone] = useState("");
+  const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [regName, setRegName] = useState("");
   const [cguAccepted, setCguAccepted] = useState(false);
@@ -122,6 +123,7 @@ export default function Login() {
     try {
       const { access, user } = await Auth.register({
         phone: regPhone,
+        email: regEmail || undefined,
         password: regPassword,
         full_name: regName,
       });
@@ -176,6 +178,14 @@ export default function Login() {
                   value={regPhone}
                   onChange={setRegPhone}
                   required
+                />
+                {/* Email — recommandé pour reset mdp + reçus */}
+                <TextField
+                  fullWidth label={t("auth.email_recommended")}
+                  type="email" margin="normal"
+                  value={regEmail} onChange={(e) => setRegEmail(e.target.value)}
+                  helperText={t("auth.email_helper")}
+                  InputProps={{ sx: { bgcolor: "#f0f9f7" } }}
                 />
                 <TextField fullWidth label={t("auth.password")} type="password" margin="normal"
                   value={regPassword} onChange={(e) => setRegPassword(e.target.value)} required />

@@ -141,6 +141,8 @@
     "login_tab": "Se connecter",
     "register_tab": "Créer un compte",
     "phone": "Numéro de téléphone",
+    "email_recommended": "Email (recommandé)",
+    "email_helper": "Nécessaire pour réinitialiser votre mot de passe et recevoir vos reçus de paiement.",
     "password": "Mot de passe",
     "full_name": "Nom complet",
     "login_btn": "Se connecter",
