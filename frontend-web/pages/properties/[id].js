@@ -9,16 +9,16 @@ import PropertyCard from "../../components/PropertyCard";
 import { Properties, Analytics } from "../../lib/api";
 import { formatFCFA, formatArea } from "../../lib/format";
 
-const TX_LABEL = {
-  sale:       { label: "Vente",            color: "#1565c0" },
-  rent_long:  { label: "Location",         color: "#2e7d32" },
-  rent_short: { label: "Courte durée",     color: "#6a1b9a" },
+const TX_COLOR = {
+  sale:       "#1565c0",
+  rent_long:  "#2e7d32",
+  rent_short: "#6a1b9a",
 };
 
-const PERIOD_LABEL = {
-  monthly: "/ mois",
-  weekly:  "/ semaine",
-  nightly: "/ nuit",
+const PERIOD_KEY = {
+  monthly: "property.period_monthly",
+  weekly:  "property.period_weekly",
+  nightly: "property.period_nightly",
 };
 
 export default function PropertyDetail() {
@@ -47,16 +47,19 @@ export default function PropertyDetail() {
     }).catch(() => setP(null));
   }, [id]);
 
-  if (!p) return <Layout><Typography>Chargement…</Typography></Layout>;
+  if (!p) return <Layout><Typography>{t("property.loading")}</Typography></Layout>;
 
   var isRent = p.transaction_type && p.transaction_type !== "sale";
-  var txInfo = TX_LABEL[p.transaction_type] || TX_LABEL.sale;
+  var txColor = TX_COLOR[p.transaction_type] || TX_COLOR.sale;
+  var txLabel = p.transaction_type === "sale" ? t("nav.publish_sale")
+    : p.transaction_type === "rent_long" ? t("nav.publish_rent_long")
+    : t("nav.publish_rent_short");
   var deposit = Math.round((Number(p.price) * Number(p.deposit_pct)) / 100);
   var photos = p.photos && p.photos.length > 0 ? p.photos : null;
   var cover = photos ? photos[photoIdx].url : "https://picsum.photos/seed/" + p.id + "/1200/600";
 
   var priceLabel = isRent
-    ? (PERIOD_LABEL[p.rent_period] || "/ mois")
+    ? t(PERIOD_KEY[p.rent_period] || "property.period_monthly")
     : null;
 
   return (
@@ -64,11 +67,11 @@ export default function PropertyDetail() {
       <Box sx={{ mb: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
         <Chip label={t("types." + p.type)} color="primary" />
         <Chip
-          label={txInfo.label}
-          sx={{ bgcolor: txInfo.color, color: "white" }}
+          label={txLabel}
+          sx={{ bgcolor: txColor, color: "white" }}
         />
-        {p.is_furnished && <Chip label="Meublé" variant="outlined" />}
-        {p.verified && <Chip label="Vérifié" color="success" />}
+        {p.is_furnished && <Chip label={t("property.furnished")} variant="outlined" />}
+        {p.verified && <Chip label={t("property.verified")} color="success" />}
         <Chip label={p.city + ", " + p.country_code} />
       </Box>
 

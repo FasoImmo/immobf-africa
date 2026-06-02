@@ -75,34 +75,48 @@ async function resendOtp(req, res) {
   res.json({ sent: true });
 }
 
-// Étape 1 : demander un OTP de réinitialisation
+// Étape 1 : demander un OTP de réinitialisation par EMAIL
 async function forgotPassword(req, res) {
-  const { value, error } = Joi.object({ phone: phoneSchema }).validate(req.body);
+  const schema = Joi.object({
+    email: Joi.string().email().required(),
+  });
+  const { value, error } = schema.validate(req.body);
   if (error) throw BadRequest(error.message);
-  const user = await User.findByPhone(value.phone);
-  // Toujours répondre OK (évite l'énumération de numéros)
-  if (user) await sendOtp(value.phone, user.email || null, "reset");
-  res.json({ sent: true, message: "Si ce numéro est enregistré, un code a été envoyé." });
+
+  const user = await User.findByEmail(value.email);
+  // Toujours répondre OK (évite l'énumération d'emails)
+  if (user) {
+    const { sendOtpEmail } = require("../services/email");
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const { getRedis } = require("../config/redis");
+    const redis = getRedis();
+    await redis.set(`otp:email:${value.email.toLowerCase()}`, code, "EX", 300);
+    await sendOtpEmail(value.email, code, "reset");
+  }
+  res.json({ sent: true });
 }
 
-// Étape 2 : vérifier OTP + nouveau mot de passe
+// Étape 2 : vérifier OTP + nouveau mot de passe (par email)
 async function resetPassword(req, res) {
   const schema = Joi.object({
-    phone: phoneSchema,
+    email: Joi.string().email().required(),
     code: Joi.string().length(6).required(),
     new_password: Joi.string().min(8).max(128).required(),
   });
   const { value, error } = schema.validate(req.body);
   if (error) throw BadRequest(error.message);
 
-  const ok = await verifyOtp(value.phone, value.code);
-  if (!ok) throw BadRequest("Code OTP invalide ou expiré");
+  const { getRedis } = require("../config/redis");
+  const redis = getRedis();
+  const stored = await redis.get(`otp:email:${value.email.toLowerCase()}`);
+  if (!stored || stored !== value.code) throw BadRequest("Code invalide ou expiré");
+  await redis.del(`otp:email:${value.email.toLowerCase()}`);
 
-  const user = await User.findByPhone(value.phone);
+  const user = await User.findByEmail(value.email);
   if (!user) throw BadRequest("Utilisateur introuvable");
 
-  await User.updatePassword(value.phone, value.new_password);
-  res.json({ success: true, message: "Mot de passe réinitialisé avec succès." });
+  await User.updatePasswordByEmail(value.email, value.new_password);
+  res.json({ success: true });
 }
 
 module.exports = { register, login, verifyPhone, me, resendOtp, forgotPassword, resetPassword };

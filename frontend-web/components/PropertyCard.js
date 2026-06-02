@@ -8,6 +8,13 @@ export default function PropertyCard({ property }) {
   const cover = property.photos?.[0]?.url
     || `https://picsum.photos/seed/${property.id}/600/400`;
 
+  const TX_LABEL = {
+    sale:       { label: t("nav.publish_sale"),      color: "#1565c0" },
+    rent_long:  { label: t("nav.publish_rent_long"), color: "#2e7d32" },
+    rent_short: { label: t("nav.publish_rent_short"),color: "#6a1b9a" },
+  };
+  const txInfo = TX_LABEL[property.transaction_type];
+
   return (
     <Card elevation={2}>
       <CardActionArea component={Link} href={`/properties/${property.id}`}>
@@ -15,17 +22,12 @@ export default function PropertyCard({ property }) {
         <CardContent>
           <Box sx={{ display: "flex", gap: 1, mb: 1, flexWrap: "wrap" }}>
             <Chip size="small" label={t(`types.${property.type}`)} color="primary" />
-            {property.transaction_type === "sale" && (
-              <Chip size="small" label="Vente" sx={{ bgcolor: "#1565c0", color: "white" }} />
-            )}
-            {property.transaction_type === "rent_long" && (
-              <Chip size="small" label="Location" sx={{ bgcolor: "#2e7d32", color: "white" }} />
-            )}
-            {property.transaction_type === "rent_short" && (
-              <Chip size="small" label="Courte durée" sx={{ bgcolor: "#6a1b9a", color: "white" }} />
+            {txInfo && (
+              <Chip size="small" label={txInfo.label}
+                sx={{ bgcolor: txInfo.color, color: "white" }} />
             )}
             {property.is_furnished && (
-              <Chip size="small" label="Meublé" variant="outlined" />
+              <Chip size="small" label={t("property.furnished")} variant="outlined" />
             )}
             {property.boosted_until && <Chip size="small" label="★" color="warning" />}
           </Box>
@@ -38,7 +40,7 @@ export default function PropertyCard({ property }) {
           </Typography>
           <Typography variant="caption" color="text.secondary">
             {formatArea(property.area_m2)}
-            {property.bedrooms ? ` · ${property.bedrooms} ch.` : ""}
+            {property.bedrooms ? ` · ${property.bedrooms} ${t("property.bedrooms_short")}` : ""}
           </Typography>
         </CardContent>
       </CardActionArea>

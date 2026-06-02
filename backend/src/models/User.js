@@ -50,4 +50,18 @@ async function updatePassword(phone, newPassword) {
   await query(`UPDATE users SET password_hash = $1 WHERE phone = $2`, [password_hash, phone]);
 }
 
-module.exports = { create, findByPhone, findById, verifyPassword, markPhoneVerified, updatePassword };
+async function findByEmail(email) {
+  const { rows } = await query(
+    `SELECT id, email, phone, password_hash, full_name, role, agency_id, country_code, locale, phone_verified
+     FROM users WHERE LOWER(email) = LOWER($1)`,
+    [email]
+  );
+  return rows[0] || null;
+}
+
+async function updatePasswordByEmail(email, newPassword) {
+  const password_hash = await argon2.hash(newPassword, { type: argon2.argon2id });
+  await query(`UPDATE users SET password_hash = $1 WHERE LOWER(email) = LOWER($2)`, [password_hash, email]);
+}
+
+module.exports = { create, findByPhone, findByEmail, findById, verifyPassword, markPhoneVerified, updatePassword, updatePasswordByEmail };
