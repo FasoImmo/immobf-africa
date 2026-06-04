@@ -39,42 +39,4 @@ app.use(
       // En développement, autoriser localhost
       if (config.env !== "production" && /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
         return callback(null, true);
-      }
-      logger.warn({ origin }, "CORS blocked request from unauthorized origin");
-      callback(new Error(`CORS: origin '${origin}' not allowed`));
-    },
-    credentials: true,
-  })
-);
-app.use(pinoHttp({ logger }));
-
-// JSON parser pour tout sauf les webhooks (qui utilisent rawBody middleware)
-app.use((req, res, next) => {
-  if (req.path.startsWith("/api/v1/payments/webhooks/")) return next();
-  express.json({ limit: "1mb" })(req, res, next);
-});
-
-// Static uploads (dev)
-app.use("/uploads", express.static(config.storage.localDir));
-
-app.use("/api/v1", routes);
-
-app.use((_req, res) => res.status(404).json({ error: { code: "not_found", message: "Not found" } }));
-
-// Sentry error handler DOIT être avant errorHandler et après toutes les routes.
-if (Sentry.setupExpressErrorHandler) {
-  Sentry.setupExpressErrorHandler(app);
-}
-
-app.use(errorHandler);
-
-if (require.main === module) {
-  app.listen(config.port, () => {
-    logger.info(`ImmoBF API listening on :${config.port} (${config.env})`);
-    // Démarrer les alertes d'expiration d'annonce (cron quotidien)
-    const { startExpiryAlertsCron } = require("./services/expiryAlerts");
-    startExpiryAlertsCron();
-  });
-}
-
-module.exports = app;
+  
