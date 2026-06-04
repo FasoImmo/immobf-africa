@@ -1,5 +1,8 @@
 "use strict";
 
+// Sentry doit être le premier import — capture toutes les erreurs dès le boot.
+const Sentry = require("./instrument");
+
 const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
@@ -18,7 +21,31 @@ const app = express();
 app.set("trust proxy", 1);
 
 app.use(helmet());
-app.use(cors({ origin: true, credentials: true }));
+
+// CORS : whitelist explicite des domaines autorisés.
+// En production, CORS_ORIGINS doit être défini dans les variables d'env Railway.
+// Exemple : CORS_ORIGINS=https://www.immoafrica.online,https://immoafrica.online
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Autoriser les appels sans origin (ex : curl, Railway health checks, apps mobiles)
+      if (!origin) return callback(null, true);
+      if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+      // En développement, autoriser localhost
+      if (config.env !== "production" && /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+      logger.warn({ origin }, "CORS blocked request from unauthorized origin");
+      callback(new Error(`CORS: origin '${origin}' not allowed`));
+    },
+    credentials: true,
+  })
+);
 app.use(pinoHttp({ logger }));
 
 // JSON parser pour tout sauf les webhooks (qui utilisent rawBody middleware)
@@ -33,6 +60,12 @@ app.use("/uploads", express.static(config.storage.localDir));
 app.use("/api/v1", routes);
 
 app.use((_req, res) => res.status(404).json({ error: { code: "not_found", message: "Not found" } }));
+
+// Sentry error handler DOIT être avant errorHandler et après toutes les routes.
+if (Sentry.setupExpressErrorHandler) {
+  Sentry.setupExpressErrorHandler(app);
+}
+
 app.use(errorHandler);
 
 if (require.main === module) {

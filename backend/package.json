@@ -19,6 +19,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "@sentry/node": "^8.0.0",
     "argon2": "^0.31.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

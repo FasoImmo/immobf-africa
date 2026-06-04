@@ -12,6 +12,18 @@ const required = (key, fallback) => {
   return v;
 };
 
+// Guard JWT_SECRET : interdit le démarrage en production avec le secret par défaut
+// ou un secret trop court (< 32 caractères = insuffisant pour HS256).
+const rawJwtSecret = process.env.JWT_SECRET || "dev_secret_change_me";
+if (process.env.NODE_ENV === "production") {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "dev_secret_change_me") {
+    throw new Error("FATAL: JWT_SECRET is not set or uses the default dev value. Set a strong secret (≥ 64 random chars) in Railway environment variables.");
+  }
+  if (process.env.JWT_SECRET.length < 32) {
+    throw new Error(`FATAL: JWT_SECRET is too short (${process.env.JWT_SECRET.length} chars). Minimum 32 chars required, 64+ recommended.`);
+  }
+}
+
 module.exports = {
   env: process.env.NODE_ENV || "development",
   port: parseInt(process.env.PORT || "4000", 10),

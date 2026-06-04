@@ -3,6 +3,7 @@ import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
 import { useEffect } from "react";
 import "../lib/i18n";
 import i18n from "../lib/i18n";
+import CookieBanner from "../components/CookieBanner";
 
 const theme = createTheme({
   palette: {
@@ -27,6 +28,7 @@ export default function App({ Component, pageProps }) {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Component {...pageProps} />
+      <CookieBanner />
     </ThemeProvider>
   );
 }

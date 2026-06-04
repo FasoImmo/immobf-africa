@@ -1,0 +1,10 @@
+Contact: mailto:security@immoafrica.online
+Expires: 2027-06-04T22:00:00.000Z
+Preferred-Languages: fr, en
+Canonical: https://www.immoafrica.online/.well-known/security.txt
+Policy: https://www.immoafrica.online/legal/privacy
+
+# ImmoBF Africa — Divulgation responsable
+# Si vous découvrez une vulnérabilité de sécurité sur immoafrica.online,
+# merci de nous contacter à security@immoafrica.online avant toute divulgation publique.
+# Nous nous engageons à répondre sous 48h et à corriger sous 7 jours pour les critiques.

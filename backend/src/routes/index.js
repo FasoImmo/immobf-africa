@@ -79,7 +79,9 @@ router.post("/newsletter/subscribe", publicLimiter, asyncHandler(async (req, res
   res.json({ subscribed: true });
 }));
 
-// Dev mocks
-router.post("/payments/mock/:reference/succeed", asyncHandler(payCtl.mockSucceed));
+// Dev mocks — DÉSACTIVÉ en production
+if (process.env.NODE_ENV !== "production") {
+  router.post("/payments/mock/:reference/succeed", asyncHandler(payCtl.mockSucceed));
+}
 
 module.exports = router;

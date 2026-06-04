@@ -169,4 +169,11 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- OTP codes (Redis est primaire, PG pour audi
+-- OTP codes (Redis est primaire, PG pour audit)
+CREATE TABLE IF NOT EXISTS otp_attempts (
+  id            BIGSERIAL PRIMARY KEY,
+  phone         TEXT NOT NULL,
+  success       BOOLEAN NOT NULL,
+  ip            INET,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
