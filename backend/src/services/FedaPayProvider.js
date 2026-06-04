@@ -62,6 +62,14 @@ class FedaPayProvider extends PaymentProvider {
   }) {
     const { secretKey, notifyUrl, returnUrl } = config.providers.fedapay;
 
+    // Diagnostic temporaire — à supprimer après résolution
+    const logger = require("../utils/logger");
+    logger.info({
+      fedapay_secret_key_set: !!secretKey,
+      fedapay_secret_key_prefix: secretKey ? secretKey.substring(0, 10) + "..." : "NOT SET",
+      fedapay_live: config.providers.fedapay.live,
+    }, "FedaPay initiate called");
+
     // Stub mode : pas de clé -> succès immédiat simulé (pas de redirection localhost)
     if (!secretKey) {
       return {
