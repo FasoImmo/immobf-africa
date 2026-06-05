@@ -70,8 +70,11 @@ class FedaPayProvider extends PaymentProvider {
       fedapay_live: config.providers.fedapay.live,
     }, "FedaPay initiate called");
 
-    // Stub mode : pas de clé -> succès immédiat simulé (pas de redirection localhost)
+    // Stub mode : pas de clé -> erreur en production, succès simulé en dev
     if (!secretKey) {
+      if (process.env.NODE_ENV === "production") {
+        throw Object.assign(new Error("FEDAPAY_SECRET_KEY not set in production"), { status: 500, code: "fedapay_not_configured" });
+      }
       return {
         external_id: `fp_stub_${reference}`,
         status: "succeeded",
