@@ -257,15 +257,17 @@ class FedaPayProvider extends PaymentProvider {
 
   _countryFromPhone(phone) {
     const s = String(phone).replace(/[\s+]/g, "");
-    if (s.startsWith("226")) return "bf";
-    if (s.startsWith("225")) return "ci";
-    if (s.startsWith("221")) return "sn";
-    if (s.startsWith("228")) return "tg";
-    if (s.startsWith("227")) return "ne";
-    if (s.startsWith("229")) return "bj";
-    if (s.startsWith("224")) return "gn";
-    if (s.startsWith("223")) return "ml";
-    return "bf"; // fallback Burkina
+    // FedaPay attend un code pays ISO 3166-1 alpha-2 EN MAJUSCULES
+    // (ex. "BJ", pas "bj") — voir exemple officiel docs.fedapay.com.
+    if (s.startsWith("226")) return "BF";
+    if (s.startsWith("225")) return "CI";
+    if (s.startsWith("221")) return "SN";
+    if (s.startsWith("228")) return "TG";
+    if (s.startsWith("227")) return "NE";
+    if (s.startsWith("229")) return "BJ";
+    if (s.startsWith("224")) return "GN";
+    if (s.startsWith("223")) return "ML";
+    return "BF"; // fallback Burkina
   }
 
   _stubUssdFor(op) {
