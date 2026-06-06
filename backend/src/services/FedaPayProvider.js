@@ -114,7 +114,7 @@ class FedaPayProvider extends PaymentProvider {
         lastname,
         email: customerEmail || `noreply+${reference}@immobf.africa`,
         phone_number: customerPhone
-          ? { number: customerPhone, country: this._countryFromPhone(customerPhone) }
+          ? { number: this._localNumber(customerPhone), country: this._countryFromPhone(customerPhone) }
           : undefined,
       },
       metadata: { reference, ...(metadata || {}) },
@@ -236,6 +236,25 @@ class FedaPayProvider extends PaymentProvider {
    * Mapping rapide indicatif phone -> pays. Pour la prod, utiliser
    * libphonenumber-js. Ici on couvre BF + voisins.
    */
+  /**
+   * FedaPay attend le numéro LOCAL (sans indicatif pays) dans
+   * `phone_number.number` — l'indicatif est fourni séparément via
+   * `phone_number.country`. Envoyer "+22670000000" ou "22670000000"
+   * provoque l'erreur API "phone_number.number n'est pas valide".
+   * On retire donc l'indicatif pays détecté (et tout préfixe +/00).
+   */
+  _localNumber(phone) {
+    let s = String(phone).replace(/[\s\-()]/g, "");
+    s = s.replace(/^\+/, "").replace(/^00/, "");
+    const codes = ["226", "225", "221", "228", "227", "229", "224", "223"];
+    for (const c of codes) {
+      if (s.startsWith(c) && s.length > c.length) {
+        return s.slice(c.length);
+      }
+    }
+    return s;
+  }
+
   _countryFromPhone(phone) {
     const s = String(phone).replace(/[\s+]/g, "");
     if (s.startsWith("226")) return "bf";
