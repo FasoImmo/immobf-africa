@@ -128,6 +128,13 @@ class FedaPayProvider extends PaymentProvider {
     });
     const txBody = await txRes.json();
     if (!txRes.ok || !txBody?.["v1/transaction"]?.id) {
+      // Diagnostic temporaire — affiche la réponse complète de FedaPay pour
+      // identifier la cause exacte (code d'erreur précis, champ en faute, etc.)
+      logger.error({
+        fedapay_http_status: txRes.status,
+        fedapay_response_body: txBody,
+        fedapay_base_url: this._baseUrl(),
+      }, "FedaPay transaction creation raw error response");
       const err = new Error(`FedaPay create failed: ${txBody?.message || txRes.status}`);
       err.raw = txBody;
       throw err;
