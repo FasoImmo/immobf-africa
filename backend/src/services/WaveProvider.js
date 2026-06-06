@@ -15,6 +15,16 @@ class WaveProvider extends PaymentProvider {
   async initiate({ amount, currency = "XOF", reference, description }) {
     const { apiKey } = config.providers.wave;
     if (!apiKey) {
+      // Sécurité : jamais de faux succès en production (afficherait "Paiement
+      // confirmé" sans débiter le client).
+      if (process.env.NODE_ENV === "production") {
+        throw Object.assign(
+          new Error("Wave non configuré (clé API manquante) — paiement refusé en production."),
+          { status: 500, code: "wave_not_configured" }
+        );
+      }
+      const logger = require("../utils/logger");
+      logger.warn({ reference }, "Wave stub mode (dev) — paiement auto-validé sans appel réel");
       return {
         external_id: `wave_stub_${reference}`,
         status: "succeeded",

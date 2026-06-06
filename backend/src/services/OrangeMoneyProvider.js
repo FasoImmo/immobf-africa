@@ -17,7 +17,17 @@ class OrangeMoneyProvider extends PaymentProvider {
     const { merchantKey, authHeader, notifyUrl } = config.providers.orangeMoney;
 
     // Mode stub pour dev / MVP sans secrets réels.
+    // Sécurité : jamais de faux succès en production (afficherait "Paiement
+    // confirmé" sans débiter le client).
     if (!merchantKey || !authHeader) {
+      if (process.env.NODE_ENV === "production") {
+        throw Object.assign(
+          new Error("Orange Money non configuré (clés manquantes) — paiement refusé en production."),
+          { status: 500, code: "orange_money_not_configured" }
+        );
+      }
+      const logger = require("../utils/logger");
+      logger.warn({ reference }, "Orange Money stub mode (dev) — paiement auto-validé sans appel réel");
       return {
         external_id: `om_stub_${reference}`,
         status: "succeeded",

@@ -16,6 +16,16 @@ class MoovMoneyProvider extends PaymentProvider {
   async initiate({ amount, currency = "XOF", reference, customerPhone, description }) {
     const { username, password } = config.providers.moovMoney;
     if (!username || !password) {
+      // Sécurité : ne jamais simuler un succès de paiement en production —
+      // cela afficherait "Paiement confirmé" au client sans le débiter.
+      if (process.env.NODE_ENV === "production") {
+        throw Object.assign(
+          new Error("Moov Money non configuré (identifiants manquants) — paiement refusé en production."),
+          { status: 500, code: "moov_money_not_configured" }
+        );
+      }
+      const logger = require("../utils/logger");
+      logger.warn({ reference }, "Moov Money stub mode (dev) — paiement auto-validé sans appel réel");
       return {
         external_id: `moov_stub_${reference}`,
         status: "succeeded",

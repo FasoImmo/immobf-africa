@@ -34,7 +34,17 @@ class CinetPayProvider extends PaymentProvider {
     };
 
     // Pour le MVP / dev sans secrets : on simule la réponse.
+    // Sécurité : jamais de faux succès en production (afficherait "Paiement
+    // confirmé" sans débiter le client).
     if (!apiKey || !siteId) {
+      if (process.env.NODE_ENV === "production") {
+        throw Object.assign(
+          new Error("CinetPay non configuré (clés manquantes) — paiement refusé en production."),
+          { status: 500, code: "cinetpay_not_configured" }
+        );
+      }
+      const logger = require("../utils/logger");
+      logger.warn({ reference }, "CinetPay stub mode (dev) — paiement auto-validé sans appel réel");
       return {
         external_id: `cp_stub_${reference}`,
         status: "succeeded",

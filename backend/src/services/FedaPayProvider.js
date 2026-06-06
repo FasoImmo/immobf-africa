@@ -70,11 +70,28 @@ class FedaPayProvider extends PaymentProvider {
       fedapay_live: config.providers.fedapay.live,
     }, "FedaPay initiate called");
 
-    // Stub mode : pas de clé -> erreur en production, succès simulé en dev
+    // Stub mode : pas de clé -> erreur si on est censé être en mode réel,
+    // succès simulé seulement en dev local explicite.
+    //
+    // IMPORTANT : on ne se fie plus uniquement à NODE_ENV === "production"
+    // (un mauvais réglage sur Railway suffisait à activer le mode simulation
+    // et à afficher "Paiement confirmé" sans débiter qui que ce soit).
+    // On bloque désormais dès que :
+    //   - NODE_ENV === "production", OU
+    //   - FEDAPAY_LIVE === "true" (signe explicite qu'on attend de vrais paiements)
     if (!secretKey) {
-      if (process.env.NODE_ENV === "production") {
-        throw Object.assign(new Error("FEDAPAY_SECRET_KEY not set in production"), { status: 500, code: "fedapay_not_configured" });
+      const expectsRealPayments =
+        process.env.NODE_ENV === "production" || config.providers.fedapay.live === true;
+      if (expectsRealPayments) {
+        throw Object.assign(
+          new Error("FEDAPAY_SECRET_KEY manquant alors que des paiements réels sont attendus (NODE_ENV=production ou FEDAPAY_LIVE=true). Paiement refusé pour éviter une fausse confirmation."),
+          { status: 500, code: "fedapay_not_configured" }
+        );
       }
+      logger.warn(
+        { reference, fedapay_live: config.providers.fedapay.live },
+        "FedaPay stub mode actif (clé absente, environnement de dev) — paiement auto-validé sans appel réel"
+      );
       return {
         external_id: `fp_stub_${reference}`,
         status: "succeeded",
