@@ -108,6 +108,16 @@ class FedaPayProvider extends PaymentProvider {
     const [firstname, ...rest] = String(customerName || "").trim().split(" ");
     const lastname = rest.join(" ") || firstname || "Client";
 
+    const phoneNumberPayload = customerPhone
+      ? { number: this._localNumber(customerPhone), country: this._countryFromPhone(customerPhone) }
+      : undefined;
+
+    // Diagnostic temporaire — à supprimer après résolution
+    logger.info({
+      fedapay_customer_phone_input: customerPhone,
+      fedapay_phone_number_payload: phoneNumberPayload,
+    }, "FedaPay phone_number transformation");
+
     const txPayload = {
       description: description || "Paiement ImmoBF Africa",
       amount,
@@ -117,9 +127,7 @@ class FedaPayProvider extends PaymentProvider {
         firstname: firstname || "Client",
         lastname,
         email: customerEmail || `noreply+${reference}@immobf.africa`,
-        phone_number: customerPhone
-          ? { number: this._localNumber(customerPhone), country: this._countryFromPhone(customerPhone) }
-          : undefined,
+        phone_number: phoneNumberPayload,
       },
       metadata: { reference, ...(metadata || {}) },
     };
@@ -297,22 +305,4 @@ function mapFedaPayStatus(s) {
     case "transaction.refunded":
     case "refunded":
       return "refunded";
-    case "pending":
-    case "transaction.pending":
-    default:
-      return "pending";
-  }
-}
-
-function safeEqual(a, b) {
-  try {
-    const ab = Buffer.from(String(a));
-    const bb = Buffer.from(String(b));
-    if (ab.length !== bb.length) return false;
-    return crypto.timingSafeEqual(ab, bb);
-  } catch {
-    return false;
-  }
-}
-
-module.exports = FedaPayProvider;
+    case
