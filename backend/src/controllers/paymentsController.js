@@ -121,9 +121,23 @@ async function webhook(req, res) {
     return res.status(400).json({ ok: false });
   }
 
-  const tx = await Transaction.findByReference(parsed.reference);
+  // Certains fournisseurs (FedaPay notamment) n'échouent PAS à renvoyer notre
+  // métadonnée `reference` dans le webhook — ils remplacent `entity.metadata`
+  // par leurs propres données internes (ex. "expire_schedule_jobid") et ne
+  // laissent que leur propre `entity.reference` (ex. "trx_GH0_..."), différent
+  // de notre référence "IMO-...". Dans ce cas `parsed.reference` ne correspond
+  // à aucune transaction chez nous — on retombe alors sur une recherche par
+  // `external_id` (l'ID de transaction du fournisseur, lui bien fiable et
+  // déjà enregistré lors de l'initiation du paiement).
+  let tx = await Transaction.findByReference(parsed.reference);
+  if (!tx && parsed.external_id) {
+    tx = await Transaction.findByExternalId(providerName, parsed.external_id);
+  }
   if (!tx) {
-    logger.warn({ reference: parsed.reference }, "Webhook for unknown transaction");
+    logger.warn(
+      { reference: parsed.reference, external_id: parsed.external_id, provider: providerName },
+      "Webhook for unknown transaction"
+    );
     return res.status(404).json({ ok: false });
   }
 
