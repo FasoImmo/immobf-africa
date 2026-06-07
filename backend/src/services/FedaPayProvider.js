@@ -65,14 +65,7 @@ class FedaPayProvider extends PaymentProvider {
     preferredOperator, // "orange", "moov", "mtn", "wave", "card", undefined = let user choose
   }) {
     const { secretKey, notifyUrl, returnUrl } = config.providers.fedapay;
-
-    // Diagnostic temporaire — à supprimer après résolution
     const logger = require("../utils/logger");
-    logger.info({
-      fedapay_secret_key_set: !!secretKey,
-      fedapay_secret_key_prefix: secretKey ? secretKey.substring(0, 10) + "..." : "NOT SET",
-      fedapay_live: config.providers.fedapay.live,
-    }, "FedaPay initiate called");
 
     // Stub mode : pas de clé -> erreur si on est censé être en mode réel,
     // succès simulé seulement en dev local explicite.
@@ -112,12 +105,6 @@ class FedaPayProvider extends PaymentProvider {
       ? { number: this._localNumber(customerPhone), country: this._countryFromPhone(customerPhone) }
       : undefined;
 
-    // Diagnostic temporaire — à supprimer après résolution
-    logger.info({
-      fedapay_customer_phone_input: customerPhone,
-      fedapay_phone_number_payload: phoneNumberPayload,
-    }, "FedaPay phone_number transformation");
-
     const txPayload = {
       description: description || "Paiement ImmoBF Africa",
       amount,
@@ -140,13 +127,11 @@ class FedaPayProvider extends PaymentProvider {
     });
     const txBody = await txRes.json();
     if (!txRes.ok || !txBody?.["v1/transaction"]?.id) {
-      // Diagnostic temporaire — affiche la réponse complète de FedaPay pour
-      // identifier la cause exacte (code d'erreur précis, champ en faute, etc.)
       logger.error({
         fedapay_http_status: txRes.status,
         fedapay_response_body: txBody,
         fedapay_base_url: this._baseUrl(),
-      }, "FedaPay transaction creation raw error response");
+      }, "FedaPay transaction creation failed");
       const err = new Error(`FedaPay create failed: ${txBody?.message || txRes.status}`);
       err.raw = txBody;
       throw err;
