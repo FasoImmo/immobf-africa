@@ -177,19 +177,45 @@ class FedaPayProvider extends PaymentProvider {
   }
 
   /**
-   * Webhook FedaPay : header `x-fedapay-signature` = HMAC SHA256 hex
-   * du body brut signé avec la `webhookSecret`.
-   * Voir https://docs.fedapay.com/notification#signature
+   * Webhook FedaPay : header `x-fedapay-signature` au format Stripe-like
+   * "t=<timestamp>,s=<signature>" (PAS un simple HMAC hex du corps seul —
+   * voir le code source officiel fedapay-node, classe WebhookSignature).
+   *
+   * La signature attendue = HMAC-SHA256 hex de la chaîne "<timestamp>.<corps_brut>"
+   * avec la `webhookSecret`. On accepte toute signature du schéma "s" qui
+   * correspond (FedaPay peut envoyer plusieurs signatures lors des relances).
+   *
+   * Voir https://docs.fedapay.com/integration-api/en/webhooks-en
    */
   verifyWebhookSignature(headers, rawBody) {
     const { webhookSecret } = config.providers.fedapay;
     if (!webhookSecret) return true; // stub mode
-    const sig = headers["x-fedapay-signature"] || headers["X-Fedapay-Signature"] || "";
+
+    const header = headers["x-fedapay-signature"] || headers["X-Fedapay-Signature"] || "";
+    if (!header) return false;
+
+    const parsed = String(header).split(",").reduce(
+      (acc, item) => {
+        const idx = item.indexOf("=");
+        if (idx === -1) return acc;
+        const k = item.slice(0, idx).trim();
+        const v = item.slice(idx + 1).trim();
+        if (k === "t") acc.timestamp = v;
+        if (k === "s") acc.signatures.push(v);
+        return acc;
+      },
+      { timestamp: null, signatures: [] }
+    );
+    if (!parsed.timestamp || !parsed.signatures.length) return false;
+
+    const body = Buffer.isBuffer(rawBody) ? rawBody.toString("utf8") : String(rawBody);
+    const signedPayload = `${parsed.timestamp}.${body}`;
     const expected = crypto
       .createHmac("sha256", webhookSecret)
-      .update(rawBody)
+      .update(signedPayload, "utf8")
       .digest("hex");
-    return safeEqual(sig, expected);
+
+    return parsed.signatures.some((s) => safeEqual(s, expected));
   }
 
   /**
