@@ -245,10 +245,6 @@ class FedaPayProvider extends PaymentProvider {
   }
 
   /**
-   * Mapping rapide indicatif phone -> pays. Pour la prod, utiliser
-   * libphonenumber-js. Ici on couvre BF + voisins.
-   */
-  /**
    * FedaPay attend le numéro LOCAL (sans indicatif pays) dans
    * `phone_number.number` — l'indicatif est fourni séparément via
    * `phone_number.country`. Envoyer "+22670000000" ou "22670000000"
@@ -267,10 +263,14 @@ class FedaPayProvider extends PaymentProvider {
     return s;
   }
 
+  /**
+   * Mapping rapide indicatif phone -> pays. Pour la prod, utiliser
+   * libphonenumber-js. Ici on couvre BF + voisins.
+   * FedaPay attend un code pays ISO 3166-1 alpha-2 EN MAJUSCULES
+   * (ex. "BJ", pas "bj") — voir exemple officiel docs.fedapay.com.
+   */
   _countryFromPhone(phone) {
     const s = String(phone).replace(/[\s+]/g, "");
-    // FedaPay attend un code pays ISO 3166-1 alpha-2 EN MAJUSCULES
-    // (ex. "BJ", pas "bj") — voir exemple officiel docs.fedapay.com.
     if (s.startsWith("226")) return "BF";
     if (s.startsWith("225")) return "CI";
     if (s.startsWith("221")) return "SN";
@@ -305,4 +305,22 @@ function mapFedaPayStatus(s) {
     case "transaction.refunded":
     case "refunded":
       return "refunded";
-    case
+    case "pending":
+    case "transaction.pending":
+    default:
+      return "pending";
+  }
+}
+
+function safeEqual(a, b) {
+  try {
+    const ab = Buffer.from(String(a));
+    const bb = Buffer.from(String(b));
+    if (ab.length !== bb.length) return false;
+    return crypto.timingSafeEqual(ab, bb);
+  } catch {
+    return false;
+  }
+}
+
+module.exports = FedaPayProvider;
