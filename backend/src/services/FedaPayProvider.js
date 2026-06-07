@@ -122,7 +122,7 @@ class FedaPayProvider extends PaymentProvider {
       description: description || "Paiement ImmoBF Africa",
       amount,
       currency: { iso: currency },
-      callback_url: `${config.webUrl}/payment/return?ref=${reference}`,
+      callback_url: `${config.webUrl}/payment/callback?ref=${reference}`,
       customer: {
         firstname: firstname || "Client",
         lastname,
