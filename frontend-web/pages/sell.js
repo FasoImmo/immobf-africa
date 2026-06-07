@@ -212,7 +212,15 @@ export default function SellPage() {
         setStep(3);
         return;
       }
-      if (res.payment_url) setPaymentUrl(res.payment_url);
+      if (res.payment_url) {
+        // Redirection automatique vers la page de paiement (FedaPay, etc.) —
+        // ne pas faire dépendre l'utilisateur d'un clic supplémentaire sur
+        // un lien "Ouvrir la page de paiement".
+        setPaymentUrl(res.payment_url);
+        setPolling(true);
+        window.location.href = res.payment_url;
+        return;
+      }
       if (res.ussd_code) setUssdCode(res.ussd_code);
       setPolling(true);
     } catch (err) {
