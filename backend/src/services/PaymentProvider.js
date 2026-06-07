@@ -18,6 +18,15 @@ class PaymentProvider {
   get currencies() { return ["XOF"]; }
 
   /**
+   * Vrai si les identifiants/clés API nécessaires sont présents en config.
+   * Sert à filtrer la liste des moyens de paiement affichés côté UI : on ne
+   * propose à l'utilisateur que des fournisseurs réellement opérationnels,
+   * pour éviter un choix qui échouera systématiquement ("non configuré").
+   * Par défaut true ; chaque provider doit surcharger avec sa propre logique.
+   */
+  isConfigured() { return true; }
+
+  /**
    * Lance un paiement côté opérateur.
    * @returns {Promise<{external_id:string, status:string, payment_url?:string, ussd_code?:string, raw:any}>}
    */

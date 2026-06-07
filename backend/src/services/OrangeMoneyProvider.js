@@ -13,6 +13,11 @@ class OrangeMoneyProvider extends PaymentProvider {
   get name() { return "orange_money_bf"; }
   get countries() { return ["BF"]; }
 
+  isConfigured() {
+    const { merchantKey, authHeader } = config.providers.orangeMoney;
+    return Boolean(merchantKey && authHeader);
+  }
+
   async initiate({ amount, currency = "XOF", reference, customerPhone, description }) {
     const { merchantKey, authHeader, notifyUrl } = config.providers.orangeMoney;
 

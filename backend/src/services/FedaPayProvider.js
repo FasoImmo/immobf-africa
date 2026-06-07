@@ -38,6 +38,10 @@ class FedaPayProvider extends PaymentProvider {
 
   get currencies() { return ["XOF", "GNF"]; }
 
+  isConfigured() {
+    return Boolean(config.providers.fedapay.secretKey);
+  }
+
   /**
    * Mode sandbox quand FEDAPAY_LIVE != "true" -> base URL sandbox.
    * Stub mode quand pas de secret_key -> retourne payload simulé sans

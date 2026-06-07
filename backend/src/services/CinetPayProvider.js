@@ -16,6 +16,11 @@ class CinetPayProvider extends PaymentProvider {
   get countries() { return ["BF", "CI", "SN", "ML", "TG", "BJ", "CM"]; }
   get currencies() { return ["XOF", "XAF"]; }
 
+  isConfigured() {
+    const { apiKey, siteId } = config.providers.cinetpay;
+    return Boolean(apiKey && siteId);
+  }
+
   async initiate({ amount, currency = "XOF", reference, customerPhone, customerName, description, metadata }) {
     const { apiKey, siteId, notifyUrl } = config.providers.cinetpay;
     const payload = {

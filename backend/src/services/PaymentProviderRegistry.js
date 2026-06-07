@@ -26,6 +26,10 @@ function get(name) {
 function listForCountry(countryCode) {
   return Object.values(instances)
     .filter((p) => p.countries.includes(countryCode))
+    // On ne propose à l'utilisateur que les fournisseurs réellement
+    // configurés (clés API présentes) — sinon le choix est trompeur :
+    // il mène systématiquement à "non configuré, paiement refusé".
+    .filter((p) => p.isConfigured())
     .map((p) => ({ name: p.name, countries: p.countries, currencies: p.currencies }));
 }
 

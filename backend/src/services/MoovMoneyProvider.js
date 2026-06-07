@@ -13,6 +13,11 @@ class MoovMoneyProvider extends PaymentProvider {
   get name() { return "moov_money_bf"; }
   get countries() { return ["BF", "TG", "BJ", "NE"]; }
 
+  isConfigured() {
+    const { username, password } = config.providers.moovMoney;
+    return Boolean(username && password);
+  }
+
   async initiate({ amount, currency = "XOF", reference, customerPhone, description }) {
     const { username, password } = config.providers.moovMoney;
     if (!username || !password) {

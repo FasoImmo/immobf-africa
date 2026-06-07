@@ -12,6 +12,10 @@ class WaveProvider extends PaymentProvider {
   get name() { return "wave"; }
   get countries() { return ["SN", "CI", "BF", "ML"]; }
 
+  isConfigured() {
+    return Boolean(config.providers.wave.apiKey);
+  }
+
   async initiate({ amount, currency = "XOF", reference, description }) {
     const { apiKey } = config.providers.wave;
     if (!apiKey) {
