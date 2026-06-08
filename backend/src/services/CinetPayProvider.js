@@ -77,19 +77,59 @@ class CinetPayProvider extends PaymentProvider {
     };
   }
 
+  /**
+   * Webhook CinetPay : header `x-token` = HMAC-SHA256 hex calculé sur la
+   * CONCATÉNATION ORDONNÉE de 16 champs précis du corps (PAS sur le JSON brut
+   * — piège similaire au format Stripe-like de FedaPay qu'on avait dû
+   * corriger en b721a51). Ordre exact imposé par la doc CinetPay :
+   *   cpm_site_id + cpm_trans_id + cpm_trans_date + cpm_amount + cpm_currency
+   *   + signature + payment_method + cel_phone_num + cpm_phone_prefixe
+   *   + cpm_language + cpm_version + cpm_payment_config + cpm_page_action
+   *   + cpm_custom + cpm_designation + cpm_error_message
+   * Voir https://docs.cinetpay.com/api/1.0-fr/checkout/hmac
+   */
   verifyWebhookSignature(headers, rawBody) {
     const { secret } = config.providers.cinetpay;
     if (!secret) return true; // stub mode
-    const token = headers["x-token"] || headers["x-signature"] || "";
-    const digest = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
-    return safeEqual(token, digest);
+
+    const token = headers["x-token"] || headers["x-Token"] || headers["x-signature"] || "";
+    if (!token) return false;
+
+    let body;
+    try {
+      body = typeof rawBody === "string" ? JSON.parse(rawBody) : JSON.parse(rawBody.toString("utf8"));
+    } catch {
+      return false;
+    }
+
+    const data = [
+      body.cpm_site_id, body.cpm_trans_id, body.cpm_trans_date, body.cpm_amount,
+      body.cpm_currency, body.signature, body.payment_method, body.cel_phone_num,
+      body.cpm_phone_prefixe, body.cpm_language, body.cpm_version, body.cpm_payment_config,
+      body.cpm_page_action, body.cpm_custom, body.cpm_designation, body.cpm_error_message,
+    ].map((v) => (v == null ? "" : String(v))).join("");
+
+    const expected = crypto.createHmac("sha256", secret).update(data, "utf8").digest("hex");
+    return safeEqual(token, expected);
   }
 
+  /**
+   * Payload notification CinetPay : notre référence d'origine (= `transaction_id`
+   * envoyé à l'initiation) revient dans `cpm_trans_id` — PAS dans `cpm_custom`
+   * (qui contient notre `metadata` sérialisé). `cpm_trans_id` sert donc à la
+   * fois d'`external_id` et de `reference` pour le lookup transaction.
+   * `cpm_error_message` porte le statut texte ("SUCCES" en cas de succès,
+   * raison de l'échec sinon) — à reconfirmer avec un vrai webhook de test.
+   */
   parseWebhook(body) {
+    const succeeded =
+      body?.cpm_error_message === "SUCCES" ||
+      body?.cpm_result === "00" ||
+      body?.status === "ACCEPTED";
     return {
-      external_id: body?.cpm_trans_id || body?.payment_token,
-      reference: body?.cpm_custom || body?.transaction_id,
-      status: body?.cpm_result === "00" || body?.status === "ACCEPTED" ? "succeeded" : "failed",
+      external_id: body?.cpm_trans_id,
+      reference: body?.cpm_trans_id,
+      status: succeeded ? "succeeded" : "failed",
       amount: body?.cpm_amount ? Number(body.cpm_amount) : null,
       currency: body?.cpm_currency || "XOF",
       raw: body,
