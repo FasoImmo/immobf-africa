@@ -2,7 +2,7 @@
 
 const Joi = require("joi");
 const User = require("../models/User");
-const { signAccess, signRefresh } = require("../middleware/auth");
+const { signAccess, signRefresh, verify } = require("../middleware/auth");
 const { sendOtp, verifyOtp } = require("../services/otp");
 const { BadRequest, Unauthorized, Conflict } = require("../utils/errors");
 
@@ -68,6 +68,33 @@ async function me(req, res) {
   res.json({ user });
 }
 
+// Échange un refresh token valide contre un nouveau couple access/refresh.
+// Rotation du refresh token à chaque appel (limite la fenêtre de rejeu si un
+// refresh token venait à être intercepté).
+const refreshSchema = Joi.object({
+  refresh: Joi.string().required(),
+});
+
+async function refresh(req, res) {
+  const { value, error } = refreshSchema.validate(req.body);
+  if (error) throw BadRequest(error.message);
+
+  let payload;
+  try {
+    payload = verify(value.refresh);
+  } catch (_e) {
+    throw Unauthorized("Invalid or expired refresh token");
+  }
+  if (payload.kind !== "refresh") throw Unauthorized("Wrong token type");
+
+  const user = await User.findById(payload.sub);
+  if (!user) throw Unauthorized("Utilisateur introuvable");
+
+  const access = signAccess(user);
+  const newRefresh = signRefresh(user, `${user.id}-${Date.now()}`);
+  res.json({ access, refresh: newRefresh });
+}
+
 async function resendOtp(req, res) {
   const { value, error } = Joi.object({ phone: phoneSchema }).validate(req.body);
   if (error) throw BadRequest(error.message);
@@ -119,4 +146,4 @@ async function resetPassword(req, res) {
   res.json({ success: true });
 }
 
-module.exports = { register, login, verifyPhone, me, resendOtp, forgotPassword, resetPassword };
+module.exports = { register, login, verifyPhone, me, refresh, resendOtp, forgotPassword, resetPassword };

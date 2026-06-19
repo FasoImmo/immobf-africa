@@ -25,6 +25,7 @@ router.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 // --- Auth ---
 router.post("/auth/register",   authLimiter, asyncHandler(authCtl.register));
 router.post("/auth/login",      authLimiter, asyncHandler(authCtl.login));
+router.post("/auth/refresh",          authLimiter, asyncHandler(authCtl.refresh));
 router.post("/auth/otp/verify",       authLimiter, asyncHandler(authCtl.verifyPhone));
 router.post("/auth/otp/resend",       authLimiter, asyncHandler(authCtl.resendOtp));
 router.post("/auth/forgot-password",  authLimiter, asyncHandler(authCtl.forgotPassword));

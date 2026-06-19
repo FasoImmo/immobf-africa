@@ -12,6 +12,55 @@ api.interceptors.request.use((cfg) => {
   return cfg;
 });
 
+// Le token d'accès expire vite (15 min par défaut). Sans ce mécanisme,
+// toute session active plus longtemps que ça (ex. formulaire de
+// publication d'annonce en plusieurs étapes) échoue avec "Invalid or
+// expired token" sans recours — l'utilisateur perd son formulaire.
+// Ici : sur un 401, on échange le refresh token contre un nouveau couple
+// access/refresh et on rejoue la requête originale une seule fois.
+let refreshPromise = null;
+
+function clearSessionAndRedirect() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("immobf_token");
+  localStorage.removeItem("immobf_refresh");
+  localStorage.removeItem("immobf_user");
+  const next = encodeURIComponent(window.location.pathname + window.location.search);
+  window.location.href = `/login?redirect=${next}`;
+}
+
+async function refreshAccessToken() {
+  const refresh = typeof window !== "undefined" ? localStorage.getItem("immobf_refresh") : null;
+  if (!refresh) throw new Error("No refresh token");
+  // Appel direct via axios (pas `api`) pour éviter de re-déclencher l'intercepteur.
+  const { data } = await axios.post(`${baseURL}/api/v1/auth/refresh`, { refresh });
+  localStorage.setItem("immobf_token", data.access);
+  localStorage.setItem("immobf_refresh", data.refresh);
+  return data.access;
+}
+
+api.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const { response, config } = error;
+    if (!response || response.status !== 401 || config._retried || typeof window === "undefined") {
+      return Promise.reject(error);
+    }
+    config._retried = true;
+    try {
+      // Mutualise les refresh concurrents : si plusieurs requêtes échouent
+      // en même temps, une seule paire de tokens est échangée.
+      refreshPromise = refreshPromise || refreshAccessToken().finally(() => { refreshPromise = null; });
+      const newAccess = await refreshPromise;
+      config.headers.Authorization = `Bearer ${newAccess}`;
+      return api(config);
+    } catch (_e) {
+      clearSessionAndRedirect();
+      return Promise.reject(error);
+    }
+  }
+);
+
 export default api;
 
 /** Retourne la langue active (stockée par le switcher de langue). */

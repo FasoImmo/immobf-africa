@@ -37,6 +37,7 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
 
   function logout() {
     localStorage.removeItem("immobf_token");
+    localStorage.removeItem("immobf_refresh");
     localStorage.removeItem("immobf_user");
     setAccountAnchor(null);
     setDrawerOpen(false);

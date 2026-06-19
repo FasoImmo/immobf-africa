@@ -105,8 +105,9 @@ export default function Login() {
     e.preventDefault();
     setErr(null);
     try {
-      const { access, user } = await Auth.login({ phone, password });
+      const { access, refresh, user } = await Auth.login({ phone, password });
       localStorage.setItem("immobf_token", access);
+      localStorage.setItem("immobf_refresh", refresh);
       localStorage.setItem("immobf_user", JSON.stringify(user));
       router.push(redirect);
     } catch (e) {
@@ -122,13 +123,18 @@ export default function Login() {
       return;
     }
     try {
-      const { access, user } = await Auth.register({
+      await Auth.register({
         phone: regPhone,
         email: regEmail || undefined,
         password: regPassword,
         full_name: regName,
       });
+      // L'inscription ne renvoie pas de token (juste un message OTP) — on
+      // enchaîne un vrai login pour obtenir un token valide, sinon le
+      // compte reste "connecté" en apparence mais sans session utilisable.
+      const { access, refresh, user } = await Auth.login({ phone: regPhone, password: regPassword });
       localStorage.setItem("immobf_token", access);
+      localStorage.setItem("immobf_refresh", refresh);
       localStorage.setItem("immobf_user", JSON.stringify(user));
       router.push(redirect);
     } catch (e) {
