@@ -88,6 +88,16 @@ module.exports = {
       secret: process.env.CINETPAY_SECRET_KEY,
       notifyUrl: process.env.CINETPAY_NOTIFY_URL,
     },
+    paydunya: {
+      // 3 clés requises — récupérées dans dashboard PayDunya → Intégrations
+      masterKey:  process.env.PAYDUNYA_MASTER_KEY,
+      privateKey: process.env.PAYDUNYA_PRIVATE_KEY,
+      token:      process.env.PAYDUNYA_TOKEN,
+      notifyUrl:  process.env.PAYDUNYA_NOTIFY_URL,
+      // true => app.paydunya.com/api (production)
+      // false/undefined => app.paydunya.com/sandbox-api (test)
+      live: process.env.PAYDUNYA_LIVE === "true",
+    },
     orangeMoney: {
       merchantKey: process.env.ORANGE_MONEY_MERCHANT_KEY,
       authHeader: process.env.ORANGE_MONEY_AUTH_HEADER,
@@ -102,6 +112,19 @@ module.exports = {
     wave: {
       apiKey: process.env.WAVE_API_KEY,
       webhookSecret: process.env.WAVE_WEBHOOK_SECRET,
+    },
+    pawapay: {
+      apiToken: process.env.PAWAPAY_API_TOKEN,
+      // true => api.pawapay.io (production) ; false/undefined => sandbox
+      live: process.env.PAWAPAY_LIVE === "true",
+    },
+    flutterwave: {
+      // FLWSECK-...-X (live) ou FLWSECK_TEST-...-X (test)
+      secretKey: process.env.FLUTTERWAVE_SECRET_KEY,
+      publicKey: process.env.FLUTTERWAVE_PUBLIC_KEY,
+      // "Secret hash" configuré dans Dashboard Flutterwave > Settings > Webhooks
+      // (comparaison directe, pas un HMAC à calculer)
+      webhookHash: process.env.FLUTTERWAVE_WEBHOOK_HASH,
     },
   },
 
