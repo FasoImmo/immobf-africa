@@ -7,13 +7,19 @@ import { Payments } from "../lib/api";
 import { formatFCFA } from "../lib/format";
 import { useTranslation } from "react-i18next";
 
-// Étiquette lisible + chip "Recommandé" pour FedaPay (provider principal)
+// Étiquette lisible + chip "Recommandé". CinetPay et Orange Money BF en tête :
+// Wave et Flutterwave ont tous les deux confirmé (formulaires d'inscription
+// réels) ne pas accepter d'entreprise basée au Burkina Faso comme marchand —
+// gardés en option pour d'autres pays/évolutions futures, mais plus
+// recommandés par défaut pour le BF (voir tâche #24, #27, #28).
 const PROVIDER_LABELS = {
-  fedapay: { label: "FedaPay (tous opérateurs)", recommended: true },
-  orange_money_bf: { label: "Orange Money (*144*4*6#)" },
-  moov_money_bf: { label: "Moov Money (*555*6#)" },
+  cinetpay: { label: "CinetPay", recommended: true },
+  orange_money_bf: { label: "Orange Money (*144*4*6#)", recommended: true },
   wave: { label: "Wave" },
-  cinetpay: { label: "CinetPay" },
+  flutterwave: { label: "Flutterwave (carte, Orange Money, Mobicash)" },
+  fedapay: { label: "FedaPay (tous opérateurs)" },
+  moov_money_bf: { label: "Moov Money (*555*6#)" },
+  pawapay: { label: "PawaPay (Moov Money)" },
 };
 
 // Pour FedaPay : choix d'opérateur préféré (affiché dans la modal de FedaPay,
@@ -41,9 +47,16 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
     if (!open) return;
     Payments.providers(property?.country_code || "BF").then((d) => {
       setProviders(d.providers);
-      // Sélectionne FedaPay par défaut s'il est dispo, sinon premier provider listé
+      // Sélectionne CinetPay par défaut s'il est dispo, sinon Orange Money BF,
+      // sinon Wave, sinon Flutterwave, sinon FedaPay, sinon premier provider listé.
+      const cp = d.providers.find((p) => p.name === "cinetpay");
+      const om = d.providers.find((p) => p.name === "orange_money_bf");
+      const wv = d.providers.find((p) => p.name === "wave");
+      const flw = d.providers.find((p) => p.name === "flutterwave");
       const fp = d.providers.find((p) => p.name === "fedapay");
-      setProvider(fp ? "fedapay" : d.providers[0]?.name || "");
+      setProvider(
+        cp ? "cinetpay" : om ? "orange_money_bf" : wv ? "wave" : flw ? "flutterwave" : fp ? "fedapay" : d.providers[0]?.name || ""
+      );
     });
   }, [open, property]);
 
@@ -68,6 +81,8 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
   }
 
   const isFedapay = provider === "fedapay";
+  // Email recommandé pour le reçu, quel que soit le fournisseur.
+  const showEmail = true;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -77,49 +92,64 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
           {property?.title} — <b>{formatFCFA(amount)}</b>
         </Typography>
 
-        <TextField
-          select fullWidth label={t("payment.choose_provider")} sx={{ mb: 2 }}
-          value={provider} onChange={(e) => setProvider(e.target.value)}
-        >
-          {providers.map((p) => {
-            const meta = PROVIDER_LABELS[p.name] || { label: p.name };
-            return (
-              <MenuItem key={p.name} value={p.name}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
-                  <span>{t(`payment.${p.name}`, meta.label)}</span>
-                  {meta.recommended && (
-                    <Chip label="Recommandé" size="small" color="success" sx={{ ml: "auto" }} />
-                  )}
-                </Box>
-              </MenuItem>
-            );
-          })}
-        </TextField>
+        {providers.length === 0 ? (
+          // Aucun fournisseur configuré/validé pour ce pays (cas du Burkina
+          // Faso le temps que FedaPay/CinetPay/PawaPay soient réactivés —
+          // voir tâche #24, #28, #30, 28/06/2026). On évite d'afficher un
+          // sélecteur vide ou de laisser l'acheteur tomber sur un checkout
+          // qui échouera systématiquement.
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Le paiement en ligne est temporairement indisponible pour ce pays.
+            Contactez le vendeur directement pour convenir des modalités de
+            paiement (espèces, virement, dépôt en personne).
+          </Alert>
+        ) : (
+          <>
+            <TextField
+              select fullWidth label={t("payment.choose_provider")} sx={{ mb: 2 }}
+              value={provider} onChange={(e) => setProvider(e.target.value)}
+            >
+              {providers.map((p) => {
+                const meta = PROVIDER_LABELS[p.name] || { label: p.name };
+                return (
+                  <MenuItem key={p.name} value={p.name}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
+                      <span>{t(`payment.${p.name}`, meta.label)}</span>
+                      {meta.recommended && (
+                        <Chip label="Recommandé" size="small" color="success" sx={{ ml: "auto" }} />
+                      )}
+                    </Box>
+                  </MenuItem>
+                );
+              })}
+            </TextField>
 
-        {isFedapay && (
-          <TextField
-            select fullWidth label="Opérateur préféré (optionnel)" sx={{ mb: 2 }}
-            value={preferredOperator} onChange={(e) => setPreferredOperator(e.target.value)}
-            helperText="FedaPay vous laissera quand même choisir sur sa page si vous laissez vide."
-          >
-            <MenuItem value=""><em>Aucune préférence</em></MenuItem>
-            {FEDAPAY_OPERATORS.map((op) => (
-              <MenuItem key={op.value} value={op.value}>{op.label}</MenuItem>
-            ))}
-          </TextField>
-        )}
+            {isFedapay && (
+              <TextField
+                select fullWidth label="Opérateur préféré (optionnel)" sx={{ mb: 2 }}
+                value={preferredOperator} onChange={(e) => setPreferredOperator(e.target.value)}
+                helperText="FedaPay vous laissera quand même choisir sur sa page si vous laissez vide."
+              >
+                <MenuItem value=""><em>Aucune préférence</em></MenuItem>
+                {FEDAPAY_OPERATORS.map((op) => (
+                  <MenuItem key={op.value} value={op.value}>{op.label}</MenuItem>
+                ))}
+              </TextField>
+            )}
 
-        <TextField
-          fullWidth label="Numéro mobile money (+226…)"
-          value={phone} onChange={(e) => setPhone(e.target.value)} sx={{ mb: 2 }}
-        />
+            <TextField
+              fullWidth label="Numéro mobile money (+226…)"
+              value={phone} onChange={(e) => setPhone(e.target.value)} sx={{ mb: 2 }}
+            />
 
-        {isFedapay && (
-          <TextField
-            fullWidth label="Email (recommandé pour le reçu)"
-            type="email"
-            value={email} onChange={(e) => setEmail(e.target.value)} sx={{ mb: 2 }}
-          />
+            {showEmail && (
+              <TextField
+                fullWidth label="Email (recommandé pour le reçu)"
+                type="email"
+                value={email} onChange={(e) => setEmail(e.target.value)} sx={{ mb: 2 }}
+              />
+            )}
+          </>
         )}
 
         {result?.ussd_code && (
@@ -139,9 +169,11 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Fermer</Button>
-        <Button onClick={handleSubmit} variant="contained" disabled={loading || !phone || !provider}>
-          Payer {formatFCFA(amount)}
-        </Button>
+        {providers.length > 0 && (
+          <Button onClick={handleSubmit} variant="contained" disabled={loading || !phone || !provider}>
+            Payer {formatFCFA(amount)}
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   );

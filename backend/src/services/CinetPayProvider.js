@@ -5,15 +5,26 @@ const PaymentProvider = require("./PaymentProvider");
 const config = require("../config");
 
 /**
- * CinetPay — agrégateur multi-opérateurs (Orange Money, Moov, Wave, MTN…)
- * pour le Burkina, Côte d'Ivoire, Sénégal, Mali, Togo, Cameroun, etc.
+ * CinetPay — agrégateur multi-opérateurs (Orange Money, Moov, Wave, MTN…).
+ *
+ * CORRECTIF (confirmé par email CinetPay le 09/06/2026, échange commercial
+ * en cours pour ouverture de compte) : les zones RÉELLEMENT actives côté
+ * CinetPay aujourd'hui sont plus restreintes que la doc générale ne le
+ * suggère, et la carte bancaire est TEMPORAIREMENT indisponible (mobile
+ * money uniquement, pour l'instant) :
+ *   - Zone XAF : Cameroun (CM)
+ *   - Zone XOF : Côte d'Ivoire (CI), Togo (TG), Burkina Faso (BF)
+ *   - Zone USD/CDF : RD Congo (CD)
+ * Sénégal (SN), Mali (ML), Bénin (BJ) ne sont PAS dans cette liste —
+ * retirés de `countries` ci-dessous pour ne pas afficher une fausse option
+ * à ces pays. À réviser si CinetPay étend sa couverture ou réactive la carte.
  *
  * Docs: https://docs.cinetpay.com/
  * API base: https://api-checkout.cinetpay.com/v2
  */
 class CinetPayProvider extends PaymentProvider {
   get name() { return "cinetpay"; }
-  get countries() { return ["BF", "CI", "SN", "ML", "TG", "BJ", "CM"]; }
+  get countries() { return ["BF", "CI", "TG", "CM", "CD"]; }
   get currencies() { return ["XOF", "XAF"]; }
 
   isConfigured() {
