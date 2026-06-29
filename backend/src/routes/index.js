@@ -51,6 +51,11 @@ router.post("/payments/:id/escrow/release", requireAuth, asyncHandler(payCtl.rel
 // Webhooks — raw body parser (HMAC verification)
 router.post("/payments/webhooks/:provider", rawBody, asyncHandler(payCtl.webhook));
 
+// DIAGNOSTIC TEMPORAIRE (29/06/2026) — voir paymentsController.js. À retirer
+// une fois le callback PawaPay confirmé stable.
+router.get ("/admin/pawapay/last",                      requireAuth, asyncHandler(payCtl.adminPawapayLast));
+router.post("/admin/pawapay/resend-callback/:depositId", requireAuth, asyncHandler(payCtl.adminPawapayResendCallback));
+
 // --- Analytics ---
 const analyticsLimiter = rateLimit({ windowMs: 10_000, max: 30 });
 router.post("/properties/:id/view",     analyticsLimiter, asyncHandler(analytics.trackView));

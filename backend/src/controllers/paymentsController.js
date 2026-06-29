@@ -246,4 +246,39 @@ async function mockSucceed(req, res) {
   res.json({ ok: true, transaction: updated });
 }
 
-module.exports = { listProviders, initiate, webhook, get, listMine, releaseEscrow, mockSucceed };
+/**
+ * DIAGNOSTIC TEMPORAIRE (29/06/2026) — débogage de l'absence de callback
+ * PawaPay : la console Railway s'est révélée difficile à utiliser pour
+ * lancer une requête SQL/HTTP manuelle, donc on expose deux routes admin
+ * pour (1) lister les dernières transactions PawaPay et (2) demander à
+ * PawaPay de renvoyer le callback d'un dépôt précis. À retirer une fois
+ * le problème de callback résolu et confirmé stable.
+ */
+async function adminPawapayLast(req, res) {
+  if (req.user.role !== "admin") throw Forbidden();
+  const { query } = require("../config/db");
+  const { rows } = await query(
+    `SELECT id, reference, external_id, status, amount, currency, created_at, updated_at
+     FROM transactions WHERE provider = 'pawapay' ORDER BY created_at DESC LIMIT 5`
+  );
+  res.json({ transactions: rows });
+}
+
+async function adminPawapayResendCallback(req, res) {
+  if (req.user.role !== "admin") throw Forbidden();
+  const depositId = req.params.depositId;
+  const { apiToken, live } = config.providers.pawapay;
+  if (!apiToken) throw new BadRequest("PawaPay non configuré");
+  const baseUrl = live ? "https://api.pawapay.io" : "https://api.sandbox.pawapay.io";
+  const r = await fetch(`${baseUrl}/v2/deposits/resend-callback/${depositId}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiToken}` },
+  });
+  const body = await r.json().catch(() => ({}));
+  res.status(r.status).json(body);
+}
+
+module.exports = {
+  listProviders, initiate, webhook, get, listMine, releaseEscrow, mockSucceed,
+  adminPawapayLast, adminPawapayResendCallback,
+};
