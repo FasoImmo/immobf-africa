@@ -112,7 +112,18 @@ class PawaPayProvider extends PaymentProvider {
     // ACCEPTED = pris en charge mais PAS encore terminé : le statut final
     // (COMPLETED/FAILED) arrive par callback ou via Check Deposit Status.
     if (body.status !== "ACCEPTED") {
-      const err = new Error(`PawaPay initiate failed: ${body?.failureReason?.failureMessage || body.status}`);
+      // DIAGNOSTIC TEMPORAIRE (29/06/2026) : le message d'erreur affichait
+      // "undefined" côté UI car ni failureReason.failureMessage ni body.status
+      // n'étaient présents — on logue tout pour voir la vraie forme de la
+      // réponse PawaPay (ex. erreur de validation 400, token invalide, etc.).
+      const logger = require("../utils/logger");
+      logger.error({
+        pawapay_http_status: res.status,
+        pawapay_response_body: body,
+        pawapay_base_url: this._baseUrl(),
+        pawapay_request_payload: payload,
+      }, "PawaPay deposit initiation failed");
+      const err = new Error(`PawaPay initiate failed: ${body?.failureReason?.failureMessage || body?.status || body?.message || JSON.stringify(body)}`);
       err.raw = body;
       throw err;
     }
