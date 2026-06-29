@@ -54,6 +54,23 @@ class PawaPayProvider extends PaymentProvider {
     return "MOOV_BFA";
   }
 
+  /**
+   * CORRECTIF (29/06/2026) : PawaPay exige un MSISDN complet avec
+   * indicatif pays (ex. "22670123456"), sans "+". Le formulaire de
+   * checkout ne fait saisir que le numéro local (8 chiffres, ex.
+   * "70123456" ou "070123456"), d'où l'erreur "The MSISDN is too short".
+   * On retire un éventuel zéro initial puis on préfixe par "226" (BF)
+   * si l'indicatif n'est pas déjà présent.
+   */
+  _normalizePhone(customerPhone) {
+    let digits = String(customerPhone || "").replace(/\D/g, "");
+    digits = digits.replace(/^0+/, "");
+    if (!digits.startsWith("226")) {
+      digits = `226${digits}`;
+    }
+    return digits;
+  }
+
   async initiate({ amount, currency = "XOF", reference, customerPhone, metadata }) {
     const { apiToken } = config.providers.pawapay;
     const provider = this._resolveOperator(metadata);
@@ -89,7 +106,7 @@ class PawaPayProvider extends PaymentProvider {
       payer: {
         type: "MMO",
         accountDetails: {
-          phoneNumber: String(customerPhone || "").replace(/\D/g, ""),
+          phoneNumber: this._normalizePhone(customerPhone),
           provider,
         },
       },
