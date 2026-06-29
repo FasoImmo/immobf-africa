@@ -99,7 +99,13 @@ class PawaPayProvider extends PaymentProvider {
       metadata: [{ orderId: reference }],
     };
 
-    const res = await fetch(`${this._baseUrl()}/deposits`, {
+    // CORRECTIF (29/06/2026) : l'API Merchant est versionnée — l'ancien
+    // chemin "/deposits" tape sur un endpoint qui renvoie un format d'erreur
+    // générique {errorId, errorCode, errorMessage} ne correspondant PAS au
+    // schéma documenté ({status, failureReason: {failureCode, ...}}), signe
+    // qu'on ne touchait pas le bon endpoint. Le bon chemin documenté est
+    // "/v2/deposits" (voir docs.pawapay.io/v2/api-reference/deposits/initiate-deposit).
+    const res = await fetch(`${this._baseUrl()}/v2/deposits`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
