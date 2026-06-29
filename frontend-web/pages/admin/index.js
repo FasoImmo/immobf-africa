@@ -1,17 +1,62 @@
 import { useEffect, useState } from "react";
-import { Box, Grid, Paper, Typography, Table, TableHead, TableRow, TableCell, TableBody, Button } from "@mui/material";
+import { useRouter } from "next/router";
+import { Box, Grid, Paper, Typography, Table, TableHead, TableRow, TableCell, TableBody, Button, CircularProgress } from "@mui/material";
 import Layout from "../../components/Layout";
 import { Properties, Payments } from "../../lib/api";
 import { formatFCFA } from "../../lib/format";
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const [items, setItems] = useState([]);
   const [tx, setTx] = useState([]);
+  // null = vérification en cours, false = accès refusé, true = autorisé
+  const [authorized, setAuthorized] = useState(null);
+
+  // ─── Garde d'accès : rôle "admin" obligatoire ────────────────────────────
+  // Avant ce correctif, n'importe quel utilisateur connecté (acheteur,
+  // vendeur...) pouvait ouvrir /admin directement via l'URL.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const token = localStorage.getItem("immobf_token");
+    if (!token) {
+      router.replace("/login?redirect=/admin");
+      return;
+    }
+    let user = null;
+    try { user = JSON.parse(localStorage.getItem("immobf_user") || "null"); } catch (_) {}
+    if (!user || user.role !== "admin") {
+      setAuthorized(false);
+      return;
+    }
+    setAuthorized(true);
+  }, []); // eslint-disable-line
 
   useEffect(() => {
+    if (authorized !== true) return;
     Properties.search({ limit: 50 }).then((d) => setItems(d.items || []));
     Payments.list().then((d) => setTx(d.items || [])).catch(() => setTx([]));
-  }, []);
+  }, [authorized]);
+
+  if (authorized === null) {
+    return (
+      <Layout title="Admin — ImmoBF">
+        <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box>
+      </Layout>
+    );
+  }
+
+  if (authorized === false) {
+    return (
+      <Layout title="Admin — ImmoBF">
+        <Paper sx={{ p: 4, textAlign: "center" }}>
+          <Typography variant="h5" gutterBottom>Accès refusé</Typography>
+          <Typography color="text.secondary">
+            Cette page est réservée aux administrateurs du site.
+          </Typography>
+        </Paper>
+      </Layout>
+    );
+  }
 
   const countByCity = items.reduce((acc, p) => {
     acc[p.city] = (acc[p.city] || 0) + 1; return acc;
