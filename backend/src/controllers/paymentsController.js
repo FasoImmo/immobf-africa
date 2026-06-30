@@ -41,6 +41,19 @@ async function initiate(req, res) {
     }
   }
 
+  // Commission de réservation : le client paie le bien DIRECTEMENT au
+  // propriétaire (mobile money, hors plateforme). Seule la commission ImmoBF
+  // (% configurable, cf. config.commissions.appPct) transite ici. Le montant
+  // est toujours recalculé côté serveur à partir du prix réel de l'annonce —
+  // on ignore le montant envoyé par le client pour éviter qu'il soit minoré.
+  let property = null;
+  if (value.purpose === "commission" && value.property_id) {
+    property = await Property.findById(value.property_id);
+    if (!property) throw BadRequest("Annonce introuvable");
+    value.amount = Math.max(100, Math.round(property.price * config.commissions.appPct / 100));
+    value.currency = property.currency || value.currency;
+  }
+
   const provider = registry.get(value.provider);
 
   const tx = await Transaction.create({

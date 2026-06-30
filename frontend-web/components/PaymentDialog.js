@@ -72,7 +72,10 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
         customer_phone: phone,
         customer_email: email || undefined,
         preferred_operator: provider === "fedapay" ? preferredOperator || undefined : undefined,
-        description: `Acompte ${property?.title || "annonce"}`,
+        description:
+          purpose === "commission"
+            ? `Commission de réservation (5%) — ${property?.title || "annonce"}`
+            : `Acompte ${property?.title || "annonce"}`,
       });
       setResult(res);
     } catch (e) {
@@ -162,6 +165,13 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
             <Button href={result.payment_url} target="_blank" rel="noreferrer">
               Ouvrir la page de paiement
             </Button>
+          </Alert>
+        )}
+        {result && purpose === "commission" && (
+          <Alert severity="info" sx={{ mt: 1 }}>
+            Commission ImmoBF réglée. Le paiement du séjour/loyer se fait directement
+            avec le propriétaire, en mobile money, au numéro affiché sur l'annonce
+            ({property?.owner_phone || property?.owner_whatsapp || "—"}).
           </Alert>
         )}
         {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}

@@ -83,7 +83,8 @@
     "price_rent_short": "Price / night or week (XOF)",
     "area": "Area (m²)",
     "deposit_pct": "Deposit (%)",
-    "city": "City",
+    "city": "City or locality",
+    "city_helper": "Pick from the list or type the name of your city, town, or locality freely.",
     "neighborhood": "Neighborhood / area",
     "neighborhood_placeholder": "E.g. Ouaga 2000, Patte d'Oie…",
     "address": "Address",
@@ -134,7 +135,9 @@
     "period_weekly": "/ week",
     "period_nightly": "/ night",
     "contact_seller": "Contact seller",
-    "contact_whatsapp": "Contact on WhatsApp"
+    "contact_whatsapp": "Contact on WhatsApp",
+    "reserve_btn": "Book — ImmoBF commission",
+    "commission_notice": "The rent/stay is paid directly to the owner via mobile money. This amount is only the ImmoBF commission (5%)."
   },
   "payment": {
     "choose_provider": "Choose a payment method",

@@ -424,7 +424,10 @@ export default function SellPage() {
                   value={form.city}
                   onInputChange={function(_, v) { setForm(function(f) { return Object.assign({}, f, { city: v }); }); }}
                   renderInput={function(params) {
-                    return <TextField {...params} fullWidth label={`${t("sell.city")} *`} required />;
+                    return (
+                      <TextField {...params} fullWidth label={`${t("sell.city")} *`} required
+                        helperText={t("sell.city_helper")} />
+                    );
                   }}
                 />
               </Grid>

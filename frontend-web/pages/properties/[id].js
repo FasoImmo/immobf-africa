@@ -61,6 +61,12 @@ export default function PropertyDetail() {
     ? t(PERIOD_KEY[p.rent_period] || "property.period_monthly")
     : null;
 
+  // Commission ImmoBF (5% par défaut) prélevée à la réservation : le client
+  // paie le loyer/séjour DIRECTEMENT au propriétaire en mobile money, seule
+  // cette commission transite par la plateforme. Affichage uniquement —
+  // le montant exact est recalculé et imposé côté serveur.
+  var commissionAmount = isRent ? Math.max(100, Math.round(p.price * 0.05)) : 0;
+
   return (
     <Layout title={p.title + " — ImmoBF"}>
       {router.query.published === "1" && (
@@ -135,13 +141,18 @@ export default function PropertyDetail() {
             <Divider sx={{ my: 2 }} />
 
             {isRent && (
-              <Button
-                fullWidth variant="contained" color="primary" size="large"
-                sx={{ mt: 1 }}
-                onClick={function() { setPayOpen(true); }}
-              >
-                Réserver
-              </Button>
+              <>
+                <Button
+                  fullWidth variant="contained" color="primary" size="large"
+                  sx={{ mt: 1 }}
+                  onClick={function() { setPayOpen(true); }}
+                >
+                  {t("property.reserve_btn")} — {formatFCFA(commissionAmount)}
+                </Button>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                  {t("property.commission_notice")}
+                </Typography>
+              </>
             )}
 
             {p.owner_whatsapp && (
@@ -181,8 +192,8 @@ export default function PropertyDetail() {
           open={payOpen}
           onClose={function() { setPayOpen(false); }}
           property={p}
-          amount={p.price}
-          purpose="reservation"
+          amount={commissionAmount}
+          purpose="commission"
         />
       )}
     </Layout>
