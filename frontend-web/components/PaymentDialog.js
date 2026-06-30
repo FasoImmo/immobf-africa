@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, MenuItem, TextField, Alert, CircularProgress, Box, Typography, Chip
@@ -42,6 +42,59 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  // Statut réel de la transaction, obtenu en interrogeant le backend après
+  // l'initiation — sans ça, le dialog affichait "Commission réglée" dès que
+  // l'appel d'initiation répondait (souvent un simple push USSD en attente),
+  // sans jamais vérifier si le client avait effectivement payé, et sans
+  // jamais s'arrêter si la confirmation n'arrivait pas.
+  // null | "pending" | "succeeded" | "failed" | "timeout"
+  const [status, setStatus] = useState(null);
+  const pollRef = useRef(null);
+  const pollAttemptsRef = useRef(0);
+  const MAX_POLL_ATTEMPTS = 40; // ~3 minutes à 4.5s d'intervalle
+
+  function stopPolling() {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }
+
+  function startPolling(transactionId) {
+    stopPolling();
+    pollAttemptsRef.current = 0;
+    setStatus("pending");
+    pollRef.current = setInterval(async () => {
+      pollAttemptsRef.current += 1;
+      try {
+        const d = await Payments.get(transactionId);
+        const s = d?.transaction?.status;
+        if (s === "succeeded") {
+          setStatus("succeeded");
+          stopPolling();
+          return;
+        }
+        if (s === "failed") {
+          setStatus("failed");
+          stopPolling();
+          return;
+        }
+      } catch (_) {
+        // erreur réseau ponctuelle : on continue jusqu'au délai max
+      }
+      if (pollAttemptsRef.current >= MAX_POLL_ATTEMPTS) {
+        setStatus("timeout");
+        stopPolling();
+      }
+    }, 4500);
+  }
+
+  // Coupe le sondage si le dialog se ferme ou si le composant disparaît —
+  // sinon le polling continuait indéfiniment en arrière-plan.
+  useEffect(() => {
+    if (!open) stopPolling();
+    return stopPolling;
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -61,7 +114,8 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
   }, [open, property]);
 
   async function handleSubmit() {
-    setLoading(true); setError(null); setResult(null);
+    setLoading(true); setError(null); setResult(null); setStatus(null);
+    stopPolling();
     try {
       const res = await Payments.initiate({
         provider,
@@ -80,9 +134,24 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
             : `Acompte ${property?.title || "annonce"}`,
       });
       setResult(res);
+      if (res.status === "succeeded") {
+        // Mode stub/mock : déjà confirmé, pas besoin de sonder.
+        setStatus("succeeded");
+      } else if (res.transaction_id) {
+        // Push USSD envoyé, en attente que le client valide sur son
+        // téléphone : on sonde régulièrement l'état réel de la transaction
+        // au lieu de supposer que c'est payé.
+        startPolling(res.transaction_id);
+      }
     } catch (e) {
       setError(e?.response?.data?.error?.message || e.message);
     } finally { setLoading(false); }
+  }
+
+  function handleRetry() {
+    setStatus(null);
+    setResult(null);
+    setError(null);
   }
 
   const isFedapay = provider === "fedapay";
@@ -157,33 +226,64 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
           </>
         )}
 
-        {result?.ussd_code && (
+        {result?.ussd_code && status === "pending" && (
           <Alert severity="info" sx={{ mt: 1 }}>
             Composez <b>{result.ussd_code}</b> sur votre téléphone pour valider le paiement (référence {result.reference}).
           </Alert>
         )}
-        {result?.payment_url && (
+        {result?.payment_url && status === "pending" && (
           <Alert severity="success" sx={{ mt: 1 }}>
             <Button href={result.payment_url} target="_blank" rel="noreferrer">
               Ouvrir la page de paiement
             </Button>
           </Alert>
         )}
-        {result && purpose === "commission" && (
-          <Alert severity="info" sx={{ mt: 1 }}>
-            Commission ImmoBF réglée. Le paiement du séjour/loyer se fait directement
-            avec le propriétaire, en mobile money, au numéro affiché sur l'annonce
-            ({property?.owner_phone || property?.owner_whatsapp || "—"}).
+
+        {/* Statut réel de la transaction, obtenu par sondage — l'ancien
+            message "Commission réglée" s'affichait dès l'envoi du push USSD,
+            avant toute confirmation effective du client. */}
+        {status === "pending" && (
+          <Alert severity="info" icon={<CircularProgress size={18} />} sx={{ mt: 2 }}>
+            En attente de votre confirmation sur votre téléphone (référence {result?.reference})…
+            Ne fermez pas cette fenêtre.
           </Alert>
         )}
+        {status === "succeeded" && purpose === "commission" && (
+          <Alert severity="success" sx={{ mt: 2 }}>
+            ✓ Commission ImmoBF réglée. Le paiement du séjour/loyer se fait directement
+            avec le propriétaire, en mobile money, au numéro affiché sur l'annonce
+            ({property?.owner_phone || property?.owner_whatsapp || "—"}). Un reçu vous a été envoyé par email.
+          </Alert>
+        )}
+        {status === "succeeded" && purpose !== "commission" && (
+          <Alert severity="success" sx={{ mt: 2 }}>✓ Paiement confirmé. Un reçu vous a été envoyé par email.</Alert>
+        )}
+        {status === "failed" && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            Le paiement a échoué ou a été annulé sur votre téléphone.{" "}
+            <Button size="small" onClick={handleRetry}>Réessayer</Button>
+          </Alert>
+        )}
+        {status === "timeout" && (
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            Nous n'avons pas reçu de confirmation après quelques minutes. Si vous avez
+            validé le paiement sur votre téléphone, vérifiez « Mon compte » dans
+            quelques instants — il peut arriver en retard. Sinon, vous pouvez réessayer.{" "}
+            <Button size="small" onClick={handleRetry}>Réessayer</Button>
+          </Alert>
+        )}
+
         {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
         {loading && <Box sx={{ display: "flex", justifyContent: "center", my: 2 }}><CircularProgress /></Box>}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Fermer</Button>
-        {providers.length > 0 && (
-          <Button onClick={handleSubmit} variant="contained" disabled={loading || !phone || !provider}>
-            Payer {formatFCFA(amount)}
+        {providers.length > 0 && status !== "succeeded" && (
+          <Button
+            onClick={handleSubmit} variant="contained"
+            disabled={loading || status === "pending" || !phone || !provider}
+          >
+            {status === "pending" ? "En attente…" : `Payer ${formatFCFA(amount)}`}
           </Button>
         )}
       </DialogActions>
