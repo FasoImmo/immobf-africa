@@ -128,3 +128,12 @@ export const Payments = {
   list: () => api.get("/payments").then((r) => r.data),
   get: (id) => api.get(`/payments/${id}`).then((r) => r.data),
 };
+
+// Dashboard admin réel : liste des abonnés, délais de publication des
+// annonces, blocage/déblocage et déconnexion forcée d'un compte.
+export const Admin = {
+  users: (params) => api.get("/admin/users", { params }).then((r) => r.data),
+  setUserBlocked: (id, blocked) => api.patch(`/admin/users/${id}/block`, { blocked }).then((r) => r.data),
+  logoutUser: (id) => api.post(`/admin/users/${id}/logout`).then((r) => r.data),
+  properties: (params) => api.get("/admin/properties", { params }).then((r) => r.data),
+};

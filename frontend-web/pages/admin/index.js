@@ -91,6 +91,15 @@ export default function AdminDashboard() {
         </Grid>
       </Grid>
 
+      <Box sx={{ mb: 3, display: "flex", gap: 2, flexWrap: "wrap" }}>
+        <Button variant="contained" onClick={() => router.push("/admin/users")}>
+          Gérer les abonnés
+        </Button>
+        <Button variant="contained" onClick={() => router.push("/admin/properties")}>
+          Délais de publication
+        </Button>
+      </Box>
+
       <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Typography variant="h6">Par ville</Typography>
         <Button onClick={exportCsv} variant="outlined">Exporter CSV</Button>

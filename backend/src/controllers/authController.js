@@ -40,10 +40,11 @@ async function login(req, res) {
   if (!user) throw Unauthorized("Identifiants invalides");
   const ok = await User.verifyPassword(user, value.password);
   if (!ok) throw Unauthorized("Identifiants invalides");
+  if (user.is_blocked) throw Unauthorized("Compte bloqué par l'administrateur. Contactez le support.");
   const access = signAccess(user);
   const refresh = signRefresh(user, `${user.id}-${Date.now()}`);
-  // Ne pas renvoyer password_hash
-  const { password_hash: _pw, ...safe } = user;
+  // Ne pas renvoyer password_hash ni les champs internes de session
+  const { password_hash: _pw, token_version: _tv, ...safe } = user;
   res.json({ user: safe, access, refresh });
 }
 
@@ -106,8 +107,14 @@ async function refresh(req, res) {
   }
   if (payload.kind !== "refresh") throw Unauthorized("Wrong token type");
 
-  const user = await User.findById(payload.sub);
+  const user = await User.findByIdWithAuth(payload.sub);
   if (!user) throw Unauthorized("Utilisateur introuvable");
+  if (user.is_blocked) throw Unauthorized("Compte bloqué par l'administrateur");
+  // tv mismatch = déconnexion forcée ou blocage déclenché depuis qu'a été
+  // émis ce refresh token : on refuse le renouvellement.
+  if ((payload.tv || 0) !== (user.token_version || 0)) {
+    throw Unauthorized("Session invalidée — merci de vous reconnecter");
+  }
 
   const access = signAccess(user);
   const newRefresh = signRefresh(user, `${user.id}-${Date.now()}`);

@@ -7,16 +7,16 @@ const config = require("../config");
 /**
  * PawaPay — agrégateur mobile money pan-africain (20 pays), utilisé par
  * Canal Box. Couvre le Burkina Faso via Moov Money (`MOOV_BFA`) et Orange
- * Money (`ORANGE_BFA`) — voir docs/PAWAPAY_INTEGRATION.md pour le détail de
- * la recherche (25/06/2026).
+ * Money (`ORANGE_BFA`).
  *
  * Différence importante avec CinetPay/FedaPay : un seul token Bearer
  * (pas de site_id/secret séparés), et `ORANGE_BFA` utilise le type
- * d'autorisation PREAUTH (le client doit fournir un code OTP obtenu par
- * USSD avant l'appel API — pas un simple push). `MOOV_BFA` est en
- * PROVIDER_AUTH (push simple, comme les autres providers déjà codés).
- * Tant que le flux OTP Orange n'est pas validé en sandbox, ne pas exposer
- * Orange Money via PawaPay côté UI (voir TODO dans `countries`/registry).
+ * d'autorisation PREAUTH (confirmé dans la doc officielle PawaPay,
+ * 30/06/2026 : table des providers, section Burkina Faso) — le client doit
+ * d'abord composer un code USSD Orange Money pour générer lui-même un code
+ * OTP (avec son code secret Orange Money), puis ce code est transmis tel
+ * quel dans `preAuthorisationCode`. `MOOV_BFA` reste en PROVIDER_AUTH
+ * (push simple, pas de code à saisir).
  *
  * Pas de paiement carte (mobile money uniquement).
  *
@@ -42,11 +42,8 @@ class PawaPayProvider extends PaymentProvider {
 
   /**
    * Détermine le code provider PawaPay (`MOOV_BFA` / `ORANGE_BFA`) à partir
-   * d'un opérateur logique passé par l'appelant (`metadata.operator` ou
-   * déduit du préfixe du numéro). Par défaut Moov (flux simple, pas d'OTP).
-   *
-   * TODO : ne PAS proposer Orange via PawaPay côté UI jusqu'à validation du
-   * flux PREAUTH/OTP en sandbox (voir docs/PAWAPAY_INTEGRATION.md section 1).
+   * d'un opérateur logique passé par l'appelant (`metadata.operator`).
+   * Par défaut Moov (flux simple, pas d'OTP requis).
    */
   _resolveOperator(metadata) {
     const op = (metadata?.operator || "moov").toLowerCase();
@@ -75,10 +72,15 @@ class PawaPayProvider extends PaymentProvider {
     const { apiToken } = config.providers.pawapay;
     const provider = this._resolveOperator(metadata);
 
-    if (provider === "ORANGE_BFA") {
+    // ORANGE_BFA est en authentification PREAUTH : le client doit avoir
+    // généré un code OTP via le service USSD Orange Money (avec son code
+    // secret) AVANT l'appel — ce code est obligatoire dans la requête, sans
+    // lui PawaPay rejette le dépôt avec MISSING_PARAMETER.
+    const preAuthorisationCode = metadata?.preAuthorisationCode;
+    if (provider === "ORANGE_BFA" && !preAuthorisationCode) {
       throw Object.assign(
-        new Error("Orange Money via PawaPay nécessite un code OTP (PREAUTH) — flux non encore validé. Utiliser Moov Money ou un autre fournisseur pour Orange BF."),
-        { status: 400, code: "pawapay_orange_preauth_not_supported" }
+        new Error("Orange Money via PawaPay nécessite le code OTP généré par le client via le service USSD Orange Money (PREAUTH)."),
+        { status: 400, code: "pawapay_orange_preauth_code_required" }
       );
     }
 
@@ -115,6 +117,9 @@ class PawaPayProvider extends PaymentProvider {
       currency,
       metadata: [{ orderId: reference }],
     };
+    if (preAuthorisationCode) {
+      payload.preAuthorisationCode = preAuthorisationCode;
+    }
 
     // CORRECTIF (29/06/2026) : l'API Merchant est versionnée — l'ancien
     // chemin "/deposits" tape sur un endpoint qui renvoie un format d'erreur

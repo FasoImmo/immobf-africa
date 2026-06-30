@@ -4,7 +4,7 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 
 const asyncHandler = require("../utils/asyncHandler");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, requireRole } = require("../middleware/auth");
 const rawBody = require("../middleware/rawBody");
 
 const authCtl  = require("../controllers/authController");
@@ -12,6 +12,7 @@ const propCtl  = require("../controllers/propertiesController");
 const payCtl   = require("../controllers/paymentsController");
 const photoCtl = require("../controllers/photosController");
 const analytics = require("../controllers/analyticsController");
+const adminCtl = require("../controllers/adminController");
 
 const router = express.Router();
 
@@ -56,6 +57,16 @@ router.post("/payments/webhooks/:provider", rawBody, asyncHandler(payCtl.webhook
 // une fois le callback PawaPay confirmé stable.
 router.get ("/admin/pawapay/last",                      requireAuth, asyncHandler(payCtl.adminPawapayLast));
 router.post("/admin/pawapay/resend-callback/:depositId", requireAuth, asyncHandler(payCtl.adminPawapayResendCallback));
+
+// --- Admin : suivi des abonnés + délais de publication + blocage/déconnexion ---
+// CORRECTIF (30/06/2026) : la page admin ne donnait aucun moyen de
+// consulter la liste des utilisateurs ni d'agir sur eux. requireRole("admin")
+// était défini mais jamais branché à une route — corrigé ici.
+const requireAdmin = [requireAuth, requireRole("admin")];
+router.get  ("/admin/users",                requireAdmin, asyncHandler(adminCtl.listUsers));
+router.patch("/admin/users/:id/block",      requireAdmin, asyncHandler(adminCtl.setUserBlocked));
+router.post ("/admin/users/:id/logout",     requireAdmin, asyncHandler(adminCtl.logoutUser));
+router.get  ("/admin/properties",           requireAdmin, asyncHandler(adminCtl.listProperties));
 
 // --- Analytics ---
 const analyticsLimiter = rateLimit({ windowMs: 10_000, max: 30 });

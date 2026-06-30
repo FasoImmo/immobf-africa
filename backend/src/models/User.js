@@ -21,7 +21,8 @@ async function create({ email, phone, password, full_name, role = "buyer", count
 
 async function findByPhone(phone) {
   const { rows } = await query(
-    `SELECT id, email, phone, password_hash, full_name, role, agency_id, country_code, locale, phone_verified
+    `SELECT id, email, phone, password_hash, full_name, role, agency_id, country_code, locale,
+       phone_verified, is_blocked, token_version
      FROM users WHERE phone = $1`,
     [phone]
   );
@@ -31,6 +32,17 @@ async function findByPhone(phone) {
 async function findById(id) {
   const { rows } = await query(
     `SELECT ${PUBLIC_FIELDS} FROM users WHERE id = $1`,
+    [id]
+  );
+  return rows[0] || null;
+}
+
+// Variante incluant les champs internes nécessaires pour (ré)émettre des
+// tokens (token_version) et vérifier le blocage — utilisée par le flux
+// /auth/refresh, jamais renvoyée telle quelle au client.
+async function findByIdWithAuth(id) {
+  const { rows } = await query(
+    `SELECT ${PUBLIC_FIELDS}, is_blocked, token_version FROM users WHERE id = $1`,
     [id]
   );
   return rows[0] || null;
@@ -52,7 +64,8 @@ async function updatePassword(phone, newPassword) {
 
 async function findByEmail(email) {
   const { rows } = await query(
-    `SELECT id, email, phone, password_hash, full_name, role, agency_id, country_code, locale, phone_verified
+    `SELECT id, email, phone, password_hash, full_name, role, agency_id, country_code, locale,
+       phone_verified, is_blocked, token_version
      FROM users WHERE LOWER(email) = LOWER($1)`,
     [email]
   );
@@ -75,7 +88,55 @@ async function updateEmail(id, email) {
   return rows[0] || null;
 }
 
+// Liste paginée pour le dashboard admin — pas d'abonnés/followers au sens
+// réseau social ici, "abonné" = utilisateur inscrit sur la plateforme.
+// Inclut le nombre d'annonces publiées par l'utilisateur (utile pour
+// distinguer un simple acheteur d'un vendeur actif).
+async function list(opts) {
+  var options = opts || {};
+  var limit = options.limit !== undefined ? options.limit : 100;
+  var offset = options.offset !== undefined ? options.offset : 0;
+  const { rows } = await query(
+    `SELECT u.id, u.email, u.phone, u.full_name, u.role, u.country_code,
+       u.phone_verified, u.is_blocked, u.blocked_at, u.created_at,
+       COUNT(p.id)::int AS properties_count
+     FROM users u
+     LEFT JOIN properties p ON p.owner_id = u.id
+     GROUP BY u.id
+     ORDER BY u.created_at DESC
+     LIMIT $1 OFFSET $2`,
+    [limit, offset]
+  );
+  return rows;
+}
+
+// Bloque/débloque un compte. Le blocage incrémente aussi token_version pour
+// invalider immédiatement toute session déjà ouverte (sans ça, le compte
+// resterait connecté jusqu'à l'expiration naturelle de son access token).
+async function setBlocked(id, blocked) {
+  const { rows } = await query(
+    `UPDATE users SET
+       is_blocked = $2,
+       blocked_at = CASE WHEN $2 THEN NOW() ELSE NULL END,
+       token_version = token_version + 1
+     WHERE id = $1
+     RETURNING id, email, phone, full_name, role, is_blocked, blocked_at`,
+    [id, blocked]
+  );
+  return rows[0] || null;
+}
+
+// Déconnexion forcée sans bloquer le compte : incrémente uniquement
+// token_version. L'utilisateur pourra se reconnecter normalement juste après.
+async function forceLogout(id) {
+  const { rows } = await query(
+    `UPDATE users SET token_version = token_version + 1 WHERE id = $1 RETURNING id`,
+    [id]
+  );
+  return rows[0] || null;
+}
+
 module.exports = {
-  create, findByPhone, findByEmail, findById, verifyPassword, markPhoneVerified,
-  updatePassword, updatePasswordByEmail, updateEmail,
+  create, findByPhone, findByEmail, findById, findByIdWithAuth, verifyPassword, markPhoneVerified,
+  updatePassword, updatePasswordByEmail, updateEmail, list, setBlocked, forceLogout,
 };

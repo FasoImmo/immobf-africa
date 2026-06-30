@@ -41,11 +41,12 @@ const instances = {
   fedapay:        new FedaPay(),
   paydunya:       new PayDunya(),
   moov_money_bf:  new MoovMoney(),
-  // PawaPay (25/06/2026) : option BF complémentaire à CinetPay, inscription
-  // self-service (pas de barrière pays). N'apparaîtra côté UI que lorsque
-  // PAWAPAY_API_TOKEN sera configuré (isConfigured()) — voir
-  // docs/PAWAPAY_INTEGRATION.md. Orange Money via PawaPay désactivé pour
-  // l'instant (flux OTP/PREAUTH non validé) ; seul Moov Money fonctionnera.
+  // PawaPay (25/06/2026, OTP Orange ajouté le 30/06/2026) : option BF
+  // complémentaire à CinetPay, inscription self-service (pas de barrière
+  // pays). N'apparaîtra côté UI que lorsque PAWAPAY_API_TOKEN sera configuré
+  // (isConfigured()). Moov Money = push simple ; Orange Money = le client
+  // doit saisir un code OTP généré via USSD (flux PREAUTH, voir
+  // PawaPayProvider.js).
   pawapay:        new PawaPay(),
 };
 

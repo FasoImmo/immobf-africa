@@ -21,6 +21,11 @@ const initiateSchema = Joi.object({
   customer_email: Joi.string().email().allow(null, ""),
   customer_name: Joi.string().max(120).allow(null, ""),
   preferred_operator: Joi.string().valid("orange", "moov", "mtn", "wave", "card").allow(null),
+  // Code OTP que le client génère lui-même via le service USSD Orange Money
+  // (avec son code secret) avant l'appel — requis uniquement quand
+  // provider = "pawapay" ET preferred_operator = "orange" (flux PREAUTH,
+  // voir PawaPayProvider.js).
+  pawapay_otp: Joi.string().alphanum().max(36).allow(null, ""),
   description: Joi.string().max(255).allow(null, ""),
   // Durée souhaitée par le client pour une réservation (nuits/semaines/mois
   // selon rent_period de l'annonce) — sert à calculer la commission sur le
@@ -97,7 +102,14 @@ async function initiate(req, res) {
       customerName: value.customer_name || req.user?.name,
       preferredOperator: value.preferred_operator,
       description: value.description || "Frais de publication ImmoBF",
-      metadata: { transaction_id: tx.id, purpose: value.purpose },
+      metadata: {
+        transaction_id: tx.id,
+        purpose: value.purpose,
+        // operator/preAuthorisationCode : utilisés par PawaPayProvider pour
+        // choisir MOOV_BFA/ORANGE_BFA et transmettre le code OTP Orange.
+        operator: value.preferred_operator,
+        preAuthorisationCode: value.pawapay_otp || undefined,
+      },
     });
   } catch (e) {
     await Transaction.updateStatus(tx.id, "failed", { raw_payload: e.raw || { message: e.message } });

@@ -304,7 +304,34 @@ async function listForOwner(owner_id) {
   return rows.map(hydrate);
 }
 
+// Vue admin : TOUTES les annonces (tous propriétaires) avec statut
+// d'abonnement et contact du propriétaire — jusqu'ici seul listForOwner()
+// existait, limité au propriétaire connecté, donc l'admin n'avait aucune
+// visibilité sur les délais de publication de la plateforme.
+async function listAllForAdmin(opts) {
+  var options = opts || {};
+  var limit = options.limit !== undefined ? options.limit : 200;
+  var offset = options.offset !== undefined ? options.offset : 0;
+  const { rows } = await query(
+    `SELECT ${BASE_COLS},
+       u.full_name AS owner_name, u.phone AS owner_phone, u.email AS owner_email,
+       CASE
+         WHEN listing_expires_at IS NULL THEN 'no_subscription'
+         WHEN listing_expires_at < NOW() THEN 'expired'
+         WHEN listing_expires_at < NOW() + INTERVAL '7 days' THEN 'expiring_soon'
+         ELSE 'active'
+       END AS subscription_status,
+       EXTRACT(DAY FROM (listing_expires_at - NOW()))::int AS days_remaining
+     FROM properties p
+     LEFT JOIN users u ON u.id = p.owner_id
+     ORDER BY p.created_at DESC
+     LIMIT $1 OFFSET $2`,
+    [limit, offset]
+  );
+  return rows.map(hydrate);
+}
+
 module.exports = {
   create, findById, search, publish, markListingFeePaid, updateStatus, boost,
-  addPhoto, photosFor, setExpiry, listForOwner, withTransaction,
+  addPhoto, photosFor, setExpiry, listForOwner, listAllForAdmin, withTransaction,
 };
