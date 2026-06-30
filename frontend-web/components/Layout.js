@@ -298,4 +298,17 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
             { key: "footer.cgu", label: t("footer.cgu") },
             { key: "footer.privacy", label: t("footer.privacy") },
             { key: "footer.legal", label: t("footer.legal") },
-            { key: "footer.disclaimer", label: t("fo
+            { key: "footer.disclaimer", label: t("footer.disclaimer") },
+          ].map(({ key, label }) => (
+            <Link key={key} href="/legal" style={{ color: "#999", fontSize: 12, textDecoration: "none" }}>
+              {label}
+            </Link>
+          ))}
+          <Link href="/download" style={{ color: "#0E7C66", fontSize: 12, textDecoration: "none", fontWeight: 600 }}>
+            📱 Application mobile
+          </Link>
+        </Box>
+      </Box>
+    </>
+  );
+}
