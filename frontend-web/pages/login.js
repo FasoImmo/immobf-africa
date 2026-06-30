@@ -122,10 +122,14 @@ export default function Login() {
       setRegErr(t("auth.cgu_required"));
       return;
     }
+    if (!regEmail || !regEmail.includes("@")) {
+      setRegErr(t("auth.email_required_err"));
+      return;
+    }
     try {
       await Auth.register({
         phone: regPhone,
-        email: regEmail || undefined,
+        email: regEmail,
         password: regPassword,
         full_name: regName,
       });
@@ -187,10 +191,10 @@ export default function Login() {
                   onChange={setRegPhone}
                   required
                 />
-                {/* Email — recommandé pour reset mdp + reçus */}
+                {/* Email — obligatoire pour reset mdp + reçus de paiement */}
                 <TextField
-                  fullWidth label={t("auth.email_recommended")}
-                  type="email" margin="normal"
+                  fullWidth label={`${t("auth.email")} *`}
+                  type="email" margin="normal" required
                   value={regEmail} onChange={(e) => setRegEmail(e.target.value)}
                   helperText={t("auth.email_helper")}
                   InputProps={{ sx: { bgcolor: "#f0f9f7" } }}

@@ -6,7 +6,7 @@ const { translateProperty } = require("../services/translation");
 const BASE_COLS = `
   p.id, p.owner_id, p.agency_id, p.type, p.transaction_type, p.title, p.description,
   p.price, p.currency, p.area_m2, p.bedrooms, p.bathrooms,
-  p.country_code, p.city, p.address,
+  p.country_code, p.city, p.neighborhood, p.address,
   p.lat, p.lng,
   p.status, p.verified, p.boosted_until, p.deposit_pct,
   p.is_furnished, p.rent_period,
@@ -18,7 +18,7 @@ const BASE_COLS = `
 const RETURNING_COLS = `
   id, owner_id, agency_id, type, transaction_type, title, description,
   price, currency, area_m2, bedrooms, bathrooms,
-  country_code, city, address,
+  country_code, city, neighborhood, address,
   lat, lng,
   status, verified, boosted_until, deposit_pct,
   is_furnished, rent_period,
@@ -78,7 +78,7 @@ async function create(data) {
     title, description = null,
     price, currency = "XOF",
     area_m2 = null, bedrooms = null, bathrooms = null,
-    country_code = "BF", city, address = null,
+    country_code = "BF", city, neighborhood = null, address = null,
     lat = null, lng = null,
     deposit_pct = 5, is_furnished = false, rent_period = null,
     features = {},
@@ -87,14 +87,14 @@ async function create(data) {
   const { rows } = await query(
     `INSERT INTO properties
       (owner_id, agency_id, transaction_type, type, title, description, price, currency,
-       area_m2, bedrooms, bathrooms, country_code, city, address,
+       area_m2, bedrooms, bathrooms, country_code, city, neighborhood, address,
        lat, lng, deposit_pct, is_furnished, rent_period, features)
      VALUES
-      ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20::jsonb)
+      ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21::jsonb)
      RETURNING ${RETURNING_COLS}`,
     [
       owner_id, agency_id, transaction_type, type, title, description, price, currency,
-      area_m2, bedrooms, bathrooms, country_code, city, address,
+      area_m2, bedrooms, bathrooms, country_code, city, neighborhood, address,
       lat, lng, deposit_pct, is_furnished, rent_period, JSON.stringify(features),
     ]
   );
@@ -138,6 +138,7 @@ async function search(filters, opts) {
 
   if (filters.country) push("p.country_code = $?", filters.country);
   if (filters.city) push("LOWER(p.city) = LOWER($?)", filters.city);
+  if (filters.neighborhood) push("p.neighborhood ILIKE '%'||$?||'%'", filters.neighborhood);
   if (filters.type) push("p.type = $?", filters.type);
   if (filters.transaction_type) push("p.transaction_type = $?", filters.transaction_type);
   if (filters.is_furnished !== undefined) push("p.is_furnished = $?", filters.is_furnished);

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { Box, Typography, Chip, Button, Grid, Paper, Divider, Stack } from "@mui/material";
+import { Box, Typography, Chip, Button, Grid, Paper, Divider, Stack, Alert } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../../components/Layout";
 import PaymentDialog from "../../components/PaymentDialog";
@@ -54,7 +54,6 @@ export default function PropertyDetail() {
   var txLabel = p.transaction_type === "sale" ? t("nav.publish_sale")
     : p.transaction_type === "rent_long" ? t("nav.publish_rent_long")
     : t("nav.publish_rent_short");
-  var deposit = Math.round((Number(p.price) * Number(p.deposit_pct)) / 100);
   var photos = p.photos && p.photos.length > 0 ? p.photos : null;
   var cover = photos ? photos[photoIdx].url : "https://picsum.photos/seed/" + p.id + "/1200/600";
 
@@ -64,6 +63,9 @@ export default function PropertyDetail() {
 
   return (
     <Layout title={p.title + " — ImmoBF"}>
+      {router.query.published === "1" && (
+        <Alert severity="success" sx={{ mb: 2 }}>{t("property.published_banner")}</Alert>
+      )}
       <Box sx={{ mb: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
         <Chip label={t("types." + p.type)} color="primary" />
         <Chip
@@ -72,7 +74,7 @@ export default function PropertyDetail() {
         />
         {p.is_furnished && <Chip label={t("property.furnished")} variant="outlined" />}
         {p.verified && <Chip label={t("property.verified")} color="success" />}
-        <Chip label={p.city + ", " + p.country_code} />
+        <Chip label={(p.neighborhood ? p.neighborhood + ", " : "") + p.city + ", " + p.country_code} />
       </Box>
 
       <Typography variant="h4" gutterBottom>{p.title}</Typography>
@@ -132,21 +134,6 @@ export default function PropertyDetail() {
 
             <Divider sx={{ my: 2 }} />
 
-            {!isRent && (
-              <>
-                <Typography variant="body2" color="text.secondary">
-                  {t("property.deposit")} ({p.deposit_pct}%)
-                </Typography>
-                <Typography variant="h6">{formatFCFA(deposit, p.currency)}</Typography>
-                <Button
-                  fullWidth variant="contained" color="primary" size="large"
-                  sx={{ mt: 2 }} onClick={function() { setPayOpen(true); }}
-                >
-                  {t("property.pay_deposit")}
-                </Button>
-              </>
-            )}
-
             {isRent && (
               <Button
                 fullWidth variant="contained" color="primary" size="large"
@@ -189,13 +176,15 @@ export default function PropertyDetail() {
         </Box>
       )}
 
-      <PaymentDialog
-        open={payOpen}
-        onClose={function() { setPayOpen(false); }}
-        property={p}
-        amount={isRent ? p.price : deposit}
-        purpose={isRent ? "reservation" : "deposit"}
-      />
+      {isRent && (
+        <PaymentDialog
+          open={payOpen}
+          onClose={function() { setPayOpen(false); }}
+          property={p}
+          amount={p.price}
+          purpose="reservation"
+        />
+      )}
     </Layout>
   );
 }

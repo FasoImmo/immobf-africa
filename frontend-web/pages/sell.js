@@ -4,7 +4,7 @@ import {
   Box, Paper, TextField, Button, Typography, MenuItem,
   Alert, Grid, LinearProgress, Chip, Stack,
   FormControlLabel, Switch, Divider, CircularProgress,
-  ToggleButton, ToggleButtonGroup, Select, FormControl,
+  ToggleButton, ToggleButtonGroup, Select, FormControl, Autocomplete,
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
@@ -74,6 +74,24 @@ const AFRICAN_COUNTRIES = [
   { code: "ZW", dial: "+263", flag: "🇿🇼", name: "Zimbabwe" },
 ];
 
+// Principales villes par pays — utilisé pour suggérer des villes selon le
+// pays choisi. Liste non exhaustive : le champ reste éditable librement
+// (Autocomplete freeSolo) pour ne pas bloquer un vendeur dont la ville
+// n'apparaît pas dans la liste, notamment hors Burkina Faso.
+const CITIES_BY_COUNTRY = {
+  BF: ["Ouagadougou", "Bobo-Dioulasso", "Koudougou", "Banfora", "Ouahigouya",
+       "Kaya", "Tenkodogo", "Fada N'Gourma", "Dédougou", "Gaoua",
+       "Dori", "Ziniaré", "Réo", "Manga", "Pô"],
+  CI: ["Abidjan", "Bouaké", "Yamoussoukro", "San-Pédro", "Korhogo"],
+  SN: ["Dakar", "Thiès", "Saint-Louis", "Touba", "Ziguinchor"],
+  ML: ["Bamako", "Sikasso", "Mopti", "Koutiala", "Kayes"],
+  TG: ["Lomé", "Sokodé", "Kara"],
+  BJ: ["Cotonou", "Porto-Novo", "Parakou"],
+  NE: ["Niamey", "Zinder", "Maradi"],
+  GH: ["Accra", "Kumasi", "Tamale"],
+  NG: ["Lagos", "Abuja", "Kano", "Ibadan"],
+};
+
 const TX_TYPES = [
   { value: "sale",       label: "Vente" },
   { value: "rent_long",  label: "Location longue durée" },
@@ -120,7 +138,7 @@ export default function SellPage() {
     transaction_type: "sale",
     type: "house", title: "", description: "",
     price: "", currency: "XOF", area_m2: "", bedrooms: "", bathrooms: "",
-    country_code: "BF", city: "", address: "", deposit_pct: 5,
+    country_code: "BF", city: "", address: "", neighborhood: "",
     is_furnished: false, rent_period: "monthly",
   });
   const [formErr, setFormErr] = useState(null);
@@ -218,7 +236,6 @@ export default function SellPage() {
         area_m2: form.area_m2 ? Number(form.area_m2) : null,
         bedrooms: form.bedrooms ? Number(form.bedrooms) : null,
         bathrooms: form.bathrooms ? Number(form.bathrooms) : null,
-        deposit_pct: Number(form.deposit_pct),
         is_furnished: Boolean(form.is_furnished),
         rent_period: isRent ? form.rent_period : null,
       });
@@ -282,13 +299,13 @@ export default function SellPage() {
   function removeFile(i) { setFiles(function(f) { return f.filter(function(_, idx) { return idx !== i; }); }); }
 
   async function uploadFiles() {
-    if (!files.length) { router.push("/properties/" + propertyId); return; }
+    if (!files.length) { router.push("/properties/" + propertyId + "?published=1"); return; }
     setUploadErr(null); setUploadProgress(10); setUploadBusy(true);
     try {
       var result = await Photos.upload(propertyId, files);
       setUploadedCount(result.photos.length);
       setUploadProgress(100);
-      setTimeout(function() { router.push("/properties/" + propertyId); }, 1200);
+      setTimeout(function() { router.push("/properties/" + propertyId + "?published=1"); }, 1200);
     } catch (err) {
       setUploadErr(err && err.response && err.response.data && err.response.data.error
         ? err.response.data.error.message : err.message);
@@ -399,19 +416,23 @@ export default function SellPage() {
                 <TextField fullWidth type="number" label={t("sell.area")} value={form.area_m2} onChange={change("area_m2")}
                   helperText={form.area_m2 ? `${Number(form.area_m2).toLocaleString("fr-FR")} m²` : " "} />
               </Grid>
-              {form.transaction_type === "sale" && (
-                <Grid item xs={12} sm={4}>
-                  <TextField fullWidth type="number" label={t("sell.deposit_pct")} value={form.deposit_pct} onChange={change("deposit_pct")}
-                    helperText={form.price && form.deposit_pct
-                      ? `= ${Math.round(Number(form.price) * Number(form.deposit_pct) / 100).toLocaleString("fr-FR")} FCFA`
-                      : " "} />
-                </Grid>
-              )}
 
               <Grid item xs={12} sm={6}>
-                <TextField fullWidth label={`${t("sell.city")} *`} value={form.city} onChange={change("city")} required />
+                <Autocomplete
+                  freeSolo
+                  options={CITIES_BY_COUNTRY[form.country_code] || []}
+                  value={form.city}
+                  onInputChange={function(_, v) { setForm(function(f) { return Object.assign({}, f, { city: v }); }); }}
+                  renderInput={function(params) {
+                    return <TextField {...params} fullWidth label={`${t("sell.city")} *`} required />;
+                  }}
+                />
               </Grid>
               <Grid item xs={12} sm={6}>
+                <TextField fullWidth label={t("sell.neighborhood")} placeholder={t("sell.neighborhood_placeholder")}
+                  value={form.neighborhood} onChange={change("neighborhood")} />
+              </Grid>
+              <Grid item xs={12}>
                 <TextField fullWidth label={t("sell.address")} value={form.address} onChange={change("address")} />
               </Grid>
 
@@ -621,7 +642,7 @@ export default function SellPage() {
           {uploadErr && <Alert severity="error" sx={{ mt: 2 }}>{uploadErr}</Alert>}
 
           <Box sx={{ mt: 3, display: "flex", justifyContent: "space-between" }}>
-            <Button variant="text" onClick={function() { router.push("/properties/" + propertyId); }} disabled={uploadBusy}>
+            <Button variant="text" onClick={function() { router.push("/properties/" + propertyId + "?published=1"); }} disabled={uploadBusy}>
               {t("sell.skip_photos")}
             </Button>
             <Button variant="contained" onClick={uploadFiles} disabled={uploadBusy}>

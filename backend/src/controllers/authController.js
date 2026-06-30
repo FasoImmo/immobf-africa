@@ -9,7 +9,7 @@ const { BadRequest, Unauthorized, Conflict } = require("../utils/errors");
 const phoneSchema = Joi.string().pattern(/^\+?[0-9]{8,15}$/).required();
 
 const registerSchema = Joi.object({
-  email: Joi.string().email().optional(),
+  email: Joi.string().email().required(),
   phone: phoneSchema,
   password: Joi.string().min(8).max(128).required(),
   full_name: Joi.string().min(2).max(120).required(),
