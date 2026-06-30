@@ -1,6 +1,7 @@
 import "react-native-gesture-handler";
 import React, { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
+import { TouchableOpacity, Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -10,32 +11,67 @@ import PropertyScreen from "./screens/PropertyScreen";
 import LoginScreen from "./screens/LoginScreen";
 import PaymentScreen from "./screens/PaymentScreen";
 import { init as initOffline } from "./lib/offline";
+import { LangProvider, useLang } from "./lib/lang";
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
 
+function LangToggle() {
+  const { lang, setLang } = useLang();
+  return (
+    <TouchableOpacity
+      onPress={() => setLang(lang === "fr" ? "en" : "fr")}
+      style={{ marginRight: 14, backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 }}
+    >
+      <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>
+        {lang === "fr" ? "EN" : "FR"}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
 function HomeTabs() {
+  const { lang } = useLang();
   return (
     <Tabs.Navigator screenOptions={{ tabBarActiveTintColor: "#0E7C66" }}>
-      <Tabs.Screen name="Parcourir" component={BrowseScreen} />
-      <Tabs.Screen name="Compte" component={LoginScreen} />
+      <Tabs.Screen
+        name="Parcourir"
+        component={BrowseScreen}
+        options={{ tabBarLabel: lang === "fr" ? "Parcourir" : "Browse" }}
+      />
+      <Tabs.Screen
+        name="Compte"
+        component={LoginScreen}
+        options={{ tabBarLabel: lang === "fr" ? "Compte" : "Account" }}
+      />
     </Tabs.Navigator>
+  );
+}
+
+function AppNavigator() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: "#0E7C66" },
+        headerTintColor: "white",
+        headerRight: () => <LangToggle />,
+      }}
+    >
+      <Stack.Screen name="ImmoBF Africa" component={HomeTabs} />
+      <Stack.Screen name="Property" component={PropertyScreen} options={{ title: "Annonce" }} />
+      <Stack.Screen name="Payment" component={PaymentScreen} options={{ title: "Paiement" }} />
+    </Stack.Navigator>
   );
 }
 
 export default function App() {
   useEffect(() => { try { initOffline(); } catch {} }, []);
   return (
-    <NavigationContainer>
-      <StatusBar style="light" />
-      <Stack.Navigator screenOptions={{
-        headerStyle: { backgroundColor: "#0E7C66" },
-        headerTintColor: "white",
-      }}>
-        <Stack.Screen name="ImmoBF" component={HomeTabs} />
-        <Stack.Screen name="Property" component={PropertyScreen} options={{ title: "Annonce" }} />
-        <Stack.Screen name="Payment" component={PaymentScreen} options={{ title: "Paiement" }} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <LangProvider>
+      <NavigationContainer>
+        <StatusBar style="light" />
+        <AppNavigator />
+      </NavigationContainer>
+    </LangProvider>
   );
 }
