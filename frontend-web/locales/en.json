@@ -27,6 +27,8 @@
     "placeholder": "City, neighborhood, type…",
     "filters": "Filters",
     "type": "Type",
+    "country": "Country",
+    "all_countries": "All countries",
     "city": "City",
     "price_min": "Min price",
     "price_max": "Max price",

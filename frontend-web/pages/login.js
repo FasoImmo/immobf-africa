@@ -5,8 +5,9 @@ import { useTranslation } from "react-i18next";
 import {
   Box, Paper, TextField, Button, Typography, Alert,
   Checkbox, FormControlLabel, Tabs, Tab, Divider,
-  Select, MenuItem, InputAdornment, FormControl,
+  Select, MenuItem, InputAdornment, FormControl, IconButton,
 } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import Layout from "../components/Layout";
 import { Auth } from "../lib/api";
 
@@ -91,12 +92,14 @@ export default function Login() {
   // Connexion
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [err, setErr] = useState(null);
 
   // Inscription
   const [regPhone, setRegPhone] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
+  const [showRegPassword, setShowRegPassword] = useState(false);
   const [regName, setRegName] = useState("");
   const [cguAccepted, setCguAccepted] = useState(false);
   const [regErr, setRegErr] = useState(null);
@@ -165,8 +168,17 @@ export default function Login() {
                   onChange={setPhone}
                   required
                 />
-                <TextField fullWidth label={t("auth.password")} type="password" margin="normal"
-                  value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <TextField fullWidth label={t("auth.password")} type={showPassword ? "text" : "password"} margin="normal"
+                  value={password} onChange={(e) => setPassword(e.target.value)} required
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowPassword((v) => !v)} edge="end" size="small">
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }} />
                 {err && <Alert severity="error" sx={{ mt: 2 }}>{err}</Alert>}
                 <Button type="submit" fullWidth variant="contained" sx={{ mt: 3 }}>
                   {t("auth.login_btn")}
@@ -199,8 +211,17 @@ export default function Login() {
                   helperText={t("auth.email_helper")}
                   InputProps={{ sx: { bgcolor: "#f0f9f7" } }}
                 />
-                <TextField fullWidth label={t("auth.password")} type="password" margin="normal"
-                  value={regPassword} onChange={(e) => setRegPassword(e.target.value)} required />
+                <TextField fullWidth label={t("auth.password")} type={showRegPassword ? "text" : "password"} margin="normal"
+                  value={regPassword} onChange={(e) => setRegPassword(e.target.value)} required
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowRegPassword((v) => !v)} edge="end" size="small">
+                          {showRegPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }} />
 
                 <Divider sx={{ my: 2 }} />
 

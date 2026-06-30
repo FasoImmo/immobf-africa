@@ -27,6 +27,8 @@
     "placeholder": "Ville, quartier, type…",
     "filters": "Filtres",
     "type": "Type",
+    "country": "Pays",
+    "all_countries": "Tous les pays",
     "city": "Ville",
     "price_min": "Prix min",
     "price_max": "Prix max",

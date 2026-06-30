@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- ImmoBF Africa logo — couleur principale #0E7C66 (vert sahélien) -->
+
+  <!-- Chimney (before roof so roof overlaps it) -->
+  <rect x="298" y="112" width="30" height="65" rx="4" fill="#0A6355"/>
+
+  <!-- Roof -->
+  <polygon points="256,48 98,210 414,210" fill="#0E7C66"/>
+
+  <!-- Roof ridge highlight -->
+  <polygon points="256,48 98,210 120,210 256,78 392,210 414,210" fill="#0A6355" opacity="0.25"/>
+
+  <!-- Walls -->
+  <rect x="118" y="207" width="276" height="168" fill="#0E7C66"/>
+
+  <!-- Left window -->
+  <rect x="140" y="228" width="82" height="64" rx="6" fill="white" opacity="0.22"/>
+  <!-- Left window cross -->
+  <line x1="181" y1="228" x2="181" y2="292" stroke="#0E7C66" stroke-width="3" opacity="0.4"/>
+  <line x1="140" y1="260" x2="222" y2="260" stroke="#0E7C66" stroke-width="3" opacity="0.4"/>
+
+  <!-- Right window -->
+  <rect x="290" y="228" width="82" height="64" rx="6" fill="white" opacity="0.22"/>
+  <!-- Right window cross -->
+  <line x1="331" y1="228" x2="331" y2="292" stroke="#0E7C66" stroke-width="3" opacity="0.4"/>
+  <line x1="290" y1="260" x2="372" y2="260" stroke="#0E7C66" stroke-width="3" opacity="0.4"/>
+
+  <!-- Door (arched) -->
+  <path d="M216,375 L216,298 Q216,262 256,262 Q296,262 296,298 L296,375 Z" fill="white" opacity="0.32"/>
+
+  <!-- Door knob -->
+  <circle cx="284" cy="325" r="5" fill="white" opacity="0.55"/>
+
+  <!-- Location pin accent at apex -->
+  <circle cx="256" cy="48" r="14" fill="#0A6355"/>
+  <circle cx="256" cy="44" r="5" fill="white" opacity="0.8"/>
+
+  <!-- Brand name -->
+  <text x="256" y="432"
+    text-anchor="middle"
+    font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif"
+    font-size="64"
+    font-weight="900"
+    fill="#0E7C66">ImmoBF</text>
+
+  <!-- Sub-label -->
+  <text x="256" y="477"
+    text-anchor="middle"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="22"
+    font-weight="400"
+    letter-spacing="10"
+    fill="#0A6355">AFRICA</text>
+</svg>

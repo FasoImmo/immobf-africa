@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { Box, Paper, TextField, Button, Typography, Alert } from "@mui/material";
+import { Box, Paper, TextField, Button, Typography, Alert, InputAdornment, IconButton } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
 import { Auth } from "../lib/api";
@@ -16,6 +17,7 @@ export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSendCode(e) {
     e.preventDefault();
@@ -98,10 +100,19 @@ export default function ForgotPassword() {
               {/* Étape 3 — Nouveau mot de passe */}
               {step === 3 && (
                 <form onSubmit={handleReset}>
-                  <TextField fullWidth label={t("auth.new_password")} type="password"
+                  <TextField fullWidth label={t("auth.new_password")} type={showPassword ? "text" : "password"}
                     value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-                    required sx={{ mb: 2 }} />
-                  <TextField fullWidth label={t("auth.confirm_password")} type="password"
+                    required sx={{ mb: 2 }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton onClick={() => setShowPassword((v) => !v)} edge="end" size="small">
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }} />
+                  <TextField fullWidth label={t("auth.confirm_password")} type={showPassword ? "text" : "password"}
                     value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                     required sx={{ mb: 2 }} />
                   {err && <Alert severity="error" sx={{ mb: 2 }}>{err}</Alert>}

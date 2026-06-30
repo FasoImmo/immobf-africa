@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import Layout from "../../components/Layout";
 import PropertyCard from "../../components/PropertyCard";
 import { Properties, Analytics } from "../../lib/api";
+import { AFRICAN_COUNTRIES } from "../../lib/africanCountries";
 
 export default function BrowsePage() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function BrowsePage() {
     "rent_short": t("browse.title_rent_short"),
   };
   const [filters, setFilters] = useState({
-    q: "", city: "", type: "", transaction_type: "", min_price: "", max_price: "",
+    country: "", city: "", type: "", transaction_type: "", min_price: "", max_price: "",
   });
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -38,7 +39,7 @@ export default function BrowsePage() {
       typeof window !== "undefined" ? window.location.search : ""
     );
     const f = {
-      q:                params.get("q")                || "",
+      country:          params.get("country")           || "",
       city:             params.get("city")             || "",
       type:             params.get("type")             || "",
       transaction_type: params.get("transaction_type") || "",
@@ -71,7 +72,13 @@ export default function BrowsePage() {
       <Typography variant="h4" gutterBottom>{pageTitle}</Typography>
 
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 3 }}>
-        <TextField label={t("search.placeholder")} size="small" value={filters.q} onChange={set("q")} />
+        <TextField select label={t("search.country") || "Pays"} size="small" value={filters.country}
+          onChange={set("country")} sx={{ minWidth: 190 }}>
+          <MenuItem value="">{t("search.all_countries") || "Tous les pays"}</MenuItem>
+          {AFRICAN_COUNTRIES.map((c) => (
+            <MenuItem key={c.code} value={c.code}>{c.flag} {c.name}</MenuItem>
+          ))}
+        </TextField>
         <TextField label={t("search.city") || "Ville"} size="small" value={filters.city} onChange={set("city")} />
         <TextField select label="Transaction" size="small" value={filters.transaction_type}
           onChange={set("transaction_type")} sx={{ minWidth: 210 }}>
