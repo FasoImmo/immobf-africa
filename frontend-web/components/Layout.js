@@ -67,7 +67,7 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
     >
       {/* En-tête tiroir */}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", p: 2 }}>
-        <Typography variant="h6" fontWeight={700}>ImmoBF Africa</Typography>
+        <img src="/logo-white.svg" alt="ImmoBF Africa" height={36} style={{ display: "block" }} />
         <IconButton onClick={() => setDrawerOpen(false)} sx={{ color: "white" }}>
           <CloseIcon />
         </IconButton>
@@ -177,11 +177,11 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
       <AppBar position="sticky" color="primary">
         <Toolbar sx={{ minHeight: { xs: 56, sm: 64 } }}>
           {/* Logo */}
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 700 }}>
-            <Link href="/" style={{ color: "inherit", textDecoration: "none" }}>
-              ImmoBF Africa
+          <Box sx={{ flexGrow: 1 }}>
+            <Link href="/" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
+              <img src="/logo-white.svg" alt="ImmoBF Africa" height={42} style={{ display: "block" }} />
             </Link>
-          </Typography>
+          </Box>
 
           {/* ── DESKTOP ── */}
           {!isMobile && (
@@ -287,6 +287,9 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
       </Container>
 
       <Box component="footer" sx={{ py: 3, textAlign: "center", borderTop: "1px solid #eee", mt: 6 }}>
+        <Box sx={{ mb: 1, display: "flex", justifyContent: "center" }}>
+          <img src="/logo.svg" alt="ImmoBF Africa" height={48} style={{ display: "block" }} />
+        </Box>
         <Typography variant="body2" color="text.secondary">
           © 2026 ImmoBF Africa — contact@immoafrica.online
         </Typography>
@@ -295,17 +298,4 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
             { key: "footer.cgu", label: t("footer.cgu") },
             { key: "footer.privacy", label: t("footer.privacy") },
             { key: "footer.legal", label: t("footer.legal") },
-            { key: "footer.disclaimer", label: t("footer.disclaimer") },
-          ].map(({ key, label }) => (
-            <Link key={key} href="/legal" style={{ color: "#999", fontSize: 12, textDecoration: "none" }}>
-              {label}
-            </Link>
-          ))}
-          <Link href="/download" style={{ color: "#0E7C66", fontSize: 12, textDecoration: "none", fontWeight: 600 }}>
-            📱 Application mobile
-          </Link>
-        </Box>
-      </Box>
-    </>
-  );
-}
+            { key: "footer.disclaimer", label: t("fo
