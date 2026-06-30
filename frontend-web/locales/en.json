@@ -56,7 +56,15 @@
     "unique_visitors": "unique visitors",
     "whatsapp_clicks": "WhatsApp contacts",
     "views_week": "views this week",
-    "loading_error": "Unable to load your listings."
+    "loading_error": "Unable to load your listings.",
+    "email_missing": "No email on file — add one to receive your payment receipts.",
+    "email_add_btn": "Add an email",
+    "email_edit_btn": "Edit",
+    "email_save_btn": "Save",
+    "email_invalid": "Invalid email.",
+    "email_updated": "Email updated successfully.",
+    "email_taken": "This email is already used by another account.",
+    "email_save_error": "Could not save the email. Please try again."
   },
   "sell": {
     "title": "Post a listing",

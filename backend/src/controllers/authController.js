@@ -68,6 +68,25 @@ async function me(req, res) {
   res.json({ user });
 }
 
+// Ajoute/corrige l'email d'un compte existant (créé avant que l'email soit
+// obligatoire à l'inscription). Nécessaire pour recevoir les reçus de
+// paiement par email.
+const updateEmailSchema = Joi.object({
+  email: Joi.string().email().required(),
+});
+
+async function updateEmail(req, res) {
+  const { value, error } = updateEmailSchema.validate(req.body);
+  if (error) throw BadRequest(error.message);
+
+  const existing = await User.findByEmail(value.email);
+  if (existing && existing.id !== req.user.id) throw Conflict("Email déjà utilisé par un autre compte");
+
+  const user = await User.updateEmail(req.user.id, value.email);
+  if (!user) throw BadRequest("Utilisateur introuvable");
+  res.json({ user });
+}
+
 // Échange un refresh token valide contre un nouveau couple access/refresh.
 // Rotation du refresh token à chaque appel (limite la fenêtre de rejeu si un
 // refresh token venait à être intercepté).
@@ -146,4 +165,4 @@ async function resetPassword(req, res) {
   res.json({ success: true });
 }
 
-module.exports = { register, login, verifyPhone, me, refresh, resendOtp, forgotPassword, resetPassword };
+module.exports = { register, login, verifyPhone, me, refresh, resendOtp, forgotPassword, resetPassword, updateEmail };

@@ -64,4 +64,18 @@ async function updatePasswordByEmail(email, newPassword) {
   await query(`UPDATE users SET password_hash = $1 WHERE LOWER(email) = LOWER($2)`, [password_hash, email]);
 }
 
-module.exports = { create, findByPhone, findByEmail, findById, verifyPassword, markPhoneVerified, updatePassword, updatePasswordByEmail };
+// Permet à un utilisateur déjà inscrit (compte créé avant que l'email soit
+// obligatoire) d'ajouter ou de corriger son email — nécessaire pour recevoir
+// les reçus de paiement et réinitialiser son mot de passe.
+async function updateEmail(id, email) {
+  const { rows } = await query(
+    `UPDATE users SET email = $1 WHERE id = $2 RETURNING ${PUBLIC_FIELDS}`,
+    [email, id]
+  );
+  return rows[0] || null;
+}
+
+module.exports = {
+  create, findByPhone, findByEmail, findById, verifyPassword, markPhoneVerified,
+  updatePassword, updatePasswordByEmail, updateEmail,
+};

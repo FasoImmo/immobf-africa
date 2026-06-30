@@ -56,7 +56,15 @@
     "unique_visitors": "visiteurs uniques",
     "whatsapp_clicks": "contacts WhatsApp",
     "views_week": "vues cette semaine",
-    "loading_error": "Impossible de charger vos annonces."
+    "loading_error": "Impossible de charger vos annonces.",
+    "email_missing": "Aucun email enregistré — ajoutez-en un pour recevoir vos reçus de paiement.",
+    "email_add_btn": "Ajouter un email",
+    "email_edit_btn": "Modifier",
+    "email_save_btn": "Enregistrer",
+    "email_invalid": "Email invalide.",
+    "email_updated": "Email mis à jour avec succès.",
+    "email_taken": "Cet email est déjà utilisé par un autre compte.",
+    "email_save_error": "Impossible d'enregistrer l'email. Réessayez."
   },
   "sell": {
     "title": "Publier une annonce",

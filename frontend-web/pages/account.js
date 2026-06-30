@@ -3,11 +3,11 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import {
   Box, Typography, Grid, Card, CardContent, CardMedia, CardActions,
-  Button, Chip, Alert, CircularProgress, Divider, Paper, Stack,
+  Button, Chip, Alert, CircularProgress, Divider, Paper, Stack, TextField,
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
-import { Analytics } from "../lib/api";
+import { Analytics, Auth } from "../lib/api";
 import api from "../lib/api";
 import { formatFCFA } from "../lib/format";
 
@@ -43,6 +43,10 @@ export default function AccountPage() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
+  const [emailInput, setEmailInput] = useState("");
+  const [emailEditing, setEmailEditing] = useState(false);
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailMsg, setEmailMsg] = useState(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("immobf_user");
@@ -60,6 +64,30 @@ export default function AccountPage() {
     router.push(`/sell?renew=${propertyId}`);
   }
 
+  async function saveEmail() {
+    if (!emailInput || !emailInput.includes("@")) {
+      setEmailMsg({ type: "error", text: t("account.email_invalid") });
+      return;
+    }
+    setEmailSaving(true);
+    setEmailMsg(null);
+    try {
+      const { user: updated } = await Auth.updateEmail(emailInput);
+      setUser(updated);
+      localStorage.setItem("immobf_user", JSON.stringify(updated));
+      setEmailEditing(false);
+      setEmailMsg({ type: "success", text: t("account.email_updated") });
+    } catch (e) {
+      const status = e?.response?.status;
+      setEmailMsg({
+        type: "error",
+        text: status === 409 ? t("account.email_taken") : t("account.email_save_error"),
+      });
+    } finally {
+      setEmailSaving(false);
+    }
+  }
+
   const stats = {
     total: listings.length,
     active: listings.filter((l) => l.subscription_status === "active").length,
@@ -75,6 +103,40 @@ export default function AccountPage() {
         <Paper elevation={0} sx={{ p: 2, mb: 3, bgcolor: "#f5f5f5", borderRadius: 2 }}>
           <Typography variant="subtitle1" fontWeight={600}>{user.full_name || user.phone}</Typography>
           <Typography variant="body2" color="text.secondary">{user.phone}</Typography>
+
+          {!emailEditing && (
+            <Box sx={{ mt: 1, display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+              <Typography variant="body2" color={user.email ? "text.secondary" : "warning.main"}>
+                {user.email || t("account.email_missing")}
+              </Typography>
+              <Button
+                size="small"
+                onClick={() => { setEmailInput(user.email || ""); setEmailEditing(true); setEmailMsg(null); }}
+              >
+                {user.email ? t("account.email_edit_btn") : t("account.email_add_btn")}
+              </Button>
+            </Box>
+          )}
+
+          {emailEditing && (
+            <Box sx={{ mt: 1.5, display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+              <TextField
+                size="small" type="email" label={t("auth.email")}
+                value={emailInput} onChange={(e) => setEmailInput(e.target.value)}
+                sx={{ bgcolor: "white", minWidth: 240 }}
+              />
+              <Button size="small" variant="contained" disabled={emailSaving} onClick={saveEmail}>
+                {t("account.email_save_btn")}
+              </Button>
+              <Button size="small" onClick={() => { setEmailEditing(false); setEmailMsg(null); }}>
+                {t("sell.back_btn")}
+              </Button>
+            </Box>
+          )}
+
+          {emailMsg && (
+            <Alert severity={emailMsg.type} sx={{ mt: 1 }}>{emailMsg.text}</Alert>
+          )}
         </Paper>
       )}
 

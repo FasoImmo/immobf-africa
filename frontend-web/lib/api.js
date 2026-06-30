@@ -84,6 +84,7 @@ export const Auth = {
   verifyOtp: (data) => api.post("/auth/otp/verify", data).then((r) => r.data),
   forgotPassword: (email) => api.post("/auth/forgot-password", { email }).then((r) => r.data),
   resetPassword: (data) => api.post("/auth/reset-password", data).then((r) => r.data),
+  updateEmail: (email) => api.patch("/auth/me/email", { email }).then((r) => r.data),
 };
 
 export const Analytics = {
