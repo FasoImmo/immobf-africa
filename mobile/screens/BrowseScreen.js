@@ -2,18 +2,49 @@ import React, { useEffect, useState, useCallback } from "react";
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
   Image, RefreshControl, TextInput, Modal, FlatList as FList,
-  SafeAreaView, StatusBar,
+  SafeAreaView,
 } from "react-native";
 import { Properties } from "../lib/api";
 import { cacheProperty, listCached } from "../lib/offline";
+import { useLang } from "../lib/lang";
 
 function formatFCFA(n) {
   if (n == null) return "—";
   return `${Number(n).toLocaleString("fr-FR")} FCFA`;
 }
 
+const T = {
+  fr: {
+    allCountries: "Tous les pays",
+    allTypes: "Tous types",
+    cityPlaceholder: "Ville",
+    chooseCountry: "Choisir un pays",
+    chooseType: "Type de transaction",
+    sale: "🏷️ Vente",
+    rentLong: "🔑 Location longue durée",
+    rentShort: "🌙 Court séjour",
+    labelSale: "Vente",
+    labelRentLong: "Location",
+    labelRentShort: "Court séjour",
+    empty: "Aucune annonce trouvée.",
+  },
+  en: {
+    allCountries: "All countries",
+    allTypes: "All types",
+    cityPlaceholder: "City",
+    chooseCountry: "Choose a country",
+    chooseType: "Transaction type",
+    sale: "🏷️ For sale",
+    rentLong: "🔑 Long-term rental",
+    rentShort: "🌙 Short stay",
+    labelSale: "For sale",
+    labelRentLong: "Rental",
+    labelRentShort: "Short stay",
+    empty: "No listings found.",
+  },
+};
+
 const COUNTRIES = [
-  { code: "", label: "Tous les pays" },
   { code: "BF", label: "🇧🇫 Burkina Faso" },
   { code: "CI", label: "🇨🇮 Côte d'Ivoire" },
   { code: "SN", label: "🇸🇳 Sénégal" },
@@ -25,19 +56,13 @@ const COUNTRIES = [
   { code: "GH", label: "🇬🇭 Ghana" },
   { code: "NG", label: "🇳🇬 Nigeria" },
   { code: "CM", label: "🇨🇲 Cameroun" },
-  { code: "SN", label: "🇸🇳 Sénégal" },
   { code: "CD", label: "🇨🇩 Congo RDC" },
   { code: "MA", label: "🇲🇦 Maroc" },
 ];
 
-const TX_TYPES = [
-  { value: "", label: "Tous types" },
-  { value: "sale", label: "🏷️ Vente" },
-  { value: "rent_long", label: "🔑 Location longue durée" },
-  { value: "rent_short", label: "🌙 Court séjour" },
-];
-
-function DropdownModal({ visible, title, options, selected, onSelect, onClose, labelKey = "label", valueKey = "code" }) {
+function DropdownModal({ visible, title, allLabel, options, selected, onSelect, onClose, labelKey = "label", valueKey = "code" }) {
+  const all = { [valueKey]: "", [labelKey]: allLabel };
+  const rows = [all, ...options];
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={onClose} />
@@ -49,7 +74,7 @@ function DropdownModal({ visible, title, options, selected, onSelect, onClose, l
           </TouchableOpacity>
         </View>
         <FList
-          data={options}
+          data={rows}
           keyExtractor={(item) => String(item[valueKey])}
           renderItem={({ item }) => (
             <TouchableOpacity
@@ -69,6 +94,15 @@ function DropdownModal({ visible, title, options, selected, onSelect, onClose, l
 }
 
 export default function BrowseScreen({ navigation }) {
+  const { lang } = useLang();
+  const t = T[lang] || T.fr;
+
+  const TX_TYPES = [
+    { value: "sale", label: t.sale },
+    { value: "rent_long", label: t.rentLong },
+    { value: "rent_short", label: t.rentShort },
+  ];
+
   const [items, setItems] = useState([]);
   const [country, setCountry] = useState("");
   const [city, setCity] = useState("");
@@ -94,8 +128,19 @@ export default function BrowseScreen({ navigation }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const countryLabel = COUNTRIES.find((c) => c.code === country)?.label || "Tous les pays";
-  const typeLabel = TX_TYPES.find((t) => t.value === txType)?.label || "Tous types";
+  const countryLabel = country
+    ? (COUNTRIES.find((c) => c.code === country)?.label || country)
+    : t.allCountries;
+  const typeLabel = txType
+    ? (TX_TYPES.find((tp) => tp.value === txType)?.label || txType)
+    : t.allTypes;
+
+  function txBadgeLabel(type) {
+    if (type === "sale") return t.labelSale;
+    if (type === "rent_long") return t.labelRentLong;
+    if (type === "rent_short") return t.labelRentShort;
+    return type;
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#f7f7f7" }}>
@@ -111,7 +156,7 @@ export default function BrowseScreen({ navigation }) {
         <TextInput
           value={city}
           onChangeText={setCity}
-          placeholder="Ville"
+          placeholder={t.cityPlaceholder}
           onSubmitEditing={load}
           returnKeyType="search"
           style={s.cityInput}
@@ -144,17 +189,14 @@ export default function BrowseScreen({ navigation }) {
               <Text style={s.sub}>{item.city}{item.country_code ? `, ${item.country_code}` : ""}</Text>
               <Text style={s.price}>{formatFCFA(item.price)}</Text>
               {item.transaction_type && (
-                <Text style={s.badge}>
-                  {item.transaction_type === "sale" ? "Vente" :
-                   item.transaction_type === "rent_long" ? "Location" : "Court séjour"}
-                </Text>
+                <Text style={s.badge}>{txBadgeLabel(item.transaction_type)}</Text>
               )}
             </View>
           </TouchableOpacity>
         )}
         ListEmptyComponent={
           <Text style={{ textAlign: "center", color: "#888", marginTop: 40 }}>
-            Aucune annonce trouvée.
+            {t.empty}
           </Text>
         }
       />
@@ -162,7 +204,8 @@ export default function BrowseScreen({ navigation }) {
       {/* Modals */}
       <DropdownModal
         visible={showCountry}
-        title="Choisir un pays"
+        title={t.chooseCountry}
+        allLabel={t.allCountries}
         options={COUNTRIES}
         selected={country}
         onSelect={setCountry}
@@ -172,7 +215,8 @@ export default function BrowseScreen({ navigation }) {
       />
       <DropdownModal
         visible={showType}
-        title="Type de transaction"
+        title={t.chooseType}
+        allLabel={t.allTypes}
         options={TX_TYPES}
         selected={txType}
         onSelect={setTxType}

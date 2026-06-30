@@ -1,9 +1,18 @@
 import React from "react";
 import { ScrollView, View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import { useLang } from "../lib/lang";
+
+const T = {
+  fr: { noListing: "Aucune annonce", deposit: "Acompte", payBtn: "Payer l'acompte en mobile money" },
+  en: { noListing: "No listing", deposit: "Deposit", payBtn: "Pay deposit via mobile money" },
+};
 
 export default function PropertyScreen({ route, navigation }) {
+  const { lang } = useLang();
+  const t = T[lang] || T.fr;
+
   const p = route.params?.property;
-  if (!p) return <Text style={{ padding: 20 }}>Aucune annonce</Text>;
+  if (!p) return <Text style={{ padding: 20 }}>{t.noListing}</Text>;
   const deposit = Math.round((Number(p.price) * Number(p.deposit_pct || 5)) / 100);
   const cover = p.photos?.[0]?.url || `https://picsum.photos/seed/${p.id}/1200/600`;
 
@@ -15,13 +24,13 @@ export default function PropertyScreen({ route, navigation }) {
         <Text style={styles.city}>{p.city}, {p.country_code}</Text>
         <Text style={styles.price}>{Number(p.price).toLocaleString("fr-FR")} {p.currency}</Text>
         <Text style={styles.body}>{p.description}</Text>
-        <Text style={styles.depositLabel}>Acompte ({p.deposit_pct || 5}%)</Text>
+        <Text style={styles.depositLabel}>{t.deposit} ({p.deposit_pct || 5}%)</Text>
         <Text style={styles.deposit}>{deposit.toLocaleString("fr-FR")} {p.currency}</Text>
         <TouchableOpacity
           style={styles.btn}
           onPress={() => navigation.navigate("Payment", { property: p, amount: deposit })}
         >
-          <Text style={styles.btnText}>Payer l'acompte en mobile money</Text>
+          <Text style={styles.btnText}>{t.payBtn}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
