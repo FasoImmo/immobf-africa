@@ -301,6 +301,9 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
               {label}
             </Link>
           ))}
+          <Link href="/download" style={{ color: "#0E7C66", fontSize: 12, textDecoration: "none", fontWeight: 600 }}>
+            📱 Application mobile
+          </Link>
         </Box>
       </Box>
     </>

@@ -2,7 +2,7 @@
   "expo": {
     "name": "ImmoBF Africa",
     "slug": "immobf-africa",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "immobf",
     "primaryColor": "#0E7C66",
@@ -14,8 +14,23 @@
     },
     "updates": { "fallbackToCacheTimeout": 0 },
     "assetBundlePatterns": ["**/*"],
-    "ios": { "supportsTablet": true, "bundleIdentifier": "africa.immobf.app" },
-    "android": { "package": "africa.immobf.app", "versionCode": 1 },
-    "web": { "favicon": "./assets/favicon.png" }
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "africa.immobf.app",
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "africa.immobf.app",
+      "versionCode": 1,
+      "permissions": []
+    },
+    "web": { "favicon": "./assets/favicon.png" },
+    "extra": {
+      "apiUrl": "https://immobf-africa-production.up.railway.app",
+      "eas": { "projectId": "immobf-africa" }
+    },
+    "plugins": [
+      "expo-sqlite"
+    ]
   }
 }

@@ -178,6 +178,27 @@ export default function Home() {
         )}
       </Grid>
 
+      {/* ── App mobile ── */}
+      <Paper elevation={0} sx={{
+        mt: 4, mb: 4, p: { xs: 3, md: 4 }, borderRadius: 3,
+        background: "#f0faf6",
+        display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap",
+      }}>
+        <Box sx={{ fontSize: 48, lineHeight: 1 }}>📱</Box>
+        <Box sx={{ flex: 1, minWidth: 200 }}>
+          <Typography variant="h6" fontWeight={700}>Téléchargez l'application ImmoBF Africa</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Consultez les annonces, payez en mobile money — même hors connexion. Disponible sur Android.
+          </Typography>
+        </Box>
+        <Button
+          variant="contained" color="primary" component={Link} href="/download"
+          sx={{ fontWeight: 700, px: 3, flexShrink: 0 }}
+        >
+          Télécharger l'APK
+        </Button>
+      </Paper>
+
       {/* ── Newsletter ── */}
       <Paper elevation={0} sx={{
         mt: 6, p: 4, textAlign: "center",

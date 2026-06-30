@@ -55,8 +55,9 @@ router.post("/payments/webhooks/:provider", rawBody, asyncHandler(payCtl.webhook
 
 // DIAGNOSTIC TEMPORAIRE (29/06/2026) — voir paymentsController.js. À retirer
 // une fois le callback PawaPay confirmé stable.
-router.get ("/admin/pawapay/last",                      requireAuth, asyncHandler(payCtl.adminPawapayLast));
-router.post("/admin/pawapay/resend-callback/:depositId", requireAuth, asyncHandler(payCtl.adminPawapayResendCallback));
+// Sécurisé admin-only (30/06/2026) — requireAdmin au lieu de requireAuth.
+router.get ("/admin/pawapay/last",                      requireAdmin, asyncHandler(payCtl.adminPawapayLast));
+router.post("/admin/pawapay/resend-callback/:depositId", requireAdmin, asyncHandler(payCtl.adminPawapayResendCallback));
 
 // --- Admin : suivi des abonnés + délais de publication + blocage/déconnexion ---
 // CORRECTIF (30/06/2026) : la page admin ne donnait aucun moyen de
