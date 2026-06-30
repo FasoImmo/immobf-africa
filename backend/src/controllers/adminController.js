@@ -9,6 +9,7 @@
 const Joi = require("joi");
 const User = require("../models/User");
 const Property = require("../models/Property");
+const Transaction = require("../models/Transaction");
 const { BadRequest, NotFound } = require("../utils/errors");
 
 const listSchema = Joi.object({
@@ -53,4 +54,22 @@ async function listProperties(req, res) {
   res.json({ properties });
 }
 
-module.exports = { listUsers, setUserBlocked, logoutUser, listProperties };
+/**
+ * GET /admin/revenues
+ * Retourne :
+ *   - stats : KPIs globaux (CA total, répartition listing_fee/commission,
+ *             nb transactions réussies/en cours/échouées, nb annonceurs actifs)
+ *   - annonceurs : synthèse par utilisateur (total payé, nb annonces, pays
+ *                  principal, date dernière activité)
+ *   - transactions : 100 dernières transactions, toutes confondues
+ */
+async function listRevenues(req, res) {
+  const [stats, annonceurs, transactions] = await Promise.all([
+    Transaction.globalRevenueStats(),
+    Transaction.revenuesByUser(),
+    Transaction.listAllForAdmin({ limit: 100 }),
+  ]);
+  res.json({ stats, annonceurs, transactions });
+}
+
+module.exports = { listUsers, setUserBlocked, logoutUser, listProperties, listRevenues };

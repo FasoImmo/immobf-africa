@@ -136,4 +136,5 @@ export const Admin = {
   setUserBlocked: (id, blocked) => api.patch(`/admin/users/${id}/block`, { blocked }).then((r) => r.data),
   logoutUser: (id) => api.post(`/admin/users/${id}/logout`).then((r) => r.data),
   properties: (params) => api.get("/admin/properties", { params }).then((r) => r.data),
+  revenues: () => api.get("/admin/revenues").then((r) => r.data),
 };

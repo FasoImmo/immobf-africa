@@ -67,6 +67,7 @@ router.get  ("/admin/users",                requireAdmin, asyncHandler(adminCtl.
 router.patch("/admin/users/:id/block",      requireAdmin, asyncHandler(adminCtl.setUserBlocked));
 router.post ("/admin/users/:id/logout",     requireAdmin, asyncHandler(adminCtl.logoutUser));
 router.get  ("/admin/properties",           requireAdmin, asyncHandler(adminCtl.listProperties));
+router.get  ("/admin/revenues",             requireAdmin, asyncHandler(adminCtl.listRevenues));
 
 // --- Analytics ---
 const analyticsLimiter = rateLimit({ windowMs: 10_000, max: 30 });

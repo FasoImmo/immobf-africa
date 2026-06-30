@@ -1,117 +1,302 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { Box, Grid, Paper, Typography, Table, TableHead, TableRow, TableCell, TableBody, Button, CircularProgress } from "@mui/material";
+import {
+  Box, Grid, Paper, Typography, Table, TableHead, TableRow, TableCell,
+  TableBody, Button, CircularProgress, Chip, Divider,
+} from "@mui/material";
 import Layout from "../../components/Layout";
-import { Properties, Payments } from "../../lib/api";
+import { Admin } from "../../lib/api";
 import { formatFCFA } from "../../lib/format";
+
+function KpiCard({ label, value, color }) {
+  return (
+    <Paper sx={{ p: 2, height: "100%" }}>
+      <Typography variant="overline" color="text.secondary">{label}</Typography>
+      <Typography variant="h5" fontWeight={700} color={color || "text.primary"} sx={{ mt: 0.5 }}>
+        {value}
+      </Typography>
+    </Paper>
+  );
+}
+
+function accessGuard(router, setAuthorized) {
+  if (typeof window === "undefined") return;
+  const token = localStorage.getItem("immobf_token");
+  if (!token) { router.replace("/login?redirect=/admin"); return; }
+  let user = null;
+  try { user = JSON.parse(localStorage.getItem("immobf_user") || "null"); } catch (_) {}
+  if (!user || user.role !== "admin") { setAuthorized(false); return; }
+  setAuthorized(true);
+}
+
+const PURPOSE_LABEL = {
+  listing_fee: "Frais publication",
+  commission: "Commission",
+  deposit: "Acompte",
+};
+
+const STATUS_COLOR = {
+  succeeded: "success",
+  pending: "warning",
+  failed: "error",
+};
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [items, setItems] = useState([]);
-  const [tx, setTx] = useState([]);
-  // null = vérification en cours, false = accès refusé, true = autorisé
   const [authorized, setAuthorized] = useState(null);
+  const [data, setData] = useState(null);
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // ─── Garde d'accès : rôle "admin" obligatoire ────────────────────────────
-  // Avant ce correctif, n'importe quel utilisateur connecté (acheteur,
-  // vendeur...) pouvait ouvrir /admin directement via l'URL.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const token = localStorage.getItem("immobf_token");
-    if (!token) {
-      router.replace("/login?redirect=/admin");
-      return;
-    }
-    let user = null;
-    try { user = JSON.parse(localStorage.getItem("immobf_user") || "null"); } catch (_) {}
-    if (!user || user.role !== "admin") {
-      setAuthorized(false);
-      return;
-    }
-    setAuthorized(true);
-  }, []); // eslint-disable-line
+  useEffect(() => { accessGuard(router, setAuthorized); }, []); // eslint-disable-line
 
   useEffect(() => {
     if (authorized !== true) return;
-    Properties.search({ limit: 50 }).then((d) => setItems(d.items || []));
-    Payments.list().then((d) => setTx(d.items || [])).catch(() => setTx([]));
+    setLoading(true);
+    Promise.all([Admin.revenues(), Admin.properties({ limit: 200 })])
+      .then(([rev, props]) => {
+        setData(rev);
+        setProperties(props.properties || []);
+      })
+      .finally(() => setLoading(false));
   }, [authorized]);
 
   if (authorized === null) {
     return (
-      <Layout title="Admin — ImmoBF">
+      <Layout title="Admin - ImmoBF">
         <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box>
       </Layout>
     );
   }
-
   if (authorized === false) {
     return (
-      <Layout title="Admin — ImmoBF">
+      <Layout title="Admin - ImmoBF">
         <Paper sx={{ p: 4, textAlign: "center" }}>
-          <Typography variant="h5" gutterBottom>Accès refusé</Typography>
-          <Typography color="text.secondary">
-            Cette page est réservée aux administrateurs du site.
-          </Typography>
+          <Typography variant="h5">Acces refuse</Typography>
+          <Typography color="text.secondary" sx={{ mt: 1 }}>Reserve aux administrateurs.</Typography>
         </Paper>
       </Layout>
     );
   }
 
-  const countByCity = items.reduce((acc, p) => {
-    acc[p.city] = (acc[p.city] || 0) + 1; return acc;
+  const stats = data?.stats || {};
+  const annonceurs = data?.annonceurs || [];
+  const transactions = data?.transactions || [];
+
+  const byCountry = properties.reduce((acc, p) => {
+    const c = p.country_code || "ND";
+    acc[c] = (acc[c] || 0) + 1;
+    return acc;
   }, {});
-  const totalValue = items.reduce((s, p) => s + Number(p.price || 0), 0);
+
+  const top5 = [...annonceurs].slice(0, 5);
 
   function exportCsv() {
-    const rows = [["id","title","city","type","price","currency","status"]]
-      .concat(items.map((p) => [p.id, p.title, p.city, p.type, p.price, p.currency, p.status]));
-    const csv = rows.map((r) => r.map((v) => `"${(v ?? "").toString().replace(/"/g,'""')}"`).join(",")).join("\n");
+    const rows = [["id","nom","email","telephone","nb_annonces","nb_transactions","total_paye_xof","pays_principal","dernier_paiement"]]
+      .concat(annonceurs.map((a) => [
+        a.id, a.full_name, a.email || "", a.phone, a.nb_annonces,
+        a.nb_transactions, a.total_paid, a.main_country || "",
+        a.last_payment_at ? new Date(a.last_payment_at).toLocaleDateString("fr-FR") : "",
+      ]));
+    const csv = rows.map((r) => r.map((v) => String(v ?? "").replace(/"/g, '""')).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "annonces.csv"; a.click();
+    const a = document.createElement("a"); a.href = url; a.download = "annonceurs-immobf.csv"; a.click();
     URL.revokeObjectURL(url);
   }
 
   return (
-    <Layout title="Admin — ImmoBF">
-      <Typography variant="h4" gutterBottom>Tableau de bord</Typography>
+    <Layout title="Admin - ImmoBF">
+      <Typography variant="h4" fontWeight={700} gutterBottom>Tableau de bord</Typography>
+
+      {loading && (
+        <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+          <CircularProgress size={18} />
+          <Typography variant="body2">Chargement...</Typography>
+        </Box>
+      )}
+
+      <Typography variant="h6" sx={{ mb: 1, mt: 1 }}>Revenus ImmoBF</Typography>
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={4}>
-          <Paper sx={{ p: 2 }}><Typography variant="overline">Annonces</Typography>
-            <Typography variant="h4">{items.length}</Typography></Paper>
+        <Grid item xs={6} sm={3}>
+          <KpiCard label="CA Total" value={formatFCFA(stats.total_revenue || 0)} color="#1B6B3A" />
         </Grid>
-        <Grid item xs={12} sm={4}>
-          <Paper sx={{ p: 2 }}><Typography variant="overline">Valeur catalogue</Typography>
-            <Typography variant="h5">{formatFCFA(totalValue)}</Typography></Paper>
+        <Grid item xs={6} sm={3}>
+          <KpiCard label="Frais publication" value={formatFCFA(stats.revenue_listing || 0)} />
         </Grid>
-        <Grid item xs={12} sm={4}>
-          <Paper sx={{ p: 2 }}><Typography variant="overline">Transactions (user)</Typography>
-            <Typography variant="h4">{tx.length}</Typography></Paper>
+        <Grid item xs={6} sm={3}>
+          <KpiCard label="Commissions" value={formatFCFA(stats.revenue_commission || 0)} />
+        </Grid>
+        <Grid item xs={6} sm={3}>
+          <KpiCard label="Annonceurs actifs" value={stats.nb_annonceurs_actifs || 0} />
         </Grid>
       </Grid>
 
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={4}>
+          <KpiCard label="Tx reussies" value={stats.nb_succeeded || 0} color="green" />
+        </Grid>
+        <Grid item xs={4}>
+          <KpiCard label="En attente" value={stats.nb_pending || 0} color="orange" />
+        </Grid>
+        <Grid item xs={4}>
+          <KpiCard label="Echouees" value={stats.nb_failed || 0} color="red" />
+        </Grid>
+      </Grid>
+
+      <Divider sx={{ my: 3 }} />
+
       <Box sx={{ mb: 3, display: "flex", gap: 2, flexWrap: "wrap" }}>
         <Button variant="contained" onClick={() => router.push("/admin/users")}>
-          Gérer les abonnés
+          Gerer les abonnes
         </Button>
         <Button variant="contained" onClick={() => router.push("/admin/properties")}>
-          Délais de publication
+          Delais de publication
+        </Button>
+        <Button variant="contained" color="secondary" onClick={() => router.push("/admin/revenues")}>
+          Revenus par annonceur
         </Button>
       </Box>
 
-      <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Typography variant="h6">Par ville</Typography>
-        <Button onClick={exportCsv} variant="outlined">Exporter CSV</Button>
-      </Box>
+      <Divider sx={{ my: 3 }} />
 
-      <Paper>
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={4}>
+          <Typography variant="h6" sx={{ mb: 1 }}>Annonces par pays</Typography>
+          <Paper>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Pays</TableCell>
+                  <TableCell align="right">Annonces</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {Object.entries(byCountry).sort((a, b) => b[1] - a[1]).map(([c, n]) => (
+                  <TableRow key={c}>
+                    <TableCell>{c}</TableCell>
+                    <TableCell align="right">{n}</TableCell>
+                  </TableRow>
+                ))}
+                {Object.keys(byCountry).length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={2} align="center" sx={{ color: "text.secondary" }}>
+                      Aucune annonce
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={8}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+            <Typography variant="h6">Top annonceurs (CA ImmoBF)</Typography>
+            <Button size="small" variant="outlined" onClick={() => router.push("/admin/revenues")}>
+              Voir tous
+            </Button>
+          </Box>
+          <Paper>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Nom</TableCell>
+                  <TableCell>Pays</TableCell>
+                  <TableCell align="right">Annonces</TableCell>
+                  <TableCell align="right">Total paye</TableCell>
+                  <TableCell>Derniere activite</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {top5.map((a) => (
+                  <TableRow key={a.id}>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={600}>{a.full_name || "ND"}</Typography>
+                      <Typography variant="caption" color="text.secondary">{a.phone}</Typography>
+                    </TableCell>
+                    <TableCell>{a.main_country || "ND"}</TableCell>
+                    <TableCell align="right">{a.nb_annonces}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: "#1B6B3A" }}>
+                      {formatFCFA(a.total_paid)}
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="caption">
+                        {a.last_payment_at
+                          ? new Date(a.last_payment_at).toLocaleDateString("fr-FR")
+                          : "ND"}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {top5.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ color: "text.secondary" }}>
+                      Aucune donnee
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      <Divider sx={{ my: 3 }} />
+
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+        <Typography variant="h6">20 dernieres transactions</Typography>
+        <Button size="small" variant="outlined" onClick={exportCsv}>Exporter CSV</Button>
+      </Box>
+      <Paper sx={{ overflowX: "auto" }}>
         <Table size="small">
-          <TableHead><TableRow><TableCell>Ville</TableCell><TableCell align="right">Annonces</TableCell></TableRow></TableHead>
+          <TableHead>
+            <TableRow>
+              <TableCell>Date</TableCell>
+              <TableCell>Annonceur</TableCell>
+              <TableCell>Pays</TableCell>
+              <TableCell>Type</TableCell>
+              <TableCell>Fournisseur</TableCell>
+              <TableCell align="right">Montant</TableCell>
+              <TableCell>Statut</TableCell>
+            </TableRow>
+          </TableHead>
           <TableBody>
-            {Object.entries(countByCity).sort((a,b) => b[1]-a[1]).map(([c,n]) => (
-              <TableRow key={c}><TableCell>{c}</TableCell><TableCell align="right">{n}</TableCell></TableRow>
+            {transactions.slice(0, 20).map((t) => (
+              <TableRow key={t.id}>
+                <TableCell>
+                  <Typography variant="caption">
+                    {new Date(t.created_at).toLocaleDateString("fr-FR")}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2">{t.buyer_name || "ND"}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {t.buyer_phone || t.buyer_email || ""}
+                  </Typography>
+                </TableCell>
+                <TableCell>{t.property_country || "ND"}</TableCell>
+                <TableCell>
+                  <Typography variant="caption">{PURPOSE_LABEL[t.purpose] || t.purpose}</Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="caption">{t.provider}</Typography>
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700 }}>
+                  {formatFCFA(t.amount)}
+                </TableCell>
+                <TableCell>
+                  <Chip label={t.status} size="small" color={STATUS_COLOR[t.status] || "default"} />
+                </TableCell>
+              </TableRow>
             ))}
+            {transactions.length === 0 && !loading && (
+              <TableRow>
+                <TableCell colSpan={7} align="center" sx={{ color: "text.secondary", py: 3 }}>
+                  Aucune transaction
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </Paper>

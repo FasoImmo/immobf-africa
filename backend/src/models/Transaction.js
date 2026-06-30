@@ -79,7 +79,91 @@ async function listForUser(user_id, { limit = 20, offset = 0 } = {}) {
   return rows;
 }
 
+/**
+ * Toutes les transactions (admin) — avec nom/email/téléphone de l'acheteur
+ * et titre de l'annonce associée. Utilisé pour le suivi global des revenus.
+ */
+async function listAllForAdmin({ limit = 200, offset = 0 } = {}) {
+  const { rows } = await query(
+    `SELECT t.*,
+            u.full_name  AS buyer_name,
+            u.phone      AS buyer_phone,
+            u.email      AS buyer_email,
+            p.title      AS property_title,
+            p.country_code AS property_country
+     FROM transactions t
+     LEFT JOIN users       u ON u.id = t.buyer_id
+     LEFT JOIN properties  p ON p.id = t.property_id
+     ORDER BY t.created_at DESC
+     LIMIT $1 OFFSET $2`,
+    [limit, offset]
+  );
+  return rows;
+}
+
+/**
+ * Synthèse par annonceur (vendeur) : total des frais payés à ImmoBF
+ * (transactions succeeded de type listing_fee), nombre d'annonces publiées,
+ * pays principal (mode), et date du dernier paiement.
+ *
+ * Un "annonceur fidèle" est quelqu'un qui revient régulièrement payer des
+ * frais de publication — visible via nb_transactions et last_payment_at.
+ */
+async function revenuesByUser() {
+  const { rows } = await query(`
+    SELECT
+      u.id,
+      u.full_name,
+      u.phone,
+      u.email,
+      u.role,
+      COUNT(DISTINCT p.id)                                          AS nb_annonces,
+      COUNT(t.id) FILTER (WHERE t.status = 'succeeded')            AS nb_transactions,
+      COALESCE(
+        SUM(t.amount) FILTER (WHERE t.status = 'succeeded'), 0
+      )::int                                                        AS total_paid,
+      MAX(t.created_at)                                            AS last_payment_at,
+      -- pays le plus fréquent parmi les annonces publiées par cet utilisateur
+      (
+        SELECT p2.country_code
+        FROM properties p2
+        WHERE p2.owner_id = u.id
+        GROUP BY p2.country_code
+        ORDER BY COUNT(*) DESC
+        LIMIT 1
+      )                                                             AS main_country
+    FROM users u
+    LEFT JOIN transactions t ON t.buyer_id = u.id
+    LEFT JOIN properties   p ON p.owner_id = u.id
+    GROUP BY u.id
+    HAVING COUNT(t.id) > 0 OR COUNT(DISTINCT p.id) > 0
+    ORDER BY total_paid DESC, nb_annonces DESC
+  `);
+  return rows;
+}
+
+/**
+ * KPIs globaux pour le tableau de bord admin : CA total ImmoBF, répartition
+ * par type de transaction (listing_fee vs commission), et nombre
+ * d'annonceurs distincts ayant payé au moins une fois.
+ */
+async function globalRevenueStats() {
+  const { rows } = await query(`
+    SELECT
+      COALESCE(SUM(amount) FILTER (WHERE status = 'succeeded'), 0)::int            AS total_revenue,
+      COALESCE(SUM(amount) FILTER (WHERE status = 'succeeded' AND purpose = 'listing_fee'), 0)::int   AS revenue_listing,
+      COALESCE(SUM(amount) FILTER (WHERE status = 'succeeded' AND purpose = 'commission'), 0)::int    AS revenue_commission,
+      COUNT(*)  FILTER (WHERE status = 'succeeded')                                  AS nb_succeeded,
+      COUNT(*)  FILTER (WHERE status = 'pending')                                    AS nb_pending,
+      COUNT(*)  FILTER (WHERE status = 'failed')                                     AS nb_failed,
+      COUNT(DISTINCT buyer_id) FILTER (WHERE status = 'succeeded')                   AS nb_annonceurs_actifs
+    FROM transactions
+  `);
+  return rows[0];
+}
+
 module.exports = {
   create, findByReference, findByExternalId, findById, updateStatus,
   logEvent, findLatestEvent, listForUser,
+  listAllForAdmin, revenuesByUser, globalRevenueStats,
 };
