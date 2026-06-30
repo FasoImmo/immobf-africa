@@ -84,6 +84,11 @@ async function create(data) {
     features = {},
   } = data;
 
+  // Le champ Ville est saisi librement par l'annonceur (#45) — on retire les
+  // espaces de début/fin pour éviter que "Ouagadougou " et "Ouagadougou" se
+  // comportent comme deux villes différentes lors d'une recherche filtrée.
+  const cleanCity = typeof city === "string" ? city.trim() : city;
+
   const { rows } = await query(
     `INSERT INTO properties
       (owner_id, agency_id, transaction_type, type, title, description, price, currency,
@@ -94,7 +99,7 @@ async function create(data) {
      RETURNING ${RETURNING_COLS}`,
     [
       owner_id, agency_id, transaction_type, type, title, description, price, currency,
-      area_m2, bedrooms, bathrooms, country_code, city, neighborhood, address,
+      area_m2, bedrooms, bathrooms, country_code, cleanCity, neighborhood, address,
       lat, lng, deposit_pct, is_furnished, rent_period, JSON.stringify(features),
     ]
   );
@@ -137,7 +142,12 @@ async function search(filters, opts) {
   };
 
   if (filters.country) push("p.country_code = $?", filters.country);
-  if (filters.city) push("LOWER(p.city) = LOWER($?)", filters.city);
+  // Comparaison tolérante : certaines annonces ont une ville saisie avec un
+  // espace de fin (ex. "Ouagadougou ") suite à l'assouplissement du champ
+  // Ville à la publication (#45). Une égalité stricte LOWER(city)=LOWER(val)
+  // ratait alors systématiquement ces annonces. On utilise désormais TRIM +
+  // ILIKE partiel pour être robuste aux espaces et aux saisies partielles.
+  if (filters.city) push("TRIM(p.city) ILIKE '%'||TRIM($?)||'%'", filters.city);
   if (filters.neighborhood) push("p.neighborhood ILIKE '%'||$?||'%'", filters.neighborhood);
   if (filters.type) push("p.type = $?", filters.type);
   if (filters.transaction_type) push("p.transaction_type = $?", filters.transaction_type);

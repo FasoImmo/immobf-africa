@@ -6,10 +6,12 @@ import Layout from "../components/Layout";
 import PropertyCard from "../components/PropertyCard";
 import { Properties, Analytics } from "../lib/api";
 import api from "../lib/api";
+import { AFRICAN_COUNTRIES } from "../lib/africanCountries";
 
 export default function Home() {
   const { t } = useTranslation();
   const [q, setQ] = useState("");
+  const [country, setCountry] = useState("");
   const [city, setCity] = useState("");
   const [type, setType] = useState("");
   const [txType, setTxType] = useState("");
@@ -79,6 +81,15 @@ export default function Home() {
             sx={{ flex: "1 1 220px" }}
           />
           <TextField
+            select size="small" label={t("search.country")} value={country}
+            onChange={(e) => setCountry(e.target.value)} sx={{ minWidth: 170 }}
+          >
+            <MenuItem value="">{t("search.all_countries")}</MenuItem>
+            {AFRICAN_COUNTRIES.map((c) => (
+              <MenuItem key={c.code} value={c.code}>{c.flag} {c.name}</MenuItem>
+            ))}
+          </TextField>
+          <TextField
             label={t("search.city")} size="small"
             value={city} onChange={(e) => setCity(e.target.value)}
             sx={{ flex: "1 1 160px" }}
@@ -104,7 +115,7 @@ export default function Home() {
           <Button
             variant="contained" color="secondary"
             component={Link}
-            href={{ pathname: "/properties", query: { q, city, type, transaction_type: txType } }}
+            href={{ pathname: "/properties", query: { q, country, city, type, transaction_type: txType } }}
           >
             {t("nav.browse")}
           </Button>
