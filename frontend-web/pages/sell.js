@@ -123,7 +123,17 @@ const PROVIDER_LABELS = {
   moov_money_bf:  "Moov Money",
   wave:           "Wave",
   cinetpay:       "CinetPay",
+  pawapay:        "PawaPay (Moov Money, Orange Money)",
 };
+
+// PawaPay : Moov = push simple. Orange = flux PREAUTH — le client doit
+// d'abord générer un code OTP via le service USSD Orange Money (avec son
+// code secret) et le saisir ici (voir PawaPayProvider.js, même logique que
+// PaymentDialog.js pour le paiement d'une commission/réservation).
+const PAWAPAY_OPERATORS = [
+  { value: "moov", label: "Moov Money" },
+  { value: "orange", label: "Orange Money (code OTP requis)" },
+];
 
 export default function SellPage() {
   const { t } = useTranslation();
@@ -147,9 +157,18 @@ export default function SellPage() {
   // ─── Étape 2 : paiement ───────────────────────────────────────────────────
   const [providers, setProviders] = useState([]);
   const [provider, setProvider] = useState("");
-  const [dialCode, setDialCode] = useState("+226");
+  // CORRECTIF (30/06/2026) : avant, les fournisseurs étaient toujours
+  // récupérés pour "BF" en dur (Payments.providers("BF")) — le vendeur ne
+  // pouvait jamais voir les moyens de paiement de son propre pays s'il
+  // résidait/payait depuis un autre pays africain. L'indicatif (dialCode)
+  // découle maintenant du pays choisi, au lieu d'être un sélecteur séparé et
+  // déconnecté du choix de fournisseurs.
+  const [buyerCountry, setBuyerCountry] = useState("BF");
+  const dialCode = (AFRICAN_COUNTRIES.find((c) => c.code === buyerCountry) || {}).dial || "+226";
   const [localPhone, setLocalPhone] = useState("");
   const phone = dialCode + localPhone.replace(/\D/g, "");
+  const [pawapayOperator, setPawapayOperator] = useState("moov");
+  const [pawapayOtp, setPawapayOtp] = useState("");
   const [selectedPlan, setSelectedPlan] = useState(LISTING_PLANS[0]);
   const [payErr, setPayErr] = useState(null);
   const [payBusy, setPayBusy] = useState(false);
@@ -185,15 +204,26 @@ export default function SellPage() {
     }
   }, [router.isReady, router.query.tx]); // eslint-disable-line
 
-  // Charger les providers quand on arrive à l'étape 2
+  // Pré-sélectionne le pays acheteur = pays de l'annonce dès l'arrivée à
+  // l'étape 2 (point de départ raisonnable), mais l'utilisateur peut le
+  // changer ci-dessous s'il paie depuis un autre pays.
   useEffect(function() {
     if (step !== 2) return;
-    Payments.providers("BF").then(function(d) {
+    setBuyerCountry(form.country_code || "BF");
+  }, [step]); // eslint-disable-line
+
+  // Charger les providers à chaque changement de pays acheteur (et à
+  // l'arrivée sur l'étape 2).
+  useEffect(function() {
+    if (step !== 2 || !buyerCountry) return;
+    setPawapayOperator("moov");
+    setPawapayOtp("");
+    Payments.providers(buyerCountry).then(function(d) {
       setProviders(d.providers || []);
       var fp = (d.providers || []).find(function(p) { return p.name === "fedapay"; });
       setProvider(fp ? "fedapay" : (d.providers[0] || {}).name || "");
     });
-  }, [step]);
+  }, [step, buyerCountry]);
 
   // Polling statut transaction
   useEffect(function() {
@@ -260,6 +290,8 @@ export default function SellPage() {
         purpose: "listing_fee",
         customer_phone: phone,
         description: `Abonnement ImmoBF Africa — ${selectedPlan.price.toLocaleString("fr-FR")} FCFA / ${selectedPlan.label}`,
+        preferred_operator: provider === "pawapay" ? pawapayOperator : null,
+        pawapay_otp: provider === "pawapay" && pawapayOperator === "orange" ? pawapayOtp : null,
       });
       setTxId(res.transaction_id);
       // Stub mode : succès immédiat → passer directement à l'étape photos
@@ -529,21 +561,33 @@ export default function SellPage() {
               </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
+              {/* CORRECTIF (30/06/2026) : ce sélecteur ne montrait que
+                  l'indicatif (ex. "+226"), donnant l'impression que seul le BF
+                  était payable depuis cette page. Il porte maintenant le pays
+                  complet — change aussi la liste de fournisseurs proposés
+                  juste au-dessus (effet sur buyerCountry). */}
+              <FormControl fullWidth>
+                <Select
+                  value={buyerCountry}
+                  onChange={(e) => setBuyerCountry(e.target.value)}
+                  size="medium" sx={{ height: 56 }}
+                  disabled={polling}
+                >
+                  {AFRICAN_COUNTRIES.map((c) => (
+                    <MenuItem key={c.code} value={c.code}>
+                      {c.flag} {c.name} ({c.dial})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
               <Box sx={{ display: "flex", gap: 1 }}>
-                <FormControl sx={{ minWidth: 120 }}>
-                  <Select
-                    value={dialCode}
-                    onChange={(e) => setDialCode(e.target.value)}
-                    size="small" sx={{ height: 56 }}
-                    disabled={polling}
-                  >
-                    {AFRICAN_COUNTRIES.map((c) => (
-                      <MenuItem key={c.code} value={c.dial}>
-                        {c.flag} {c.dial}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <TextField
+                  value={dialCode}
+                  size="small" sx={{ width: 90 }}
+                  disabled
+                />
                 <TextField
                   fullWidth label={t("sell.mobile_money")}
                   value={localPhone}
@@ -554,6 +598,41 @@ export default function SellPage() {
                 />
               </Box>
             </Grid>
+
+            {/* PawaPay : choix Moov/Orange + OTP Orange (PREAUTH). Sans cette
+                UI, l'appel partait toujours en MOOV_BFA par défaut côté
+                backend (PawaPayProvider._resolveOperator) — Orange Money était
+                donc inatteignable depuis cette page, et toute tentative
+                Orange aurait été rejetée faute de code OTP (voir
+                PawaPayProvider.initiate). */}
+            {provider === "pawapay" && (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    select fullWidth label="Opérateur PawaPay"
+                    value={pawapayOperator}
+                    onChange={(e) => setPawapayOperator(e.target.value)}
+                    disabled={polling}
+                  >
+                    {PAWAPAY_OPERATORS.map((op) => (
+                      <MenuItem key={op.value} value={op.value}>{op.label}</MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                {pawapayOperator === "orange" && (
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth label="Code OTP Orange Money"
+                      value={pawapayOtp}
+                      onChange={(e) => setPawapayOtp(e.target.value.replace(/\D/g, ""))}
+                      disabled={polling}
+                      placeholder="Composez #144#391#code secret#"
+                      helperText="Générez ce code via le service USSD Orange Money avant de payer."
+                    />
+                  </Grid>
+                )}
+              </>
+            )}
           </Grid>
 
           {payErr && <Alert severity="error" sx={{ mt: 2 }}>{payErr}</Alert>}
@@ -587,7 +666,10 @@ export default function SellPage() {
             </Button>
             <Button
               variant="contained" size="large"
-              disabled={payBusy || polling || !phone || !provider}
+              disabled={
+                payBusy || polling || !phone || !provider ||
+                (provider === "pawapay" && pawapayOperator === "orange" && !pawapayOtp)
+              }
               onClick={payListingFee}
             >
               {payBusy ? "…" : `${t("sell.pay_btn")} ${selectedPlan.price.toLocaleString("fr-FR")} FCFA`}
