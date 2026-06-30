@@ -5,6 +5,7 @@ import {
 } from "@mui/material";
 import { Payments } from "../lib/api";
 import { formatFCFA } from "../lib/format";
+import { AFRICAN_COUNTRIES } from "../lib/africanCountries";
 import { useTranslation } from "react-i18next";
 
 // Étiquette lisible + chip "Recommandé". CinetPay et Orange Money BF en tête :
@@ -44,6 +45,13 @@ const FEDAPAY_OPERATORS = [
 export default function PaymentDialog({ open, onClose, property, amount, purpose = "deposit", bookingUnits, checkIn }) {
   const { t } = useTranslation();
   const [providers, setProviders] = useState([]);
+  // CORRECTIF (30/06/2026) : avant, on interrogeait toujours les fournisseurs
+  // disponibles pour le pays de l'ANNONCE (property.country_code) — or
+  // l'acheteur peut résider/payer depuis un autre pays africain. L'acheteur
+  // choisit maintenant lui-même son pays ; on récupère ensuite les
+  // fournisseurs (et donc les moyens de paiement, ex. PawaPay/Orange/Moov)
+  // réellement disponibles pour CE pays.
+  const [buyerCountry, setBuyerCountry] = useState(property?.country_code || "BF");
   const [provider, setProvider] = useState("");
   const [preferredOperator, setPreferredOperator] = useState("");
   const [pawapayOperator, setPawapayOperator] = useState("moov");
@@ -109,9 +117,14 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
 
   useEffect(() => {
     if (!open) return;
+    setBuyerCountry(property?.country_code || "BF");
+  }, [open, property]);
+
+  useEffect(() => {
+    if (!open || !buyerCountry) return;
     setPawapayOperator("moov");
     setPawapayOtp("");
-    Payments.providers(property?.country_code || "BF").then((d) => {
+    Payments.providers(buyerCountry).then((d) => {
       setProviders(d.providers);
       // Sélectionne CinetPay par défaut s'il est dispo, sinon Orange Money BF,
       // sinon Wave, sinon Flutterwave, sinon FedaPay, sinon premier provider listé.
@@ -124,7 +137,7 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
         cp ? "cinetpay" : om ? "orange_money_bf" : wv ? "wave" : flw ? "flutterwave" : fp ? "fedapay" : d.providers[0]?.name || ""
       );
     });
-  }, [open, property]);
+  }, [open, buyerCountry]);
 
   async function handleSubmit() {
     setLoading(true); setError(null); setResult(null); setStatus(null);
@@ -176,6 +189,12 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
   const otpMissing = isPawapay && pawapayOperator === "orange" && !pawapayOtp;
   // Email recommandé pour le reçu, quel que soit le fournisseur.
   const showEmail = true;
+  // CORRECTIF (30/06/2026) : le champ affichait "+226…" en dur, ce qui
+  // laissait penser que seul le Burkina Faso était accepté — il n'y a en
+  // réalité aucune restriction côté backend (Joi.string().required(), sans
+  // contrainte de pays). On affiche maintenant l'indicatif du pays choisi
+  // par l'acheteur (buyerCountry) à titre indicatif seulement.
+  const dialCode = AFRICAN_COUNTRIES.find((c) => c.code === buyerCountry)?.dial || "+226";
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -184,6 +203,15 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
         <Typography variant="body2" sx={{ mb: 2 }}>
           {property?.title} — <b>{formatFCFA(amount)}</b>
         </Typography>
+
+        <TextField
+          select fullWidth label="Votre pays (pour les moyens de paiement disponibles)" sx={{ mb: 2 }}
+          value={buyerCountry} onChange={(e) => setBuyerCountry(e.target.value)}
+        >
+          {AFRICAN_COUNTRIES.map((c) => (
+            <MenuItem key={c.code} value={c.code}>{c.flag} {c.name} ({c.dial})</MenuItem>
+          ))}
+        </TextField>
 
         {providers.length === 0 ? (
           // Aucun fournisseur configuré/validé pour ce pays (cas du Burkina
@@ -256,7 +284,9 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
             )}
 
             <TextField
-              fullWidth label="Numéro mobile money (+226…)"
+              fullWidth
+              label={`Numéro mobile money (${dialCode}…)`}
+              helperText="Plateforme ouverte à toute l'Afrique : utilisez l'indicatif de votre pays, même différent de celui de l'annonce."
               value={phone} onChange={(e) => setPhone(e.target.value)} sx={{ mb: 2 }}
             />
 
@@ -267,6 +297,15 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
                 value={email} onChange={(e) => setEmail(e.target.value)} sx={{ mb: 2 }}
               />
             )}
+
+            {/* CORRECTIF (30/06/2026) : rappel visible avant paiement — la
+                clause de non-remboursement (CGU, art. 6) était jusqu'ici
+                invisible à l'écran de paiement lui-même. */}
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+              La commission ImmoBF n'est ni remboursable ni reversée une fois le paiement confirmé
+              (sauf erreur manifeste signalée sous 24h) — voir les{" "}
+              <a href="/legal/cgu" target="_blank" rel="noreferrer">CGU, art. 6</a>.
+            </Typography>
           </>
         )}
 

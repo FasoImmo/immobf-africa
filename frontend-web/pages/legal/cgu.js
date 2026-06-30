@@ -91,6 +91,7 @@ export default function CGUPage() {
 
         <Section title={c("art6_title")}>
           <P>{c("art6_p1")}</P>
+          <P>{c("art6_p2")}</P>
         </Section>
 
         <Section title={c("art7_title")}>

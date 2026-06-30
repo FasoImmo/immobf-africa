@@ -6,16 +6,16 @@ const { v4: uuidv4 } = require("uuid");
 async function create({
   buyer_id = null, property_id = null, agency_id = null,
   provider, purpose, amount, currency = "XOF",
-  reference = null, payment_url = null, ussd_code = null,
+  reference = null, payment_url = null, ussd_code = null, customer_email = null,
 }) {
   const ref = reference || `IMO-${Date.now()}-${uuidv4().slice(0, 8).toUpperCase()}`;
   const { rows } = await query(
     `INSERT INTO transactions
       (buyer_id, property_id, agency_id, provider, purpose, amount, currency,
-       reference, payment_url, ussd_code)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       reference, payment_url, ussd_code, customer_email)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
      RETURNING *`,
-    [buyer_id, property_id, agency_id, provider, purpose, amount, currency, ref, payment_url, ussd_code]
+    [buyer_id, property_id, agency_id, provider, purpose, amount, currency, ref, payment_url, ussd_code, customer_email]
   );
   return rows[0];
 }

@@ -17,10 +17,21 @@ async function send({ to, subject, html, text }) {
   }
 
   try {
-    await resend.emails.send({ from: FROM, to, subject, html, text });
-    logger.info({ to, subject }, "Email sent via Resend");
+    // CORRECTIF (30/06/2026) : le SDK Resend ne lève PAS d'exception pour les
+    // erreurs API (domaine non vérifié, clé invalide, destinataire rejeté...)
+    // — il résout la promesse avec { data: null, error: {...} }. Le code
+    // précédent ignorait totalement `result.error` : un échec d'envoi
+    // (ex. domaine immoafrica.online non vérifié côté Resend) passait donc
+    // pour un succès ("Email sent via Resend" loggé même en échec), ce qui
+    // rendait le bug "reçu jamais reçu" indétectable dans les logs.
+    const result = await resend.emails.send({ from: FROM, to, subject, html, text });
+    if (result?.error) {
+      logger.error({ err: result.error, to, subject, from: FROM }, "Resend a refusé l'envoi (voir result.error)");
+      return;
+    }
+    logger.info({ to, subject, id: result?.data?.id }, "Email sent via Resend");
   } catch (e) {
-    logger.warn({ err: e.message, to, subject }, "Resend send failed");
+    logger.error({ err: e.message, to, subject, from: FROM }, "Resend send failed (exception)");
   }
 }
 

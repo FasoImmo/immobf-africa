@@ -77,6 +77,10 @@ async function initiate(req, res) {
     purpose: value.purpose,
     amount: value.amount,
     currency: value.currency,
+    // CORRECTIF (30/06/2026) : on garde l'email saisi à la caisse pour pouvoir
+    // y envoyer le reçu même si le compte n'a pas d'email enregistré, ou si
+    // le client préfère recevoir le reçu à une autre adresse.
+    customer_email: value.customer_email || null,
   });
 
   // Trace la durée/montant total du séjour demandée (hors colonnes dédiées —
@@ -139,6 +143,30 @@ async function initiate(req, res) {
       } catch (e) {
         logger.warn({ err: e.message }, "stub: markListingFeePaid failed");
       }
+    }
+
+    // CORRECTIF (30/06/2026) : le mode stub (succès immédiat, sans webhook)
+    // ne déclenchait aucun reçu — l'UI affichait pourtant déjà "reçu envoyé
+    // par email" dans ce cas, ce qui était faux à 100%.
+    try {
+      const recipientEmail = tx.customer_email || req.user?.email;
+      if (recipientEmail) {
+        const { sendPaymentReceipt } = require("../services/email");
+        const plans = config.commissions.listingPlans;
+        const months = Object.entries(plans).find(([, v]) => v === value.amount)?.[0] || 1;
+        await sendPaymentReceipt(recipientEmail, {
+          amount: value.amount,
+          currency: value.currency,
+          reference: tx.reference,
+          purpose: value.purpose,
+          propertyTitle: property?.title,
+          months: Number(months),
+        });
+      } else {
+        logger.warn({ transaction_id: tx.id }, "stub: aucun email destinataire pour le reçu");
+      }
+    } catch (e) {
+      logger.warn({ err: e.message }, "stub: receipt email failed");
     }
   }
 
@@ -229,12 +257,17 @@ async function webhook(req, res) {
       const buyer = await User.findById(updated.buyer_id);
       const property = updated.property_id ? await Property.findById(updated.property_id) : null;
       await generateReceipt(updated, { buyer, property });
-      // Email reçu si l'utilisateur a un email
-      if (buyer?.email) {
+      // CORRECTIF (30/06/2026) : priorité à l'email saisi à la caisse
+      // (tx.customer_email) — sinon repli sur l'email du compte. Avant ce
+      // correctif, seul buyer.email était utilisé : si le compte n'avait pas
+      // d'email (créé avant que l'email soit obligatoire), aucun reçu ne
+      // partait, sans que personne ne le sache.
+      const receiptEmail = tx.customer_email || buyer?.email;
+      if (receiptEmail) {
         const { sendPaymentReceipt } = require("../services/email");
         const plans = config.commissions.listingPlans;
         const months = Object.entries(plans).find(([, v]) => v === Number(updated.amount))?.[0] || 1;
-        await sendPaymentReceipt(buyer.email, {
+        await sendPaymentReceipt(receiptEmail, {
           amount: updated.amount,
           currency: updated.currency,
           reference: updated.reference,
@@ -242,6 +275,8 @@ async function webhook(req, res) {
           propertyTitle: property?.title,
           months: Number(months),
         });
+      } else {
+        logger.warn({ transaction_id: updated.id }, "Aucun email destinataire pour le reçu (ni caisse ni compte)");
       }
 
       // --- Copie facture à l'annonceur (commission de réservation) ---
