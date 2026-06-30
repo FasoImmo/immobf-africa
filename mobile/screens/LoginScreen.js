@@ -9,38 +9,40 @@ import { useLang } from "../lib/lang";
 
 const T = {
   fr: {
-    title: "Mon compte",
     hello: "Bonjour",
     role: "Rôle",
     logout: "Se déconnecter",
     login: "Connexion",
     register: "Créer un compte",
-    email: "Email",
-    phone: "WhatsApp (+226…)",
+    email: "Email *",
+    emailLogin: "Email",
+    phone: "Numéro WhatsApp *",
     fullName: "Nom complet",
-    password: "Mot de passe",
+    password: "Mot de passe *",
     loginBtn: "Se connecter",
     registerBtn: "Créer le compte",
     haveAccount: "Déjà un compte ? Se connecter",
     noAccount: "Pas encore de compte ? S'inscrire",
-    errRequired: "Email/téléphone et mot de passe requis",
+    errLoginRequired: "Email et mot de passe requis",
+    errRegRequired: "Email, WhatsApp et mot de passe requis",
   },
   en: {
-    title: "My account",
     hello: "Hello",
     role: "Role",
     logout: "Log out",
     login: "Login",
     register: "Create account",
-    email: "Email",
-    phone: "WhatsApp (+226…)",
+    email: "Email *",
+    emailLogin: "Email",
+    phone: "WhatsApp number *",
     fullName: "Full name",
-    password: "Password",
+    password: "Password *",
     loginBtn: "Log in",
     registerBtn: "Create account",
     haveAccount: "Already have an account? Log in",
     noAccount: "No account yet? Sign up",
-    errRequired: "Email/phone and password required",
+    errLoginRequired: "Email and password required",
+    errRegRequired: "Email, WhatsApp and password required",
   },
 };
 
@@ -64,14 +66,14 @@ export default function LoginScreen() {
   }, []);
 
   async function doLogin() {
-    if ((!email && !phone) || !password) {
-      return Alert.alert("Erreur", t.errRequired);
+    if (!email || !password) {
+      return Alert.alert("Erreur", t.errLoginRequired);
     }
     setBusy(true);
     try {
       const payload = { password };
       if (email.includes("@")) payload.email = email;
-      else payload.phone = email || phone;
+      else payload.phone = email;
       const r = await Auth.login(payload);
       await AsyncStorage.setItem("immobf_token", r.access);
       if (r.refresh) await AsyncStorage.setItem("immobf_refresh", r.refresh);
@@ -84,7 +86,7 @@ export default function LoginScreen() {
 
   async function doRegister() {
     if (!email || !phone || !password) {
-      return Alert.alert("Erreur", "Email, téléphone et mot de passe requis");
+      return Alert.alert("Erreur", t.errRegRequired);
     }
     setBusy(true);
     try {
@@ -133,13 +135,14 @@ export default function LoginScreen() {
           />
         )}
 
-        {/* Email (login: email OU téléphone) */}
+        {/* Email */}
         <TextInput
-          placeholder={mode === "login" ? `${t.email} ou ${t.phone}` : t.email}
+          placeholder={mode === "login" ? t.emailLogin : t.email}
           value={email} onChangeText={setEmail}
           style={s.input} keyboardType="email-address" autoCapitalize="none"
         />
 
+        {/* WhatsApp — toujours visible en inscription, caché en connexion */}
         {mode === "register" && (
           <TextInput
             placeholder={t.phone}
