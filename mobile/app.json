@@ -27,10 +27,9 @@
     "web": { "favicon": "./assets/favicon.png" },
     "extra": {
       "apiUrl": "https://immobf-africa-production.up.railway.app",
-      "eas": { "projectId": "immobf-africa" }
-    },
-    "plugins": [
-      "expo-sqlite"
-    ]
+      "eas": {
+        "projectId": "bc9af3b2-4772-4b18-b0e2-96cdb8751222"
+      }
+    }
   }
 }
