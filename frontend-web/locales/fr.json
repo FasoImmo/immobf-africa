@@ -137,7 +137,12 @@
     "contact_seller": "Contacter le vendeur",
     "contact_whatsapp": "Contacter sur WhatsApp",
     "reserve_btn": "Réserver — commission ImmoBF",
-    "commission_notice": "Le loyer/séjour se paie directement au propriétaire en mobile money. Ce montant correspond uniquement à la commission ImmoBF (5%)."
+    "commission_notice": "Le loyer/séjour se paie directement au propriétaire en mobile money. Ce montant correspond uniquement à la commission ImmoBF (5%).",
+    "unit_nights": "Nuits",
+    "unit_weeks": "Semaines",
+    "unit_months": "Mois",
+    "check_in": "Date d'arrivée",
+    "total_amount": "Montant total du loyer/séjour"
   },
   "payment": {
     "choose_provider": "Choisir un moyen de paiement",

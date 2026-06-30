@@ -22,6 +22,11 @@ const initiateSchema = Joi.object({
   customer_name: Joi.string().max(120).allow(null, ""),
   preferred_operator: Joi.string().valid("orange", "moov", "mtn", "wave", "card").allow(null),
   description: Joi.string().max(255).allow(null, ""),
+  // Durée souhaitée par le client pour une réservation (nuits/semaines/mois
+  // selon rent_period de l'annonce) — sert à calculer la commission sur le
+  // montant total du séjour/loyer, pas seulement sur le prix unitaire.
+  booking_units: Joi.number().integer().min(1).max(365).default(1),
+  check_in: Joi.date().iso().allow(null, ""),
 });
 
 async function listProviders(req, res) {
@@ -44,13 +49,17 @@ async function initiate(req, res) {
   // Commission de réservation : le client paie le bien DIRECTEMENT au
   // propriétaire (mobile money, hors plateforme). Seule la commission ImmoBF
   // (% configurable, cf. config.commissions.appPct) transite ici. Le montant
-  // est toujours recalculé côté serveur à partir du prix réel de l'annonce —
-  // on ignore le montant envoyé par le client pour éviter qu'il soit minoré.
+  // est toujours recalculé côté serveur à partir du prix réel de l'annonce ET
+  // de la durée demandée (booking_units : nuits/semaines/mois selon
+  // rent_period) — on ignore le montant envoyé par le client pour éviter
+  // qu'il soit minoré.
   let property = null;
+  let totalBookingAmount = null;
   if (value.purpose === "commission" && value.property_id) {
     property = await Property.findById(value.property_id);
     if (!property) throw BadRequest("Annonce introuvable");
-    value.amount = Math.max(100, Math.round(property.price * config.commissions.appPct / 100));
+    totalBookingAmount = property.price * value.booking_units;
+    value.amount = Math.max(100, Math.round(totalBookingAmount * config.commissions.appPct / 100));
     value.currency = property.currency || value.currency;
   }
 
@@ -64,6 +73,18 @@ async function initiate(req, res) {
     amount: value.amount,
     currency: value.currency,
   });
+
+  // Trace la durée/montant total du séjour demandée (hors colonnes dédiées —
+  // évite une migration de schéma) pour pouvoir la restituer dans la copie de
+  // facture envoyée à l'annonceur.
+  if (totalBookingAmount !== null) {
+    await Transaction.logEvent(tx.id, "booking_details", {
+      booking_units: value.booking_units,
+      rent_period: property?.rent_period || null,
+      check_in: value.check_in || null,
+      total_booking_amount: totalBookingAmount,
+    });
+  }
 
   let result;
   try {
@@ -209,6 +230,32 @@ async function webhook(req, res) {
           propertyTitle: property?.title,
           months: Number(months),
         });
+      }
+
+      // --- Copie facture à l'annonceur (commission de réservation) ---
+      // L'annonceur doit recevoir, en même temps que le client, une copie de
+      // la facture de la commission ImmoBF perçue sur sa réservation.
+      if (updated.purpose === "commission" && property?.owner_id) {
+        try {
+          const owner = await User.findById(property.owner_id);
+          if (owner?.email) {
+            const { sendOwnerCommissionReceipt } = require("../services/email");
+            const PERIOD_LABEL = { monthly: "mois", weekly: "semaine(s)", nightly: "nuit(s)" };
+            const details = await Transaction.findLatestEvent(updated.id, "booking_details");
+            await sendOwnerCommissionReceipt(owner.email, {
+              amount: updated.amount,
+              currency: updated.currency,
+              reference: updated.reference,
+              propertyTitle: property.title,
+              buyerPhone: buyer?.phone,
+              units: details?.booking_units,
+              periodLabel: PERIOD_LABEL[details?.rent_period] || "",
+              totalAmount: details?.total_booking_amount,
+            });
+          }
+        } catch (e) {
+          logger.warn({ err: e.message }, "Owner commission receipt copy failed");
+        }
       }
     } catch (e) {
       logger.warn({ err: e.message }, "Receipt generation failed");

@@ -32,7 +32,7 @@ const FEDAPAY_OPERATORS = [
   { value: "card", label: "Carte Visa/Mastercard" },
 ];
 
-export default function PaymentDialog({ open, onClose, property, amount, purpose = "deposit" }) {
+export default function PaymentDialog({ open, onClose, property, amount, purpose = "deposit", bookingUnits, checkIn }) {
   const { t } = useTranslation();
   const [providers, setProviders] = useState([]);
   const [provider, setProvider] = useState("");
@@ -72,6 +72,8 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
         customer_phone: phone,
         customer_email: email || undefined,
         preferred_operator: provider === "fedapay" ? preferredOperator || undefined : undefined,
+        booking_units: purpose === "commission" ? bookingUnits || 1 : undefined,
+        check_in: purpose === "commission" ? checkIn || undefined : undefined,
         description:
           purpose === "commission"
             ? `Commission de réservation (5%) — ${property?.title || "annonce"}`

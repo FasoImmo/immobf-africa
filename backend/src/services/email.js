@@ -106,6 +106,43 @@ async function sendPaymentReceipt(email, { amount, currency = "XOF", reference, 
   await send({ to: email, subject, html, text: `Paiement reçu : ${amount} ${currency} — ${purposeLabel}. Ref: ${reference}` });
 }
 
+// ─── 2bis. Copie facture annonceur (commission de réservation) ──────────────
+// Quand un client paie la commission ImmoBF pour réserver une location,
+// l'annonceur doit recevoir, en même temps que le client, une copie de cette
+// facture — c'est lui qui encaissera ensuite directement le loyer/séjour en
+// mobile money, il doit donc savoir qu'une réservation a été confirmée et
+// combien ImmoBF a perçu.
+async function sendOwnerCommissionReceipt(email, {
+  amount, currency = "XOF", reference, propertyTitle, buyerPhone, units, periodLabel, totalAmount,
+}) {
+  const subject = `📄 Copie facture — réservation sur "${propertyTitle}"`;
+
+  const html = baseTemplate(`
+    <h2>📄 Copie de facture — commission de réservation</h2>
+    <p>Bonjour,</p>
+    <p>Un client a réservé votre annonce <strong>"${propertyTitle}"</strong> et a réglé la
+      commission ImmoBF Africa correspondante.</p>
+    <div style="background:#f0f9f7; border-radius:8px; padding:20px; margin:20px 0;">
+      <p style="margin:0 0 8px;"><strong>Référence :</strong> ${reference}</p>
+      <p style="margin:0 0 8px;"><strong>Annonce :</strong> ${propertyTitle}</p>
+      ${units ? `<p style="margin:0 0 8px;"><strong>Durée réservée :</strong> ${units} ${periodLabel || ""}</p>` : ""}
+      ${totalAmount ? `<p style="margin:0 0 8px;"><strong>Montant du séjour/loyer (à percevoir directement) :</strong> ${Number(totalAmount).toLocaleString("fr-FR")} ${currency}</p>` : ""}
+      <p style="margin:0;"><strong>Commission ImmoBF perçue :</strong>
+        <span class="amount">${Number(amount).toLocaleString("fr-FR")} ${currency}</span>
+      </p>
+    </div>
+    <p><strong>Important :</strong> le client doit désormais vous régler directement le montant
+      du séjour/loyer en mobile money${buyerPhone ? ` (numéro client : ${buyerPhone})` : ""}.
+      ImmoBF Africa n'encaisse que sa commission, jamais le loyer lui-même.</p>
+    <p style="color:#999; font-size:12px;">Conservez cet email comme justificatif.</p>
+  `);
+
+  await send({
+    to: email, subject, html,
+    text: `Réservation confirmée sur "${propertyTitle}". Commission ImmoBF perçue : ${amount} ${currency} (réf. ${reference}). Le client vous règle directement le loyer/séjour en mobile money.`,
+  });
+}
+
 // ─── 3. Alerte expiration annonce ─────────────────────────────────────────────
 async function sendExpiryAlert(email, { propertyTitle, propertyId, daysLeft, expiresAt }) {
   const isUrgent = daysLeft <= 1;
@@ -182,6 +219,7 @@ module.exports = {
   send,
   sendOtpEmail,
   sendPaymentReceipt,
+  sendOwnerCommissionReceipt,
   sendExpiryAlert,
   sendWhatsAppNotification,
   sendNewsletterConfirmation,

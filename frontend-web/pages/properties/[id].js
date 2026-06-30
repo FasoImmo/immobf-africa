@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { Box, Typography, Chip, Button, Grid, Paper, Divider, Stack, Alert } from "@mui/material";
+import { Box, Typography, Chip, Button, Grid, Paper, Divider, Stack, Alert, TextField } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../../components/Layout";
 import PaymentDialog from "../../components/PaymentDialog";
@@ -29,6 +29,8 @@ export default function PropertyDetail() {
   const [payOpen, setPayOpen] = useState(false);
   const [photoIdx, setPhotoIdx] = useState(0);
   const [similar, setSimilar] = useState([]);
+  const [bookingUnits, setBookingUnits] = useState(1);
+  const [checkIn, setCheckIn] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -61,11 +63,18 @@ export default function PropertyDetail() {
     ? t(PERIOD_KEY[p.rent_period] || "property.period_monthly")
     : null;
 
-  // Commission ImmoBF (5% par défaut) prélevée à la réservation : le client
-  // paie le loyer/séjour DIRECTEMENT au propriétaire en mobile money, seule
-  // cette commission transite par la plateforme. Affichage uniquement —
-  // le montant exact est recalculé et imposé côté serveur.
-  var commissionAmount = isRent ? Math.max(100, Math.round(p.price * 0.05)) : 0;
+  // Commission ImmoBF (5% par défaut) prélevée à la réservation, calculée
+  // sur le montant TOTAL du séjour/loyer (prix unitaire × durée choisie),
+  // pas seulement sur le prix unitaire. Le client paie le loyer/séjour
+  // DIRECTEMENT au propriétaire en mobile money, seule cette commission
+  // transite par la plateforme. Affichage uniquement — le montant exact est
+  // recalculé et imposé côté serveur à partir des mêmes données.
+  var units = Math.max(1, Number(bookingUnits) || 1);
+  var totalBookingAmount = isRent ? p.price * units : 0;
+  var commissionAmount = isRent ? Math.max(100, Math.round(totalBookingAmount * 0.05)) : 0;
+  var unitLabel = p.rent_period === "monthly" ? t("property.unit_months")
+    : p.rent_period === "weekly" ? t("property.unit_weeks")
+    : t("property.unit_nights");
 
   return (
     <Layout title={p.title + " — ImmoBF"}>
@@ -142,6 +151,25 @@ export default function PropertyDetail() {
 
             {isRent && (
               <>
+                <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                  <TextField
+                    label={unitLabel} type="number" size="small"
+                    inputProps={{ min: 1, max: 365 }}
+                    value={bookingUnits}
+                    onChange={(e) => setBookingUnits(e.target.value)}
+                    sx={{ width: 110 }}
+                  />
+                  <TextField
+                    label={t("property.check_in")} type="date" size="small"
+                    InputLabelProps={{ shrink: true }}
+                    value={checkIn}
+                    onChange={(e) => setCheckIn(e.target.value)}
+                    sx={{ flex: 1 }}
+                  />
+                </Box>
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  {t("property.total_amount")} : <b>{formatFCFA(totalBookingAmount, p.currency)}</b>
+                </Typography>
                 <Button
                   fullWidth variant="contained" color="primary" size="large"
                   sx={{ mt: 1 }}
@@ -194,6 +222,8 @@ export default function PropertyDetail() {
           property={p}
           amount={commissionAmount}
           purpose="commission"
+          bookingUnits={units}
+          checkIn={checkIn}
         />
       )}
     </Layout>

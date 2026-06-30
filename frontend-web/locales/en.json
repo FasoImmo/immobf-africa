@@ -137,7 +137,12 @@
     "contact_seller": "Contact seller",
     "contact_whatsapp": "Contact on WhatsApp",
     "reserve_btn": "Book — ImmoBF commission",
-    "commission_notice": "The rent/stay is paid directly to the owner via mobile money. This amount is only the ImmoBF commission (5%)."
+    "commission_notice": "The rent/stay is paid directly to the owner via mobile money. This amount is only the ImmoBF commission (5%).",
+    "unit_nights": "Nights",
+    "unit_weeks": "Weeks",
+    "unit_months": "Months",
+    "check_in": "Check-in date",
+    "total_amount": "Total rent/stay amount"
   },
   "payment": {
     "choose_provider": "Choose a payment method",

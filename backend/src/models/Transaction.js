@@ -60,6 +60,16 @@ async function logEvent(transaction_id, kind, payload) {
   );
 }
 
+async function findLatestEvent(transaction_id, kind) {
+  const { rows } = await query(
+    `SELECT payload FROM payment_events
+     WHERE transaction_id = $1 AND kind = $2
+     ORDER BY created_at DESC LIMIT 1`,
+    [transaction_id, kind]
+  );
+  return rows[0]?.payload || null;
+}
+
 async function listForUser(user_id, { limit = 20, offset = 0 } = {}) {
   const { rows } = await query(
     `SELECT * FROM transactions WHERE buyer_id = $1
@@ -69,4 +79,7 @@ async function listForUser(user_id, { limit = 20, offset = 0 } = {}) {
   return rows;
 }
 
-module.exports = { create, findByReference, findByExternalId, findById, updateStatus, logEvent, listForUser };
+module.exports = {
+  create, findByReference, findByExternalId, findById, updateStatus,
+  logEvent, findLatestEvent, listForUser,
+};
