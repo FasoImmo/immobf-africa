@@ -48,7 +48,7 @@ export default api;
 
 export const Properties = {
   search: (params) => api.get("/properties", { params }).then((r) => r.data),
-  get: (id) => api.get(`/properties/${id}`).then((r) => r.data),
+  get: (id, lang) => api.get(`/properties/${id}`, { params: lang ? { lang } : {} }).then((r) => r.data),
 };
 
 export const Auth = {

@@ -114,7 +114,7 @@ export default function BrowseScreen({ navigation }) {
   const load = useCallback(async () => {
     setRefreshing(true);
     try {
-      const params = { limit: 30 };
+      const params = { limit: 30, lang };
       if (country) params.country_code = country;
       if (city.trim()) params.q = city.trim();
       if (txType) params.transaction_type = txType;

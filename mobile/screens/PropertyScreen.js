@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { ScrollView, View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useState, useEffect } from "react";
+import { ScrollView, View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useLang } from "../lib/lang";
+import { Properties } from "../lib/api";
 
 const T = {
   fr: {
@@ -10,6 +11,8 @@ const T = {
     nights: "nuit(s)",
     months: "mois",
     duration: "Durée",
+    arrival: "Date d'arrivée",
+    departure: "Date de départ",
     pricePerNight: "Prix / nuit",
     pricePerMonth: "Prix / mois",
     salePrice: "Prix de vente",
@@ -25,6 +28,8 @@ const T = {
     nights: "night(s)",
     months: "month(s)",
     duration: "Duration",
+    arrival: "Check-in date",
+    departure: "Check-out date",
     pricePerNight: "Price / night",
     pricePerMonth: "Price / month",
     salePrice: "Sale price",
@@ -35,22 +40,44 @@ const T = {
   },
 };
 
+// Formate une date en DD/MM/YYYY
+function fmtDate(d) {
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+}
+
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
 function Stepper({ value, onChange, min = 1, max = 365 }) {
   return (
     <View style={styles.stepper}>
-      <TouchableOpacity
-        style={styles.stepBtn}
-        onPress={() => onChange(Math.max(min, value - 1))}
-      >
+      <TouchableOpacity style={styles.stepBtn} onPress={() => onChange(Math.max(min, value - 1))}>
         <Text style={styles.stepBtnText}>−</Text>
       </TouchableOpacity>
       <Text style={styles.stepValue}>{value}</Text>
-      <TouchableOpacity
-        style={styles.stepBtn}
-        onPress={() => onChange(Math.min(max, value + 1))}
-      >
+      <TouchableOpacity style={styles.stepBtn} onPress={() => onChange(Math.min(max, value + 1))}>
         <Text style={styles.stepBtnText}>+</Text>
       </TouchableOpacity>
+    </View>
+  );
+}
+
+function DateStepper({ label, date, onPrev, onNext }) {
+  return (
+    <View style={styles.dateStepper}>
+      <Text style={styles.dateLabel}>{label}</Text>
+      <View style={styles.dateRow}>
+        <TouchableOpacity style={styles.dateBtn} onPress={onPrev}>
+          <Text style={styles.dateBtnText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.dateValue}>{fmtDate(date)}</Text>
+        <TouchableOpacity style={styles.dateBtn} onPress={onNext}>
+          <Text style={styles.dateBtnText}>›</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -59,9 +86,27 @@ export default function PropertyScreen({ route, navigation }) {
   const { lang } = useLang();
   const t = T[lang] || T.fr;
 
-  const p = route.params?.property;
-  const [duration, setDuration] = useState(1); // nuits ou mois
+  const initialProp = route.params?.property;
+  const [prop, setProp] = useState(initialProp);
+  const [loading, setLoading] = useState(false);
 
+  // Re-fetch avec la bonne langue quand lang change
+  useEffect(() => {
+    if (!initialProp?.id) return;
+    setLoading(true);
+    Properties.get(initialProp.id, lang)
+      .then((d) => setProp(d.property || d))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [lang, initialProp?.id]);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const [duration, setDuration] = useState(1);
+  const [arrival, setArrival] = useState(today);
+
+  const p = prop || initialProp;
   if (!p) return <Text style={{ padding: 20 }}>{t.noListing}</Text>;
 
   const unitPrice = Number(p.price) || 0;
@@ -69,13 +114,13 @@ export default function PropertyScreen({ route, navigation }) {
   const cover = p.photos?.[0]?.url || `https://picsum.photos/seed/${p.id}/1200/600`;
   const type = p.transaction_type;
 
-  // Calcul du total et de la commission selon le type
   const isShort = type === "rent_short";
   const isLong = type === "rent_long";
-  const isSale = type === "sale" || !type;
+  const isSale = !isShort && !isLong;
 
   const totalAmount = isSale ? unitPrice : unitPrice * duration;
   const commission = Math.round(totalAmount * (Number(p.deposit_pct || 5) / 100));
+  const departure = addDays(arrival, isShort ? duration : duration * 30);
 
   const typeLabel = isShort ? t.rentShort : isLong ? t.rentLong : t.sale;
   const priceLabel = isShort ? t.pricePerNight : isLong ? t.pricePerMonth : t.salePrice;
@@ -85,6 +130,8 @@ export default function PropertyScreen({ route, navigation }) {
     <ScrollView style={{ flex: 1, backgroundColor: "white" }}>
       <Image source={{ uri: cover }} style={{ width: "100%", height: 240 }} />
       <View style={{ padding: 16 }}>
+        {loading && <ActivityIndicator color="#0E7C66" style={{ marginBottom: 8 }} />}
+
         <View style={styles.typeBadge}>
           <Text style={styles.typeBadgeText}>{typeLabel}</Text>
         </View>
@@ -98,18 +145,27 @@ export default function PropertyScreen({ route, navigation }) {
           <Text style={styles.price}>{unitPrice.toLocaleString("fr-FR")} {cur}</Text>
         </View>
 
-        {/* Sélecteur de durée (location seulement) */}
+        {/* Date d'arrivée + durée (locations) */}
         {(isShort || isLong) && (
           <View style={styles.durationBox}>
-            <Text style={styles.durationLabel}>{t.duration}</Text>
-            <View style={styles.durationRow}>
-              <Stepper
-                value={duration}
-                onChange={setDuration}
-                min={1}
-                max={isShort ? 90 : 24}
-              />
-              <Text style={styles.durationUnit}>{unitLabel}</Text>
+            <DateStepper
+              label={t.arrival}
+              date={arrival}
+              onPrev={() => { const d = addDays(arrival, -1); if (d >= today) setArrival(d); }}
+              onNext={() => setArrival(addDays(arrival, 1))}
+            />
+
+            <View style={[styles.durationRow, { marginTop: 14 }]}>
+              <Text style={styles.durationLabel}>{t.duration}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <Stepper value={duration} onChange={setDuration} min={1} max={isShort ? 90 : 24} />
+                <Text style={styles.durationUnit}>{unitLabel}</Text>
+              </View>
+            </View>
+
+            <View style={[styles.dateRow, { marginTop: 10, justifyContent: "flex-start", gap: 8 }]}>
+              <Text style={styles.dateLabel}>{t.departure}</Text>
+              <Text style={[styles.dateValue, { fontSize: 14, color: "#0E7C66" }]}>{fmtDate(departure)}</Text>
             </View>
           </View>
         )}
@@ -136,6 +192,8 @@ export default function PropertyScreen({ route, navigation }) {
             property: p,
             amount: commission,
             duration,
+            arrival: fmtDate(arrival),
+            departure: fmtDate(departure),
             total: totalAmount,
           })}
         >
@@ -147,6 +205,15 @@ export default function PropertyScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  dateStepper: { marginBottom: 4 },
+  dateLabel: { color: "#555", fontWeight: "600", fontSize: 13, marginBottom: 6 },
+  dateRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  dateBtn: {
+    width: 32, height: 32, borderRadius: 8,
+    backgroundColor: "#0E7C66", alignItems: "center", justifyContent: "center",
+  },
+  dateBtnText: { color: "white", fontSize: 20, fontWeight: "700", lineHeight: 24 },
+  dateValue: { fontSize: 16, fontWeight: "600", color: "#333" },
   typeBadge: {
     alignSelf: "flex-start", backgroundColor: "#e8f5f1",
     borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4, marginBottom: 8,
