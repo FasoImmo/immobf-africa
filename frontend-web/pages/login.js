@@ -193,9 +193,10 @@ export default function Login() {
 
             {/* ── INSCRIPTION ── */}
             {tab === 1 && (
-              <form onSubmit={onRegister}>
+              <form onSubmit={onRegister} autoComplete="off">
                 <TextField fullWidth label={t("auth.full_name")} margin="normal"
-                  value={regName} onChange={(e) => setRegName(e.target.value)} required />
+                  value={regName} onChange={(e) => setRegName(e.target.value)} required
+                  autoComplete="off" inputProps={{ autoComplete: "off" }} />
                 <PhoneInput
                   label={t("auth.phone")}
                   helperText={t("auth.phone_helper")}
@@ -209,10 +210,14 @@ export default function Login() {
                   type="email" margin="normal" required
                   value={regEmail} onChange={(e) => setRegEmail(e.target.value)}
                   helperText={t("auth.email_helper")}
+                  autoComplete="off"
+                  inputProps={{ autoComplete: "off" }}
                   InputProps={{ sx: { bgcolor: "#f0f9f7" } }}
                 />
                 <TextField fullWidth label={t("auth.password")} type={showRegPassword ? "text" : "password"} margin="normal"
                   value={regPassword} onChange={(e) => setRegPassword(e.target.value)} required
+                  autoComplete="new-password"
+                  inputProps={{ autoComplete: "new-password" }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
