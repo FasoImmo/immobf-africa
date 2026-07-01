@@ -48,11 +48,23 @@ const PAWAPAY_OPS = {
   ],
 };
 
+// Labels d'affichage pour les providers renvoyés par le backend
+const PROVIDER_LABELS = {
+  pawapay:        "PawaPay (Mobile Money)",
+  fedapay:        "FedaPay (Orange, MTN, Wave…)",
+  cinetpay:       "CinetPay",
+  flutterwave:    "Flutterwave",
+  paydunya:       "PayDunya",
+  orange_money_bf: "Orange Money BF",
+  moov_money_bf:  "Moov Money BF",
+  wave:           "Wave",
+};
+
 const T = {
   fr: {
     buyerCountry: "Votre pays",
     chooseCountry: "Choisir votre pays",
-    paymentOp: "Opérateur de paiement",
+    paymentOp: "Mode de paiement",
     mobileNet: "Réseau mobile",
     otpLabel: "Code OTP Orange Money",
     otpHint: "Composez *144*4*6# puis entrez le code reçu",
@@ -67,11 +79,13 @@ const T = {
     dialCode: "Composez",
     toValidate: "pour valider.",
     ref: "Réf",
+    fedapayHint: "Vous serez redirigé vers la page de paiement sécurisée FedaPay (Orange Money, MTN, Wave, carte…).",
+    noProvider: "Aucun mode de paiement disponible pour votre pays pour l'instant.",
   },
   en: {
     buyerCountry: "Your country",
     chooseCountry: "Choose your country",
-    paymentOp: "Payment operator",
+    paymentOp: "Payment method",
     mobileNet: "Mobile network",
     otpLabel: "Orange Money OTP code",
     otpHint: "Dial *144*4*6# then enter the code received",
@@ -86,6 +100,8 @@ const T = {
     dialCode: "Dial",
     toValidate: "to validate.",
     ref: "Ref",
+    fedapayHint: "You will be redirected to the secure FedaPay checkout page (Orange Money, MTN, Wave, card…).",
+    noProvider: "No payment method available for your country yet.",
   },
 };
 
@@ -198,24 +214,31 @@ export default function PaymentScreen({ route }) {
         <Text style={s.arrow}>▾</Text>
       </TouchableOpacity>
 
-      {/* Opérateur de paiement */}
-      {providers.length > 0 && (
-        <>
-          <Text style={s.label}>{t.paymentOp}</Text>
-          <View style={s.row}>
-            {providers.map((p) => (
-              <TouchableOpacity
-                key={p.name}
-                style={[s.chip, provider === p.name && s.chipActive]}
-                onPress={() => setProvider(p.name)}
-              >
-                <Text style={[s.chipText, provider === p.name && s.chipTextActive]}>
-                  {p.label || p.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </>
+      {/* Mode de paiement */}
+      <Text style={s.label}>{t.paymentOp}</Text>
+      {providers.length === 0 ? (
+        <Text style={s.noProvider}>{t.noProvider}</Text>
+      ) : (
+        <View style={s.row}>
+          {providers.map((p) => (
+            <TouchableOpacity
+              key={p.name}
+              style={[s.chip, provider === p.name && s.chipActive]}
+              onPress={() => setProvider(p.name)}
+            >
+              <Text style={[s.chipText, provider === p.name && s.chipTextActive]}>
+                {PROVIDER_LABELS[p.name] || p.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* FedaPay : hint redirection checkout */}
+      {provider === "fedapay" && (
+        <View style={s.infoBox}>
+          <Text style={s.infoText}>{t.fedapayHint}</Text>
+        </View>
       )}
 
       {/* PawaPay : choix réseau */}
@@ -349,6 +372,9 @@ const s = StyleSheet.create({
   btn: { marginTop: 24, backgroundColor: "#0E7C66", borderRadius: 8, padding: 16, alignItems: "center" },
   btnDisabled: { backgroundColor: "#aaa" },
   btnText: { color: "white", fontWeight: "700", fontSize: 16 },
+  noProvider: { marginTop: 8, color: "#888", fontStyle: "italic", fontSize: 14 },
+  infoBox: { marginTop: 10, backgroundColor: "#e8f5e9", padding: 12, borderRadius: 8 },
+  infoText: { color: "#2e7d32", fontSize: 13, lineHeight: 18 },
   info: { marginTop: 16, backgroundColor: "#fffbea", padding: 12, borderRadius: 8 },
   linkBtn: { marginTop: 12, padding: 12, alignItems: "center" },
   linkBtnText: { color: "#0E7C66", fontWeight: "600" },
