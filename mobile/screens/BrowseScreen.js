@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  Image, RefreshControl, TextInput, Modal, FlatList as FList,
+  RefreshControl, TextInput, Modal, FlatList as FList,
   SafeAreaView,
 } from "react-native";
 import { Properties } from "../lib/api";
 import { cacheProperty, listCached } from "../lib/offline";
 import { useLang } from "../lib/lang";
+import FallbackImage from "../components/FallbackImage";
 
 function formatFCFA(n) {
   if (n == null) return "—";
@@ -180,8 +181,8 @@ export default function BrowseScreen({ navigation }) {
             style={s.card}
             onPress={() => navigation.navigate("Property", { property: item })}
           >
-            <Image
-              source={{ uri: item.photos?.[0]?.url || `https://picsum.photos/seed/${item.id}/600/400` }}
+            <FallbackImage
+              source={{ uri: item.photos?.[0]?.url }}
               style={s.cover}
             />
             <View style={{ padding: 12 }}>

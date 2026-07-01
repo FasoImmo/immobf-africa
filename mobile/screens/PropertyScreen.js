@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { ScrollView, View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Linking } from "react-native";
+import { ScrollView, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking } from "react-native";
 import { useLang } from "../lib/lang";
 import { Properties } from "../lib/api";
+import FallbackImage from "../components/FallbackImage";
 
 const T = {
   fr: {
@@ -117,7 +118,7 @@ export default function PropertyScreen({ route, navigation }) {
 
   const unitPrice = Number(p.price) || 0;
   const cur = p.currency || "XOF";
-  const cover = p.photos?.[0]?.url || `https://picsum.photos/seed/${p.id}/1200/600`;
+  const cover = p.photos?.[0]?.url;
   const type = p.transaction_type;
 
   const isShort = type === "rent_short";
@@ -148,7 +149,7 @@ export default function PropertyScreen({ route, navigation }) {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "white" }}>
-      <Image source={{ uri: cover }} style={{ width: "100%", height: 240 }} />
+      <FallbackImage source={{ uri: cover }} style={{ width: "100%", height: 240 }} />
       <View style={{ padding: 16 }}>
         {loading && <ActivityIndicator color="#0E7C66" style={{ marginBottom: 8 }} />}
 
