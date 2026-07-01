@@ -55,7 +55,8 @@ export const Auth = {
   register: (data) => api.post("/auth/register", data).then((r) => r.data),
   login: (data) => api.post("/auth/login", data).then((r) => r.data),
   me: () => api.get("/auth/me").then((r) => r.data),
-  forgotPassword: (phone) => api.post("/auth/forgot-password", { phone }).then((r) => r.data),
+  forgotPassword: (email) => api.post("/auth/forgot-password", { email }).then((r) => r.data),
+  resetPassword: (data) => api.post("/auth/reset-password", data).then((r) => r.data),
 };
 
 export const Payments = {

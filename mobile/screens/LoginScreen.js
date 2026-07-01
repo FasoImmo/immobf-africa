@@ -25,6 +25,21 @@ const T = {
     noAccount: "Pas encore de compte ? S'inscrire",
     errLoginRequired: "Email et mot de passe requis",
     errRegRequired: "Email, WhatsApp et mot de passe requis",
+    // Mot de passe oublié
+    forgotBtn: "Mot de passe oublié ?",
+    forgotTitle: "Réinitialiser le mot de passe",
+    forgotHint: "Entrez votre email pour recevoir un code de vérification.",
+    sendCode: "Envoyer le code",
+    codeSent: "Un code à 6 chiffres a été envoyé à votre email.",
+    otpCode: "Code reçu (6 chiffres)",
+    newPassword: "Nouveau mot de passe",
+    confirmPassword: "Confirmer le mot de passe",
+    passwordMismatch: "Les mots de passe ne correspondent pas.",
+    resetBtn: "Réinitialiser",
+    resetSuccess: "Mot de passe mis à jour ! Vous pouvez maintenant vous connecter.",
+    backToLogin: "Retour à la connexion",
+    errEmailRequired: "Email requis",
+    errCodeRequired: "Code et nouveau mot de passe requis",
   },
   en: {
     hello: "Hello",
@@ -43,6 +58,21 @@ const T = {
     noAccount: "No account yet? Sign up",
     errLoginRequired: "Email and password required",
     errRegRequired: "Email, WhatsApp and password required",
+    // Forgot password
+    forgotBtn: "Forgot password?",
+    forgotTitle: "Reset password",
+    forgotHint: "Enter your email to receive a verification code.",
+    sendCode: "Send code",
+    codeSent: "A 6-digit code has been sent to your email.",
+    otpCode: "Received code (6 digits)",
+    newPassword: "New password",
+    confirmPassword: "Confirm password",
+    passwordMismatch: "Passwords do not match.",
+    resetBtn: "Reset password",
+    resetSuccess: "Password updated! You can now log in.",
+    backToLogin: "Back to login",
+    errEmailRequired: "Email required",
+    errCodeRequired: "Code and new password required",
   },
 };
 
@@ -50,7 +80,7 @@ export default function LoginScreen() {
   const { lang } = useLang();
   const t = T[lang] || T.fr;
 
-  const [mode, setMode] = useState("login"); // "login" | "register"
+  const [mode, setMode] = useState("login"); // "login" | "register" | "forgot"
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [fullName, setFullName] = useState("");
@@ -58,6 +88,14 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [me, setMe] = useState(null);
   const [busy, setBusy] = useState(false);
+
+  // Forgot password state
+  const [forgotStep, setForgotStep] = useState(1); // 1 = email, 2 = OTP + new password
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotCode, setForgotCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem("immobf_user").then((v) => {
@@ -106,6 +144,42 @@ export default function LoginScreen() {
     setEmail(""); setPhone(""); setPassword("");
   }
 
+  async function doForgotSend() {
+    if (!forgotEmail) return Alert.alert("Erreur", t.errEmailRequired);
+    setBusy(true);
+    try {
+      await Auth.forgotPassword(forgotEmail);
+      setForgotStep(2);
+    } catch (e) {
+      Alert.alert("Erreur", e?.response?.data?.error?.message || e.message);
+    } finally { setBusy(false); }
+  }
+
+  async function doForgotReset() {
+    if (!forgotCode || !newPassword) return Alert.alert("Erreur", t.errCodeRequired);
+    if (newPassword !== confirmPassword) return Alert.alert("Erreur", t.passwordMismatch);
+    setBusy(true);
+    try {
+      await Auth.resetPassword({ email: forgotEmail, code: forgotCode, new_password: newPassword });
+      Alert.alert("✅", t.resetSuccess, [
+        { text: "OK", onPress: () => {
+          setMode("login");
+          setForgotStep(1);
+          setForgotEmail(""); setForgotCode(""); setNewPassword(""); setConfirmPassword("");
+        }},
+      ]);
+    } catch (e) {
+      Alert.alert("Erreur", e?.response?.data?.error?.message || e.message);
+    } finally { setBusy(false); }
+  }
+
+  function goBackToLogin() {
+    setMode("login");
+    setForgotStep(1);
+    setForgotEmail(""); setForgotCode(""); setNewPassword(""); setConfirmPassword("");
+  }
+
+  // ─── Profil connecté ───────────────────────────────────────────────────────
   if (me) {
     return (
       <View style={s.container}>
@@ -122,6 +196,74 @@ export default function LoginScreen() {
     );
   }
 
+  // ─── Mot de passe oublié ───────────────────────────────────────────────────
+  if (mode === "forgot") {
+    return (
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <ScrollView style={s.container} keyboardShouldPersistTaps="handled">
+          <Text style={s.h1}>{t.forgotTitle}</Text>
+
+          {forgotStep === 1 && (
+            <>
+              <Text style={s.hint}>{t.forgotHint}</Text>
+              <TextInput
+                placeholder={t.emailLogin}
+                value={forgotEmail} onChangeText={setForgotEmail}
+                style={s.input} keyboardType="email-address" autoCapitalize="none"
+              />
+              <TouchableOpacity
+                style={[s.btn, busy && { backgroundColor: "#aaa" }]}
+                onPress={doForgotSend}
+                disabled={busy}
+              >
+                <Text style={s.btnText}>{busy ? "…" : t.sendCode}</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {forgotStep === 2 && (
+            <>
+              <Text style={s.hint}>{t.codeSent}</Text>
+              <TextInput
+                placeholder={t.otpCode}
+                value={forgotCode} onChangeText={setForgotCode}
+                style={s.input} keyboardType="number-pad" maxLength={6}
+              />
+              <View style={s.pwRow}>
+                <TextInput
+                  placeholder={t.newPassword}
+                  value={newPassword} onChangeText={setNewPassword}
+                  style={[s.input, { flex: 1, marginTop: 0 }]}
+                  secureTextEntry={!showNewPassword}
+                />
+                <TouchableOpacity style={s.eyeBtn} onPress={() => setShowNewPassword(!showNewPassword)}>
+                  <Text style={{ fontSize: 18 }}>{showNewPassword ? "🙈" : "👁️"}</Text>
+                </TouchableOpacity>
+              </View>
+              <TextInput
+                placeholder={t.confirmPassword}
+                value={confirmPassword} onChangeText={setConfirmPassword}
+                style={s.input} secureTextEntry={!showNewPassword}
+              />
+              <TouchableOpacity
+                style={[s.btn, busy && { backgroundColor: "#aaa" }]}
+                onPress={doForgotReset}
+                disabled={busy}
+              >
+                <Text style={s.btnText}>{busy ? "…" : t.resetBtn}</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          <TouchableOpacity style={s.switchBtn} onPress={goBackToLogin}>
+            <Text style={s.switchText}>{t.backToLogin}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  // ─── Login / Register ──────────────────────────────────────────────────────
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView style={s.container} keyboardShouldPersistTaps="handled">
@@ -142,7 +284,7 @@ export default function LoginScreen() {
           style={s.input} keyboardType="email-address" autoCapitalize="none"
         />
 
-        {/* WhatsApp — toujours visible en inscription, caché en connexion */}
+        {/* WhatsApp — inscription seulement */}
         {mode === "register" && (
           <TextInput
             placeholder={t.phone}
@@ -171,6 +313,13 @@ export default function LoginScreen() {
           <Text style={s.btnText}>{busy ? "…" : (mode === "login" ? t.loginBtn : t.registerBtn)}</Text>
         </TouchableOpacity>
 
+        {/* Mot de passe oublié — visible en mode login seulement */}
+        {mode === "login" && (
+          <TouchableOpacity style={s.forgotBtn} onPress={() => { setForgotEmail(email); setMode("forgot"); }}>
+            <Text style={s.forgotText}>{t.forgotBtn}</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity style={s.switchBtn} onPress={() => setMode(mode === "login" ? "register" : "login")}>
           <Text style={s.switchText}>{mode === "login" ? t.noAccount : t.haveAccount}</Text>
         </TouchableOpacity>
@@ -190,11 +339,14 @@ const s = StyleSheet.create({
   },
   h1: { fontSize: 22, fontWeight: "700", marginTop: 16, marginBottom: 8 },
   sub: { color: "#666", marginTop: 4 },
+  hint: { color: "#555", fontSize: 14, marginTop: 8, marginBottom: 4, lineHeight: 20 },
   input: { borderWidth: 1, borderColor: "#ddd", borderRadius: 8, padding: 12, marginTop: 12, fontSize: 15 },
   pwRow: { flexDirection: "row", alignItems: "center", marginTop: 12, gap: 8 },
   eyeBtn: { padding: 10, justifyContent: "center" },
   btn: { marginTop: 20, backgroundColor: "#0E7C66", borderRadius: 8, padding: 14, alignItems: "center" },
   btnText: { color: "white", fontWeight: "700", fontSize: 16 },
+  forgotBtn: { marginTop: 10, alignItems: "flex-end", paddingRight: 4 },
+  forgotText: { color: "#0E7C66", fontSize: 13 },
   switchBtn: { marginTop: 16, alignItems: "center", padding: 8 },
   switchText: { color: "#0E7C66", fontSize: 14 },
 });
