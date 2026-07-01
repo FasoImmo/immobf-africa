@@ -61,6 +61,8 @@ const T = {
     errPhone: "Entrez votre numéro de téléphone",
     errOtp: "Entrez le code OTP Orange Money",
     confirmed: "✓ Paiement confirmé",
+    contactNow: "Contactez maintenant l'annonceur pour finaliser votre réservation.",
+    whatsappOwner: "Contacter l'annonceur sur WhatsApp",
     openPage: "Ouvrir la page de paiement →",
     dialCode: "Composez",
     toValidate: "pour valider.",
@@ -78,6 +80,8 @@ const T = {
     errPhone: "Enter your phone number",
     errOtp: "Enter the Orange Money OTP code",
     confirmed: "✓ Payment confirmed",
+    contactNow: "Contact the advertiser now to finalize your booking.",
+    whatsappOwner: "Contact advertiser on WhatsApp",
     openPage: "Open payment page →",
     dialCode: "Dial",
     toValidate: "to validate.",
@@ -277,8 +281,31 @@ export default function PaymentScreen({ route }) {
         </TouchableOpacity>
       )}
       {result?.status === "succeeded" && (
-        <View style={[s.info, { backgroundColor: "#d4edda" }]}>
-          <Text style={{ color: "#155724", fontWeight: "600" }}>{t.confirmed}</Text>
+        <View style={{ marginTop: 12 }}>
+          <View style={[s.info, { backgroundColor: "#d4edda" }]}>
+            <Text style={{ color: "#155724", fontWeight: "600" }}>{t.confirmed}</Text>
+            <Text style={{ color: "#155724", marginTop: 4, fontSize: 13 }}>{t.contactNow}</Text>
+          </View>
+          {/* Bouton WhatsApp annonceur */}
+          {(() => {
+            const wa = property.owner_whatsapp || property.owner_phone;
+            if (!wa) return null;
+            const clean = wa.replace(/\s+/g, "").replace(/^\+/, "");
+            const msg = encodeURIComponent(
+              lang === "fr"
+                ? `Bonjour, je viens de régler la commission ImmoBF Africa pour votre annonce "${property.title}". Je souhaite finaliser la réservation.`
+                : `Hello, I just paid the ImmoBF Africa commission for your listing "${property.title}". I'd like to finalize the booking.`
+            );
+            return (
+              <TouchableOpacity
+                style={s.waBtn}
+                onPress={() => Linking.openURL(`https://wa.me/${clean}?text=${msg}`)}
+              >
+                <Text style={s.waIcon}>💬</Text>
+                <Text style={s.waBtnText}>{t.whatsappOwner} — {wa}</Text>
+              </TouchableOpacity>
+            );
+          })()}
         </View>
       )}
 

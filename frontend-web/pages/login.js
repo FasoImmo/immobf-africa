@@ -78,6 +78,8 @@ function PhoneInput({ value, onChange, label, helperText, required }) {
         inputMode="tel"
         placeholder="XXXXXXXX"
         helperText={helperText}
+        autoComplete="off"
+        inputProps={{ autoComplete: "off" }}
       />
     </Box>
   );
@@ -161,7 +163,7 @@ export default function Login() {
           <Box sx={{ p: 4 }}>
             {/* ── CONNEXION ── */}
             {tab === 0 && (
-              <form onSubmit={onLogin}>
+              <form onSubmit={onLogin} autoComplete="off">
                 <PhoneInput
                   label={t("auth.phone")}
                   value={phone}
@@ -170,6 +172,8 @@ export default function Login() {
                 />
                 <TextField fullWidth label={t("auth.password")} type={showPassword ? "text" : "password"} margin="normal"
                   value={password} onChange={(e) => setPassword(e.target.value)} required
+                  autoComplete="current-password"
+                  inputProps={{ autoComplete: "current-password" }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
