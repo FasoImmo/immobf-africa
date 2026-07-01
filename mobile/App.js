@@ -10,6 +10,7 @@ import BrowseScreen from "./screens/BrowseScreen";
 import PropertyScreen from "./screens/PropertyScreen";
 import LoginScreen from "./screens/LoginScreen";
 import PaymentScreen from "./screens/PaymentScreen";
+import SellScreen from "./screens/SellScreen";
 import { init as initOffline } from "./lib/offline";
 import { LangProvider, useLang } from "./lib/lang";
 
@@ -38,6 +39,11 @@ function HomeTabs() {
         name="Parcourir"
         component={BrowseScreen}
         options={{ tabBarLabel: lang === "fr" ? "Parcourir" : "Browse" }}
+      />
+      <Tabs.Screen
+        name="Publier"
+        component={SellScreen}
+        options={{ tabBarLabel: lang === "fr" ? "Publier" : "Publish" }}
       />
       <Tabs.Screen
         name="Compte"

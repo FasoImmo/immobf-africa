@@ -49,6 +49,23 @@ export default api;
 export const Properties = {
   search: (params) => api.get("/properties", { params }).then((r) => r.data),
   get: (id, lang) => api.get(`/properties/${id}`, { params: lang ? { lang } : {} }).then((r) => r.data),
+  create: (data) => api.post("/properties", data).then((r) => r.data),
+  myListings: () => api.get("/my/listings").then((r) => r.data),
+};
+
+export const Photos = {
+  upload: (propertyId, assets) => {
+    const form = new FormData();
+    assets.forEach((a) => {
+      const filename = a.uri.split("/").pop();
+      const ext = filename.split(".").pop().toLowerCase();
+      const type = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : "image/png";
+      form.append("photos", { uri: a.uri, name: filename, type });
+    });
+    return api.post(`/properties/${propertyId}/photos`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }).then((r) => r.data);
+  },
 };
 
 export const Auth = {
