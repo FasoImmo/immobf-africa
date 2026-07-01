@@ -38,17 +38,26 @@ function HomeTabs() {
       <Tabs.Screen
         name="Parcourir"
         component={BrowseScreen}
-        options={{ tabBarLabel: lang === "fr" ? "Parcourir" : "Browse" }}
+        options={{
+          tabBarLabel: lang === "fr" ? "Parcourir" : "Browse",
+          title: lang === "fr" ? "Parcourir" : "Browse",
+        }}
       />
       <Tabs.Screen
         name="Publier"
         component={SellScreen}
-        options={{ tabBarLabel: lang === "fr" ? "Publier" : "Publish" }}
+        options={{
+          tabBarLabel: lang === "fr" ? "Publier" : "Publish",
+          title: lang === "fr" ? "Publier" : "Publish",
+        }}
       />
       <Tabs.Screen
         name="Compte"
         component={LoginScreen}
-        options={{ tabBarLabel: lang === "fr" ? "Compte" : "Account" }}
+        options={{
+          tabBarLabel: lang === "fr" ? "Compte" : "Account",
+          title: lang === "fr" ? "Compte" : "Account",
+        }}
       />
     </Tabs.Navigator>
   );

@@ -21,22 +21,30 @@ const registerSchema = Joi.object({
 async function register(req, res) {
   const { value, error } = registerSchema.validate(req.body);
   if (error) throw BadRequest(error.message);
-  const existing = await User.findByPhone(value.phone);
-  if (existing) throw Conflict("Phone already registered");
+  const existingPhone = await User.findByPhone(value.phone);
+  if (existingPhone) throw Conflict("Numéro déjà utilisé");
+  const existingEmail = await User.findByEmail(value.email);
+  if (existingEmail) throw Conflict("Email déjà utilisé");
   const user = await User.create(value);
-  await sendOtp(value.phone);
-  res.status(201).json({ user, message: "OTP envoyé au numéro" });
+  const access = signAccess(user);
+  const refresh = signRefresh(user, `${user.id}-${Date.now()}`);
+  const { password_hash: _pw, token_version: _tv, ...safe } = user;
+  res.status(201).json({ user: safe, access, refresh });
 }
 
 const loginSchema = Joi.object({
-  phone: phoneSchema,
+  phone: Joi.string().pattern(/^\+?[0-9]{8,15}$/),
+  email: Joi.string().email(),
   password: Joi.string().required(),
 });
 
 async function login(req, res) {
   const { value, error } = loginSchema.validate(req.body);
   if (error) throw BadRequest(error.message);
-  const user = await User.findByPhone(value.phone);
+  if (!value.phone && !value.email) throw BadRequest("Email ou téléphone requis");
+  const user = value.email
+    ? await User.findByEmail(value.email)
+    : await User.findByPhone(value.phone);
   if (!user) throw Unauthorized("Identifiants invalides");
   const ok = await User.verifyPassword(user, value.password);
   if (!ok) throw Unauthorized("Identifiants invalides");

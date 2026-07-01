@@ -25,6 +25,7 @@ const T = {
     noAccount: "Pas encore de compte ? S'inscrire",
     errLoginRequired: "Email et mot de passe requis",
     errRegRequired: "Email, WhatsApp et mot de passe requis",
+    errFullNameRequired: "Nom complet requis (2 caractères minimum)",
     // Mot de passe oublié
     forgotBtn: "Mot de passe oublié ?",
     forgotTitle: "Réinitialiser le mot de passe",
@@ -58,6 +59,7 @@ const T = {
     noAccount: "No account yet? Sign up",
     errLoginRequired: "Email and password required",
     errRegRequired: "Email, WhatsApp and password required",
+    errFullNameRequired: "Full name required (min. 2 characters)",
     // Forgot password
     forgotBtn: "Forgot password?",
     forgotTitle: "Reset password",
@@ -123,6 +125,9 @@ export default function LoginScreen() {
   }
 
   async function doRegister() {
+    if (!fullName || fullName.trim().length < 2) {
+      return Alert.alert("Erreur", t.errFullNameRequired);
+    }
     if (!email || !phone || !password) {
       return Alert.alert("Erreur", t.errRegRequired);
     }

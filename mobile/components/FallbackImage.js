@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { View, Image, StyleSheet } from "react-native";
 
+const LOGO = require("../assets/icon.png");
+
 /**
  * Image avec fallback : si l'URL est absente ou cassée (onError),
- * affiche un placeholder gris avec une icône maison centrée.
+ * affiche le logo ImmoBF Africa centré sur fond clair.
  *
  * Props : toutes celles de <Image> sont passées via {...rest}.
  * `style` applique le style à la fois sur le placeholder et sur l'image réelle.
@@ -17,10 +19,7 @@ export default function FallbackImage({ source, style, ...rest }) {
   if (!hasUri || error) {
     return (
       <View style={[s.placeholder, style]}>
-        <View style={s.iconWrap}>
-          <View style={s.roof} />
-          <View style={s.body} />
-        </View>
+        <Image source={LOGO} style={s.logoImg} resizeMode="contain" />
       </View>
     );
   }
@@ -37,33 +36,14 @@ export default function FallbackImage({ source, style, ...rest }) {
 
 const s = StyleSheet.create({
   placeholder: {
-    backgroundColor: "#e8ede8",
+    backgroundColor: "#e8f4f0",
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
   },
-  iconWrap: {
-    alignItems: "center",
-    opacity: 0.35,
-  },
-  // Petit pictogramme maison dessiné en pur View (pas de dépendance icône)
-  roof: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 18,
-    borderRightWidth: 18,
-    borderBottomWidth: 14,
-    borderStyle: "solid",
-    borderLeftColor: "transparent",
-    borderRightColor: "transparent",
-    borderBottomColor: "#4a7c5e",
-    marginBottom: -2,
-  },
-  body: {
-    width: 28,
-    height: 20,
-    backgroundColor: "#4a7c5e",
-    borderBottomLeftRadius: 2,
-    borderBottomRightRadius: 2,
+  logoImg: {
+    width: "60%",
+    height: "60%",
+    opacity: 0.55,
   },
 });
