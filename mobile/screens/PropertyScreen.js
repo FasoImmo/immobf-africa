@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ScrollView, View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { ScrollView, View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Linking } from "react-native";
 import { useLang } from "../lib/lang";
 import { Properties } from "../lib/api";
 
@@ -17,9 +17,12 @@ const T = {
     pricePerMonth: "Prix / mois",
     salePrice: "Prix de vente",
     payBtn: "Réserver et payer la commission",
+    whatsappBtn: "Contacter sur WhatsApp",
+    contactOwner: "Contacter l'annonceur",
     sale: "Vente",
     rentLong: "Location longue durée",
     rentShort: "Court séjour",
+    noContact: "Aucun contact disponible",
   },
   en: {
     noListing: "No listing",
@@ -34,9 +37,12 @@ const T = {
     pricePerMonth: "Price / month",
     salePrice: "Sale price",
     payBtn: "Book and pay commission",
+    whatsappBtn: "Contact on WhatsApp",
+    contactOwner: "Contact the advertiser",
     sale: "For sale",
     rentLong: "Long-term rental",
     rentShort: "Short stay",
+    noContact: "No contact available",
   },
 };
 
@@ -118,13 +124,27 @@ export default function PropertyScreen({ route, navigation }) {
   const isLong = type === "rent_long";
   const isSale = !isShort && !isLong;
 
-  const totalAmount = isSale ? unitPrice : unitPrice * duration;
+  // Commission uniquement pour court séjour
+  const totalAmount = unitPrice * duration;
   const commission = Math.round(totalAmount * (Number(p.deposit_pct || 5) / 100));
-  const departure = addDays(arrival, isShort ? duration : duration * 30);
+  const departure = addDays(arrival, duration);
 
   const typeLabel = isShort ? t.rentShort : isLong ? t.rentLong : t.sale;
   const priceLabel = isShort ? t.pricePerNight : isLong ? t.pricePerMonth : t.salePrice;
-  const unitLabel = isShort ? t.nights : t.months;
+  const unitLabel = t.nights;
+
+  // Contact WhatsApp de l'annonceur
+  const ownerWa = p.owner_whatsapp || p.owner_phone || null;
+  function openWhatsApp() {
+    if (!ownerWa) return;
+    const clean = ownerWa.replace(/\s+/g, "").replace(/^\+/, "");
+    const msg = encodeURIComponent(
+      lang === "fr"
+        ? `Bonjour, je vous contacte au sujet de votre annonce "${p.title}" sur ImmoBF Africa.`
+        : `Hello, I'm contacting you about your listing "${p.title}" on ImmoBF Africa.`
+    );
+    Linking.openURL(`https://wa.me/${clean}?text=${msg}`);
+  }
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "white" }}>
@@ -145,60 +165,72 @@ export default function PropertyScreen({ route, navigation }) {
           <Text style={styles.price}>{unitPrice.toLocaleString("fr-FR")} {cur}</Text>
         </View>
 
-        {/* Date d'arrivée + durée (locations) */}
-        {(isShort || isLong) && (
-          <View style={styles.durationBox}>
-            <DateStepper
-              label={t.arrival}
-              date={arrival}
-              onPrev={() => { const d = addDays(arrival, -1); if (d >= today) setArrival(d); }}
-              onNext={() => setArrival(addDays(arrival, 1))}
-            />
-
-            <View style={[styles.durationRow, { marginTop: 14 }]}>
-              <Text style={styles.durationLabel}>{t.duration}</Text>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <Stepper value={duration} onChange={setDuration} min={1} max={isShort ? 90 : 24} />
-                <Text style={styles.durationUnit}>{unitLabel}</Text>
+        {/* ── COURT SÉJOUR : sélecteur dates + commission + paiement ── */}
+        {isShort && (
+          <>
+            <View style={styles.durationBox}>
+              <DateStepper
+                label={t.arrival}
+                date={arrival}
+                onPrev={() => { const d = addDays(arrival, -1); if (d >= today) setArrival(d); }}
+                onNext={() => setArrival(addDays(arrival, 1))}
+              />
+              <View style={[styles.durationRow, { marginTop: 14 }]}>
+                <Text style={styles.durationLabel}>{t.duration}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <Stepper value={duration} onChange={setDuration} min={1} max={90} />
+                  <Text style={styles.durationUnit}>{unitLabel}</Text>
+                </View>
+              </View>
+              <View style={[styles.dateRow, { marginTop: 10, justifyContent: "flex-start", gap: 8 }]}>
+                <Text style={styles.dateLabel}>{t.departure}</Text>
+                <Text style={[styles.dateValue, { fontSize: 14, color: "#0E7C66" }]}>{fmtDate(departure)}</Text>
               </View>
             </View>
 
-            <View style={[styles.dateRow, { marginTop: 10, justifyContent: "flex-start", gap: 8 }]}>
-              <Text style={styles.dateLabel}>{t.departure}</Text>
-              <Text style={[styles.dateValue, { fontSize: 14, color: "#0E7C66" }]}>{fmtDate(departure)}</Text>
+            <View style={styles.recap}>
+              <View style={styles.recapRow}>
+                <Text style={styles.recapLabel}>{t.total}</Text>
+                <Text style={styles.recapValue}>{totalAmount.toLocaleString("fr-FR")} {cur}</Text>
+              </View>
+              <View style={styles.recapRow}>
+                <Text style={styles.recapLabel}>{t.commission}</Text>
+                <Text style={[styles.recapValue, { color: "#0E7C66", fontWeight: "700" }]}>
+                  {commission.toLocaleString("fr-FR")} {cur}
+                </Text>
+              </View>
             </View>
-          </View>
+
+            <TouchableOpacity
+              style={styles.btn}
+              onPress={() => navigation.navigate("Payment", {
+                property: p,
+                amount: commission,
+                duration,
+                arrival: fmtDate(arrival),
+                departure: fmtDate(departure),
+                total: totalAmount,
+              })}
+            >
+              <Text style={styles.btnText}>{t.payBtn}</Text>
+            </TouchableOpacity>
+          </>
         )}
 
-        {/* Récapitulatif */}
-        <View style={styles.recap}>
-          {(isShort || isLong) && (
-            <View style={styles.recapRow}>
-              <Text style={styles.recapLabel}>{t.total}</Text>
-              <Text style={styles.recapValue}>{totalAmount.toLocaleString("fr-FR")} {cur}</Text>
-            </View>
-          )}
-          <View style={styles.recapRow}>
-            <Text style={styles.recapLabel}>{t.commission}</Text>
-            <Text style={[styles.recapValue, { color: "#0E7C66", fontWeight: "700" }]}>
-              {commission.toLocaleString("fr-FR")} {cur}
-            </Text>
+        {/* ── VENTE / LOCATION LONGUE DURÉE : contact WhatsApp direct ── */}
+        {!isShort && (
+          <View style={styles.contactBox}>
+            <Text style={styles.contactLabel}>{t.contactOwner}</Text>
+            {ownerWa ? (
+              <TouchableOpacity style={styles.waBtn} onPress={openWhatsApp}>
+                <Text style={styles.waIcon}>💬</Text>
+                <Text style={styles.waBtnText}>{ownerWa}  —  {t.whatsappBtn}</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.noContact}>{t.noContact}</Text>
+            )}
           </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.btn}
-          onPress={() => navigation.navigate("Payment", {
-            property: p,
-            amount: commission,
-            duration,
-            arrival: fmtDate(arrival),
-            departure: fmtDate(departure),
-            total: totalAmount,
-          })}
-        >
-          <Text style={styles.btnText}>{t.payBtn}</Text>
-        </TouchableOpacity>
+        )}
       </View>
     </ScrollView>
   );
@@ -246,4 +278,16 @@ const styles = StyleSheet.create({
   recapValue: { fontSize: 15 },
   btn: { backgroundColor: "#0E7C66", borderRadius: 8, padding: 14, marginTop: 20, alignItems: "center" },
   btnText: { color: "white", fontWeight: "700", fontSize: 15 },
+  // Contact WhatsApp (vente / location longue durée)
+  contactBox: {
+    marginTop: 20, backgroundColor: "#f0faf6", borderRadius: 12, padding: 16,
+  },
+  contactLabel: { color: "#555", fontWeight: "600", fontSize: 13, marginBottom: 10 },
+  waBtn: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: "#25D366", borderRadius: 10, padding: 14,
+  },
+  waIcon: { fontSize: 20 },
+  waBtnText: { color: "white", fontWeight: "700", fontSize: 14, flex: 1 },
+  noContact: { color: "#999", fontStyle: "italic" },
 });
