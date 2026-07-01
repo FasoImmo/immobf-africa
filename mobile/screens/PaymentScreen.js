@@ -1,50 +1,160 @@
 import React, { useEffect, useState } from "react";
 import {
   View, Text, TextInput, StyleSheet, TouchableOpacity,
-  ActivityIndicator, Alert, Linking, ScrollView,
+  ActivityIndicator, Alert, Linking, ScrollView, Modal, FlatList,
 } from "react-native";
 import { Payments } from "../lib/api";
+import { useLang } from "../lib/lang";
 
-// Opérateurs PawaPay disponibles au Burkina Faso
-const PAWAPAY_OPERATORS = [
-  { value: "moov",   label: "Moov Money" },
-  { value: "orange", label: "Orange Money (OTP requis)" },
+const COUNTRIES = [
+  { code: "BF", label: "🇧🇫 Burkina Faso", dial: "+226" },
+  { code: "CI", label: "🇨🇮 Côte d'Ivoire", dial: "+225" },
+  { code: "SN", label: "🇸🇳 Sénégal",       dial: "+221" },
+  { code: "ML", label: "🇲🇱 Mali",           dial: "+223" },
+  { code: "TG", label: "🇹🇬 Togo",           dial: "+228" },
+  { code: "BJ", label: "🇧🇯 Bénin",          dial: "+229" },
+  { code: "NE", label: "🇳🇪 Niger",          dial: "+227" },
+  { code: "GN", label: "🇬🇳 Guinée",         dial: "+224" },
+  { code: "GH", label: "🇬🇭 Ghana",          dial: "+233" },
+  { code: "NG", label: "🇳🇬 Nigeria",        dial: "+234" },
+  { code: "CM", label: "🇨🇲 Cameroun",       dial: "+237" },
+  { code: "CD", label: "🇨🇩 Congo RDC",      dial: "+243" },
+  { code: "MA", label: "🇲🇦 Maroc",          dial: "+212" },
+  { code: "RW", label: "🇷🇼 Rwanda",         dial: "+250" },
+  { code: "KE", label: "🇰🇪 Kenya",          dial: "+254" },
 ];
 
-// Indicatifs pays fréquents (fallback)
-const DIAL_CODES = {
-  BF: "+226", BJ: "+229", CI: "+225", SN: "+221", TG: "+228",
-  NE: "+227", ML: "+223", GN: "+224", GH: "+233", NG: "+234",
-  CM: "+237", CD: "+243", RW: "+250", TZ: "+255", KE: "+254",
+// Opérateurs PawaPay par pays
+const PAWAPAY_OPS = {
+  BF: [
+    { value: "moov",   label: "Moov Money" },
+    { value: "orange", label: "Orange Money (OTP requis)", otp: true },
+  ],
+  CI: [
+    { value: "orange", label: "Orange Money" },
+    { value: "mtn",    label: "MTN Mobile Money" },
+  ],
+  SN: [
+    { value: "orange", label: "Orange Money" },
+    { value: "free",   label: "Free Money" },
+  ],
+  ML: [
+    { value: "orange", label: "Orange Money" },
+    { value: "moov",   label: "Moov Money" },
+  ],
+  default: [
+    { value: "moov",   label: "Moov Money" },
+    { value: "orange", label: "Orange Money" },
+  ],
 };
 
+const T = {
+  fr: {
+    buyerCountry: "Votre pays",
+    chooseCountry: "Choisir votre pays",
+    paymentOp: "Opérateur de paiement",
+    mobileNet: "Réseau mobile",
+    otpLabel: "Code OTP Orange Money",
+    otpHint: "Composez *144*4*6# puis entrez le code reçu",
+    phoneLabel: "Numéro de téléphone mobile money",
+    payBtn: "Payer",
+    errPhone: "Entrez votre numéro de téléphone",
+    errOtp: "Entrez le code OTP Orange Money",
+    confirmed: "✓ Paiement confirmé",
+    openPage: "Ouvrir la page de paiement →",
+    dialCode: "Composez",
+    toValidate: "pour valider.",
+    ref: "Réf",
+  },
+  en: {
+    buyerCountry: "Your country",
+    chooseCountry: "Choose your country",
+    paymentOp: "Payment operator",
+    mobileNet: "Mobile network",
+    otpLabel: "Orange Money OTP code",
+    otpHint: "Dial *144*4*6# then enter the code received",
+    phoneLabel: "Mobile money phone number",
+    payBtn: "Pay",
+    errPhone: "Enter your phone number",
+    errOtp: "Enter the Orange Money OTP code",
+    confirmed: "✓ Payment confirmed",
+    openPage: "Open payment page →",
+    dialCode: "Dial",
+    toValidate: "to validate.",
+    ref: "Ref",
+  },
+};
+
+function CountryModal({ visible, selected, onSelect, onClose, title }) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={onClose} />
+      <View style={s.sheet}>
+        <View style={s.sheetHeader}>
+          <Text style={s.sheetTitle}>{title}</Text>
+          <TouchableOpacity onPress={onClose}><Text style={s.sheetClose}>✕</Text></TouchableOpacity>
+        </View>
+        <FlatList
+          data={COUNTRIES}
+          keyExtractor={(c) => c.code}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[s.option, selected === item.code && s.optionActive]}
+              onPress={() => { onSelect(item); onClose(); }}
+            >
+              <Text style={[s.optionText, selected === item.code && s.optionTextActive]}>
+                {item.label}
+              </Text>
+              <Text style={s.optionDial}>{item.dial}</Text>
+              {selected === item.code && <Text style={{ color: "#0E7C66" }}>✓</Text>}
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+    </Modal>
+  );
+}
+
 export default function PaymentScreen({ route }) {
+  const { lang } = useLang();
+  const t = T[lang] || T.fr;
+
   const { property, amount, purpose = "commission" } = route.params;
-  const countryCode = property.country_code || "BF";
+
+  // Pays de l'acheteur (pas forcément celui de l'annonce)
+  const defaultCountry = COUNTRIES.find((c) => c.code === (property.country_code || "BF")) || COUNTRIES[0];
+  const [buyerCountry, setBuyerCountry] = useState(defaultCountry);
+  const [showCountryModal, setShowCountryModal] = useState(false);
+
+  const ops = PAWAPAY_OPS[buyerCountry.code] || PAWAPAY_OPS.default;
 
   const [providers, setProviders] = useState([]);
   const [provider, setProvider] = useState("");
-  const [pawapayOperator, setPawapayOperator] = useState("moov");
+  const [pawapayOperator, setPawapayOperator] = useState(ops[0]?.value || "moov");
   const [pawapayOtp, setPawapayOtp] = useState("");
-  const [phone, setPhone] = useState(DIAL_CODES[countryCode] || "+226");
+  const [phoneLocal, setPhoneLocal] = useState(""); // numéro sans indicatif
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
 
+  // Recharger les opérateurs quand le pays change
   useEffect(() => {
-    Payments.providers(countryCode).then((d) => {
+    setProvider("");
+    setPawapayOperator((PAWAPAY_OPS[buyerCountry.code] || PAWAPAY_OPS.default)[0]?.value || "moov");
+    setPawapayOtp("");
+    Payments.providers(buyerCountry.code).then((d) => {
       setProviders(d.providers || []);
       setProvider(d.providers?.[0]?.name || "");
     }).catch(() => {});
-  }, [countryCode]);
+  }, [buyerCountry]);
 
-  const canPay = phone.length >= 8 && provider &&
-    !(provider === "pawapay" && pawapayOperator === "orange" && !pawapayOtp);
+  const fullPhone = `${buyerCountry.dial}${phoneLocal.replace(/^0+/, "")}`;
+  const currentOp = ops.find((o) => o.value === pawapayOperator);
+  const needsOtp = provider === "pawapay" && currentOp?.otp;
+  const canPay = phoneLocal.length >= 6 && provider && !(needsOtp && !pawapayOtp);
 
   async function pay() {
     if (!canPay) {
-      Alert.alert("Champs requis", provider === "pawapay" && pawapayOperator === "orange"
-        ? "Entrez le code OTP Orange Money"
-        : "Entrez votre numéro de téléphone");
+      Alert.alert("Champs requis", needsOtp ? t.errOtp : t.errPhone);
       return;
     }
     setBusy(true);
@@ -56,20 +166,19 @@ export default function PaymentScreen({ route }) {
         currency: property.currency || "XOF",
         property_id: property.id,
         purpose,
-        customer_phone: phone,
+        customer_phone: fullPhone,
+        buyer_country: buyerCountry.code,
       };
       if (provider === "pawapay") {
         payload.preferred_operator = pawapayOperator;
-        if (pawapayOperator === "orange") payload.pawapay_otp = pawapayOtp;
+        if (needsOtp) payload.pawapay_otp = pawapayOtp;
       }
       const r = await Payments.initiate(payload);
       setResult(r);
       if (r.payment_url) Linking.openURL(r.payment_url);
     } catch (e) {
       Alert.alert("Erreur paiement", e?.response?.data?.error?.message || e.message);
-    } finally {
-      setBusy(false);
-    }
+    } finally { setBusy(false); }
   }
 
   return (
@@ -77,10 +186,18 @@ export default function PaymentScreen({ route }) {
       <Text style={s.h1}>{property.title}</Text>
       <Text style={s.amount}>{amount.toLocaleString("fr-FR")} {property.currency || "XOF"}</Text>
 
-      {/* Sélection opérateur */}
+      {/* Pays de l'acheteur */}
+      <Text style={s.label}>{t.buyerCountry}</Text>
+      <TouchableOpacity style={s.countryBtn} onPress={() => setShowCountryModal(true)}>
+        <Text style={s.countryBtnText}>{buyerCountry.label}</Text>
+        <Text style={s.countryDial}>{buyerCountry.dial}</Text>
+        <Text style={s.arrow}>▾</Text>
+      </TouchableOpacity>
+
+      {/* Opérateur de paiement */}
       {providers.length > 0 && (
         <>
-          <Text style={s.label}>Opérateur de paiement</Text>
+          <Text style={s.label}>{t.paymentOp}</Text>
           <View style={s.row}>
             {providers.map((p) => (
               <TouchableOpacity
@@ -97,12 +214,12 @@ export default function PaymentScreen({ route }) {
         </>
       )}
 
-      {/* PawaPay : choix Moov / Orange */}
+      {/* PawaPay : choix réseau */}
       {provider === "pawapay" && (
         <>
-          <Text style={s.label}>Réseau mobile</Text>
+          <Text style={s.label}>{t.mobileNet}</Text>
           <View style={s.row}>
-            {PAWAPAY_OPERATORS.map((op) => (
+            {ops.map((op) => (
               <TouchableOpacity
                 key={op.value}
                 style={[s.chip, pawapayOperator === op.value && s.chipActive]}
@@ -115,17 +232,13 @@ export default function PaymentScreen({ route }) {
             ))}
           </View>
 
-          {pawapayOperator === "orange" && (
+          {needsOtp && (
             <>
-              <Text style={s.label}>Code OTP Orange Money</Text>
-              <Text style={s.hint}>Composez *144*4*6# puis entrez le code reçu</Text>
+              <Text style={s.label}>{t.otpLabel}</Text>
+              <Text style={s.hint}>{t.otpHint}</Text>
               <TextInput
-                value={pawapayOtp}
-                onChangeText={setPawapayOtp}
-                style={s.input}
-                keyboardType="numeric"
-                placeholder="Ex: 123456"
-                maxLength={8}
+                value={pawapayOtp} onChangeText={setPawapayOtp}
+                style={s.input} keyboardType="numeric" placeholder="Ex: 123456" maxLength={8}
               />
             </>
           )}
@@ -133,43 +246,49 @@ export default function PaymentScreen({ route }) {
       )}
 
       {/* Numéro de téléphone */}
-      <Text style={s.label}>Numéro de téléphone</Text>
-      <TextInput
-        value={phone}
-        onChangeText={setPhone}
-        style={s.input}
-        keyboardType="phone-pad"
-        placeholder="+226 70 00 00 00"
-      />
+      <Text style={s.label}>{t.phoneLabel}</Text>
+      <View style={s.phoneRow}>
+        <View style={s.dialBox}><Text style={s.dialText}>{buyerCountry.dial}</Text></View>
+        <TextInput
+          value={phoneLocal}
+          onChangeText={setPhoneLocal}
+          style={[s.input, { flex: 1, marginTop: 0 }]}
+          keyboardType="phone-pad"
+          placeholder="70 00 00 00"
+        />
+      </View>
 
-      <TouchableOpacity
-        style={[s.btn, !canPay && s.btnDisabled]}
-        onPress={pay}
-        disabled={busy || !canPay}
-      >
+      <TouchableOpacity style={[s.btn, !canPay && s.btnDisabled]} onPress={pay} disabled={busy || !canPay}>
         {busy
           ? <ActivityIndicator color="white" />
-          : <Text style={s.btnText}>Payer {amount.toLocaleString("fr-FR")} {property.currency || "XOF"}</Text>
+          : <Text style={s.btnText}>{t.payBtn} {amount.toLocaleString("fr-FR")} {property.currency || "XOF"}</Text>
         }
       </TouchableOpacity>
 
-      {/* Résultat */}
       {result?.ussd_code && (
         <View style={s.info}>
-          <Text style={{ fontWeight: "600" }}>Composez {result.ussd_code} pour valider.</Text>
-          <Text style={{ color: "#666", marginTop: 6 }}>Réf : {result.reference}</Text>
+          <Text style={{ fontWeight: "600" }}>{t.dialCode} {result.ussd_code} {t.toValidate}</Text>
+          <Text style={{ color: "#666", marginTop: 6 }}>{t.ref} : {result.reference}</Text>
         </View>
       )}
       {result?.payment_url && (
         <TouchableOpacity onPress={() => Linking.openURL(result.payment_url)} style={s.linkBtn}>
-          <Text style={s.linkBtnText}>Ouvrir la page de paiement →</Text>
+          <Text style={s.linkBtnText}>{t.openPage}</Text>
         </TouchableOpacity>
       )}
       {result?.status === "succeeded" && (
         <View style={[s.info, { backgroundColor: "#d4edda" }]}>
-          <Text style={{ color: "#155724", fontWeight: "600" }}>✓ Paiement confirmé</Text>
+          <Text style={{ color: "#155724", fontWeight: "600" }}>{t.confirmed}</Text>
         </View>
       )}
+
+      <CountryModal
+        visible={showCountryModal}
+        selected={buyerCountry.code}
+        onSelect={setBuyerCountry}
+        onClose={() => setShowCountryModal(false)}
+        title={t.chooseCountry}
+      />
     </ScrollView>
   );
 }
@@ -180,6 +299,20 @@ const s = StyleSheet.create({
   amount: { fontSize: 28, fontWeight: "700", color: "#0E7C66", marginTop: 4 },
   label: { marginTop: 16, color: "#555", fontWeight: "500" },
   hint: { fontSize: 12, color: "#888", marginTop: 2 },
+  countryBtn: {
+    flexDirection: "row", alignItems: "center", marginTop: 8,
+    borderWidth: 1, borderColor: "#0E7C66", borderRadius: 8,
+    padding: 12, backgroundColor: "#f0faf6",
+  },
+  countryBtnText: { flex: 1, fontSize: 15, color: "#333" },
+  countryDial: { fontSize: 14, color: "#0E7C66", fontWeight: "600", marginRight: 8 },
+  arrow: { fontSize: 12, color: "#888" },
+  phoneRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
+  dialBox: {
+    borderWidth: 1, borderColor: "#ddd", borderRadius: 8,
+    padding: 12, backgroundColor: "#f5f5f5",
+  },
+  dialText: { fontSize: 16, color: "#333", fontWeight: "600" },
   row: { flexDirection: "row", flexWrap: "wrap", marginTop: 8, gap: 8 },
   chip: { backgroundColor: "#eee", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
   chipActive: { backgroundColor: "#0E7C66" },
@@ -192,4 +325,18 @@ const s = StyleSheet.create({
   info: { marginTop: 16, backgroundColor: "#fffbea", padding: 12, borderRadius: 8 },
   linkBtn: { marginTop: 12, padding: 12, alignItems: "center" },
   linkBtnText: { color: "#0E7C66", fontWeight: "600" },
+  // Modal
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
+  sheet: { backgroundColor: "white", borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: "65%" },
+  sheetHeader: {
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    padding: 16, borderBottomWidth: 1, borderBottomColor: "#eee",
+  },
+  sheetTitle: { fontSize: 16, fontWeight: "700" },
+  sheetClose: { fontSize: 18, color: "#888", padding: 4 },
+  option: { padding: 14, flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderBottomColor: "#f5f5f5" },
+  optionActive: { backgroundColor: "#f0faf6" },
+  optionText: { flex: 1, fontSize: 15, color: "#333" },
+  optionTextActive: { color: "#0E7C66", fontWeight: "600" },
+  optionDial: { fontSize: 13, color: "#888", marginRight: 8 },
 });
