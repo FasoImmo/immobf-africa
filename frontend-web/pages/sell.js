@@ -92,16 +92,17 @@ const CITIES_BY_COUNTRY = {
   NG: ["Lagos", "Abuja", "Kano", "Ibadan"],
 };
 
-const TX_TYPES = [
-  { value: "sale",       label: "Vente" },
-  { value: "rent_long",  label: "Location longue durée" },
-  { value: "rent_short", label: "Location courte durée / nuitée" },
+// TX_TYPES et RENT_PERIODS sont maintenant des fonctions pour permettre i18n
+const TX_TYPES = (t) => [
+  { value: "sale",       label: t("sell.type_sale") },
+  { value: "rent_long",  label: t("sell.type_rent_long") },
+  { value: "rent_short", label: t("sell.type_rent_short") },
 ];
 
-const RENT_PERIODS = [
-  { value: "monthly", label: "Par mois" },
-  { value: "weekly",  label: "Par semaine" },
-  { value: "nightly", label: "Par nuit" },
+const RENT_PERIODS = (t) => [
+  { value: "monthly", label: t("sell.period_monthly") },
+  { value: "weekly",  label: t("sell.period_weekly") },
+  { value: "nightly", label: t("sell.period_nightly") },
 ];
 
 const PROP_TYPES = ["land","house","apartment","office","commercial"];
@@ -238,7 +239,7 @@ export default function SellPage() {
         } else if (data.transaction.status === "failed") {
           clearInterval(pollRef.current);
           setPolling(false);
-          setPayErr("Le paiement a échoué. Veuillez réessayer.");
+          setPayErr(t("sell.pay_failed"));
         }
       } catch (_) {}
     }, 3000);
@@ -410,7 +411,7 @@ export default function SellPage() {
                 <>
                   <Grid item xs={12} sm={6}>
                     <TextField select fullWidth label={t("sell.rent_period")} value={form.rent_period} onChange={change("rent_period")}>
-                      {RENT_PERIODS.map(function(o) { return <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>; })}
+                      {RENT_PERIODS(t).map(function(o) { return <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>; })}
                     </TextField>
                   </Grid>
                   <Grid item xs={12} sm={6} sx={{ display: "flex", alignItems: "center" }}>
@@ -627,7 +628,7 @@ export default function SellPage() {
                       onChange={(e) => setPawapayOtp(e.target.value.replace(/\D/g, ""))}
                       disabled={polling}
                       placeholder="Composez #144#391#code secret#"
-                      helperText="Générez ce code via le service USSD Orange Money avant de payer."
+                      helperText={t("sell.ussd_hint")}
                     />
                   </Grid>
                 )}

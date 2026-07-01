@@ -65,7 +65,7 @@ export default function Home() {
     const parts = [];
     if (ctx.cities?.length) parts.push(ctx.cities.join(", "));
     if (ctx.types?.length) parts.push(ctx.types.map((t) => t).join(", "));
-    return parts.length ? `Basé sur vos recherches : ${parts.join(" · ")}` : "Basé sur vos recherches";
+    return parts.length ? `${t("home.based_on")} : ${parts.join(" · ")}` : t("home.based_on");
   }
 
   return (
@@ -163,7 +163,7 @@ export default function Home() {
 
       {/* ── Annonces récentes ── */}
       <Typography variant="h5" sx={{ mb: 2 }}>
-        {suggestions.length > 0 ? "Toutes les annonces récentes" : t("browse.title_all")}
+        {suggestions.length > 0 ? t("home.recent_all") : t("browse.title_all")}
       </Typography>
       <Grid container spacing={2}>
         {items.map((p) => (
@@ -173,7 +173,7 @@ export default function Home() {
         ))}
         {items.length === 0 && (
           <Grid item xs={12}>
-            <Typography color="text.secondary">Aucune annonce pour l'instant.</Typography>
+            <Typography color="text.secondary">{t("home.no_listings")}</Typography>
           </Grid>
         )}
       </Grid>
@@ -186,16 +186,16 @@ export default function Home() {
       }}>
         <Box sx={{ fontSize: 48, lineHeight: 1 }}>📱</Box>
         <Box sx={{ flex: 1, minWidth: 200 }}>
-          <Typography variant="h6" fontWeight={700}>Téléchargez l'application ImmoBF Africa</Typography>
+          <Typography variant="h6" fontWeight={700}>{t("home.app_title")}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Consultez les annonces, payez en mobile money — même hors connexion. Disponible sur Android.
+            {t("home.app_desc")}
           </Typography>
         </Box>
         <Button
           variant="contained" color="primary" component={Link} href="/download"
           sx={{ fontWeight: 700, px: 3, flexShrink: 0 }}
         >
-          Télécharger l'APK
+          {t("home.app_download")}
         </Button>
       </Paper>
 
@@ -204,18 +204,18 @@ export default function Home() {
         mt: 6, p: 4, textAlign: "center",
         background: "linear-gradient(135deg,#0E7C66,#13a48c)", color: "white", borderRadius: 3,
       }}>
-        <Typography variant="h5" gutterBottom>📬 Restez informé</Typography>
+        <Typography variant="h5" gutterBottom>{t("home.nl_title")}</Typography>
         <Typography variant="body1" sx={{ mb: 3, opacity: 0.9 }}>
-          Recevez en avant-première les nouvelles annonces et tendances du marché immobilier africain.
+          {t("home.nl_subtitle")}
         </Typography>
         {nlDone ? (
           <Alert severity="success" sx={{ maxWidth: 400, mx: "auto" }}>
-            ✓ Inscription confirmée ! Vérifiez votre email.
+            {t("home.nl_done")}
           </Alert>
         ) : (
           <Box sx={{ display: "flex", gap: 1, maxWidth: 420, mx: "auto", flexWrap: "wrap" }}>
             <TextField
-              fullWidth size="small" placeholder="Votre email"
+              fullWidth size="small" placeholder={t("home.nl_email")}
               value={nlEmail} onChange={(e) => setNlEmail(e.target.value)}
               sx={{ bgcolor: "white", borderRadius: 1, flex: "1 1 200px" }}
               inputProps={{ type: "email" }}
@@ -232,7 +232,7 @@ export default function Home() {
                 setNlLoading(false);
               }}
             >
-              {nlLoading ? "…" : "S'inscrire"}
+              {nlLoading ? "…" : t("home.nl_subscribe")}
             </Button>
           </Box>
         )}

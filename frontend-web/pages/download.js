@@ -3,31 +3,34 @@ import Link from "next/link";
 import { Box, Button, Container, Divider, Grid, Paper, Typography, Chip } from "@mui/material";
 import AndroidIcon from "@mui/icons-material/Android";
 import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
+import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
 
 const APK_URL = process.env.NEXT_PUBLIC_APK_URL || "https://github.com/FasoImmo/immobf-africa/releases/latest/download/immobf-africa.apk";
 
-const FEATURES = [
-  { icon: "🔍", title: "Recherche avancée", desc: "Filtrez par pays, ville, type de bien et budget." },
-  { icon: "📸", title: "Photos haute qualité", desc: "Consultez les annonces avec toutes leurs photos." },
-  { icon: "💸", title: "Paiement mobile money", desc: "Payez via Moov Money, Orange Money ou Wave." },
-  { icon: "📴", title: "Mode hors-ligne", desc: "Consultez les dernières annonces même sans connexion." },
-  { icon: "🔔", title: "Alertes personnalisées", desc: "Recevez les nouvelles annonces selon vos critères." },
-  { icon: "🌍", title: "Multi-pays", desc: "BF, CI, SN, ML, TG, BJ, NE et toute l'Afrique." },
-];
-
-const STEPS = [
-  { n: "1", text: "Cliquez sur « Télécharger APK » ci-dessous" },
-  { n: "2", text: "Ouvrez le fichier téléchargé sur votre téléphone" },
-  { n: "3", text: "Autorisez l'installation depuis des sources inconnues si demandé" },
-  { n: "4", text: "Installez et ouvrez ImmoBF Africa" },
-];
-
 export default function DownloadPage() {
+  const { t } = useTranslation();
+
+  const FEATURES = [
+    { icon: "🔍", title: t("download.feat_search_title"), desc: t("download.feat_search_desc") },
+    { icon: "📸", title: t("download.feat_photos_title"), desc: t("download.feat_photos_desc") },
+    { icon: "💸", title: t("download.feat_payment_title"), desc: t("download.feat_payment_desc") },
+    { icon: "📴", title: t("download.feat_offline_title"), desc: t("download.feat_offline_desc") },
+    { icon: "🔔", title: t("download.feat_alerts_title"), desc: t("download.feat_alerts_desc") },
+    { icon: "🌍", title: t("download.feat_multi_title"), desc: t("download.feat_multi_desc") },
+  ];
+
+  const STEPS = [
+    { n: "1", text: t("download.step1") },
+    { n: "2", text: t("download.step2") },
+    { n: "3", text: t("download.step3") },
+    { n: "4", text: t("download.step4") },
+  ];
+
   return (
-    <Layout title="Télécharger l'app — ImmoBF Africa">
+    <Layout title={t("download.page_title")}>
       <Head>
-        <meta name="description" content="Téléchargez l'application ImmoBF Africa sur Android. Recherchez, achetez ou louez des biens immobiliers au Burkina Faso et en Afrique de l'Ouest." />
+        <meta name="description" content={t("download.hero_desc")} />
       </Head>
 
       {/* Hero */}
@@ -40,11 +43,10 @@ export default function DownloadPage() {
           ImmoBF Africa
         </Typography>
         <Typography variant="h6" sx={{ opacity: 0.9, mb: 1 }}>
-          L'immobilier africain dans votre poche
+          {t("download.hero_subtitle")}
         </Typography>
         <Typography variant="body1" sx={{ opacity: 0.8, mb: 4, maxWidth: 500, mx: "auto" }}>
-          Achetez, vendez ou louez des biens au Burkina Faso et dans toute l'Afrique de l'Ouest.
-          Paiements mobile money intégrés.
+          {t("download.hero_desc")}
         </Typography>
 
         <Box sx={{ display: "flex", gap: 2, justifyContent: "center", flexWrap: "wrap" }}>
@@ -59,7 +61,7 @@ export default function DownloadPage() {
               "&:hover": { bgcolor: "#f0f0f0" },
             }}
           >
-            Télécharger APK Android
+            {t("download.btn_apk")}
           </Button>
           <Button
             variant="outlined"
@@ -72,23 +74,23 @@ export default function DownloadPage() {
               "&.Mui-disabled": { borderColor: "rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.5)" },
             }}
           >
-            iOS — Bientôt disponible
+            {t("download.btn_ios")}
           </Button>
         </Box>
 
         <Box sx={{ mt: 3, display: "flex", gap: 1, justifyContent: "center", flexWrap: "wrap" }}>
           <Chip label="Android 8+" size="small" sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "white" }} />
           <Chip label="v1.0.0" size="small" sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "white" }} />
-          <Chip label="Gratuit" size="small" sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "white" }} />
+          <Chip label={t("download.chip_free")} size="small" sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "white" }} />
         </Box>
       </Box>
 
       {/* Fonctionnalités */}
       <Typography variant="h4" fontWeight={700} textAlign="center" gutterBottom>
-        Tout ce dont vous avez besoin
+        {t("download.section_features")}
       </Typography>
       <Typography variant="body1" color="text.secondary" textAlign="center" sx={{ mb: 4 }}>
-        Une app légère, rapide, conçue pour les connexions africaines.
+        {t("download.features_subtitle")}
       </Typography>
 
       <Grid container spacing={3} sx={{ mb: 6 }}>
@@ -109,10 +111,10 @@ export default function DownloadPage() {
       <Grid container spacing={6} alignItems="center">
         <Grid item xs={12} md={6}>
           <Typography variant="h4" fontWeight={700} gutterBottom>
-            Comment installer l'APK ?
+            {t("download.section_install")}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            L'app n'est pas encore sur le Play Store — l'installation directe via APK est rapide et sécurisée.
+            {t("download.install_note")}
           </Typography>
 
           {STEPS.map((step) => (
@@ -137,7 +139,7 @@ export default function DownloadPage() {
             href={APK_URL}
             sx={{ mt: 3, px: 4, py: 1.5, fontWeight: 700 }}
           >
-            Télécharger maintenant (APK)
+            {t("download.btn_download_now")}
           </Button>
         </Grid>
 
@@ -149,14 +151,13 @@ export default function DownloadPage() {
           }} elevation={0}>
             <Typography fontSize={80} gutterBottom>📱</Typography>
             <Typography variant="h5" fontWeight={700} gutterBottom>
-              Application mobile
+              {t("download.card_title")}
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-              Disponible sur Android dès maintenant.
-              Version iOS en cours de développement.
+              {t("download.card_desc")}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Nécessite Android 8.0 (Oreo) ou supérieur · ~25 MB
+              {t("download.card_note")}
             </Typography>
           </Paper>
         </Grid>
@@ -170,10 +171,10 @@ export default function DownloadPage() {
         background: "linear-gradient(135deg,#0E7C66,#13a48c)", color: "white",
       }}>
         <Typography variant="h5" fontWeight={700} gutterBottom>
-          Préférez-vous utiliser le site web ?
+          {t("download.cta_title")}
         </Typography>
         <Typography variant="body1" sx={{ opacity: 0.9, mb: 3 }}>
-          Toutes les fonctionnalités sont aussi disponibles sur immoafrica.online
+          {t("download.cta_desc")}
         </Typography>
         <Button
           variant="contained"
@@ -182,7 +183,7 @@ export default function DownloadPage() {
           href="/"
           sx={{ bgcolor: "white", color: "#0E7C66", fontWeight: 700, px: 4, "&:hover": { bgcolor: "#f0f0f0" } }}
         >
-          Accéder au site →
+          {t("download.cta_btn")}
         </Button>
       </Paper>
     </Layout>

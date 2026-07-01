@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Box, Button, Paper, Typography, Link as MuiLink } from "@mui/material";
 import CookieIcon from "@mui/icons-material/Cookie";
 import NextLink from "next/link";
+import { useTranslation } from "react-i18next";
 
 const CONSENT_KEY = "immobf_cookie_consent";
 
 export default function CookieBanner() {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -60,10 +62,9 @@ export default function CookieBanner() {
         <CookieIcon sx={{ color: "#1B6B3A", flexShrink: 0, fontSize: 28 }} />
 
         <Typography variant="body2" sx={{ color: "#444", flex: 1, lineHeight: 1.6 }}>
-          ImmoBF Africa utilise des cookies strictement nécessaires à son fonctionnement (session, langue).
-          Aucun cookie publicitaire n'est déposé.{" "}
+          {t("cookie.banner_text")}{" "}
           <MuiLink component={NextLink} href="/legal/cookies" sx={{ color: "#1B6B3A" }}>
-            En savoir plus
+            {t("cookie.learn_more")}
           </MuiLink>
         </Typography>
 
@@ -79,7 +80,7 @@ export default function CookieBanner() {
               fontWeight: 600,
             }}
           >
-            Accepter
+            {t("cookie.accept")}
           </Button>
           <Button
             variant="outlined"
@@ -91,7 +92,7 @@ export default function CookieBanner() {
               textTransform: "none",
             }}
           >
-            Refuser
+            {t("cookie.refuse")}
           </Button>
         </Box>
       </Box>

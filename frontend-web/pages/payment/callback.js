@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { Box, Paper, Typography, Alert, CircularProgress } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import Layout from "../../components/Layout";
 
 export default function Callback() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { ref } = router.query;
   const [status, setStatus] = useState("pending");
@@ -32,13 +34,13 @@ export default function Callback() {
   }, [ref]);
 
   return (
-    <Layout title="Paiement — ImmoBF">
+    <Layout title={t("payment.callback_title")}>
       <Box sx={{ display: "flex", justifyContent: "center" }}>
         <Paper sx={{ p: 4, maxWidth: 440, textAlign: "center" }}>
-          <Typography variant="h5" gutterBottom>Paiement {ref}</Typography>
-          {status === "pending" && (<><CircularProgress /><Typography sx={{ mt: 2 }}>En attente de confirmation opérateur…</Typography></>)}
-          {status === "succeeded" && <Alert severity="success">Paiement confirmé. Un reçu PDF vous a été envoyé.</Alert>}
-          {status === "failed" && <Alert severity="error">Le paiement a échoué. Merci de réessayer.</Alert>}
+          <Typography variant="h5" gutterBottom>{t("payment.callback_title")} {ref}</Typography>
+          {status === "pending" && (<><CircularProgress /><Typography sx={{ mt: 2 }}>{t("payment.callback_waiting")}</Typography></>)}
+          {status === "succeeded" && <Alert severity="success">{t("payment.callback_confirmed")}</Alert>}
+          {status === "failed" && <Alert severity="error">{t("payment.callback_failed")}</Alert>}
         </Paper>
       </Box>
     </Layout>
