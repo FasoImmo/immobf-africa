@@ -52,4 +52,6 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "testPathIgnorePatterns":
+    "testPathIgnorePatterns": ["/node_modules/"]
+  }
+}
