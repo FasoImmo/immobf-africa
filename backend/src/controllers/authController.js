@@ -38,16 +38,56 @@ const loginSchema = Joi.object({
   password: Joi.string().required(),
 });
 
+// Lockout : 5 échecs → verrouillage 30 min (clé Redis par email/téléphone)
+const LOGIN_MAX_FAILS  = 5;
+const LOGIN_FAIL_TTL   = 15 * 60; // fenêtre de comptage : 15 min
+const LOGIN_LOCK_TTL   = 30 * 60; // durée de verrouillage : 30 min
+
 async function login(req, res) {
   const { value, error } = loginSchema.validate(req.body);
   if (error) throw BadRequest(error.message);
   if (!value.phone && !value.email) throw BadRequest("Email ou téléphone requis");
+
+  const identifier = (value.email || value.phone).toLowerCase();
+  const { getRedis } = require("../config/redis");
+  const redis = getRedis();
+
+  // Vérifier si le compte est verrouillé
+  const lockTtl = await redis.ttl(`login_lock:${identifier}`);
+  if (lockTtl > 0) {
+    throw Unauthorized(`Compte temporairement verrouillé après trop de tentatives. Réessayez dans ${Math.ceil(lockTtl / 60)} minute(s) ou utilisez « Mot de passe oublié ».`);
+  }
+
   const user = value.email
     ? await User.findByEmail(value.email)
     : await User.findByPhone(value.phone);
-  if (!user) throw Unauthorized("Identifiants invalides");
+
+  if (!user) {
+    // Incrémenter même si l'utilisateur n'existe pas (évite l'énumération)
+    const fails = await redis.incr(`login_fail:${identifier}`);
+    await redis.expire(`login_fail:${identifier}`, LOGIN_FAIL_TTL);
+    if (fails >= LOGIN_MAX_FAILS) {
+      await redis.set(`login_lock:${identifier}`, "1", "EX", LOGIN_LOCK_TTL);
+      await redis.del(`login_fail:${identifier}`);
+    }
+    throw Unauthorized("Identifiants invalides");
+  }
+
   const ok = await User.verifyPassword(user, value.password);
-  if (!ok) throw Unauthorized("Identifiants invalides");
+  if (!ok) {
+    const fails = await redis.incr(`login_fail:${identifier}`);
+    await redis.expire(`login_fail:${identifier}`, LOGIN_FAIL_TTL);
+    if (fails >= LOGIN_MAX_FAILS) {
+      await redis.set(`login_lock:${identifier}`, "1", "EX", LOGIN_LOCK_TTL);
+      await redis.del(`login_fail:${identifier}`);
+      throw Unauthorized("Trop de tentatives échouées. Compte verrouillé 30 minutes. Utilisez « Mot de passe oublié » pour déverrouiller.");
+    }
+    throw Unauthorized("Identifiants invalides");
+  }
+
+  // Succès : effacer le compteur d'échecs
+  await redis.del(`login_fail:${identifier}`);
+
   if (user.is_blocked) throw Unauthorized("Compte bloqué par l'administrateur. Contactez le support.");
   const access = signAccess(user);
   const refresh = signRefresh(user, `${user.id}-${Date.now()}`);
@@ -180,4 +220,47 @@ async function resetPassword(req, res) {
   res.json({ success: true });
 }
 
-module.exports = { register, login, verifyPhone, me, refresh, resendOtp, forgotPassword, resetPassword, updateEmail };
+// ─── Modifier son propre profil (nom, téléphone, mot de passe) ───────────────
+const updateUserProfileSchema = Joi.object({
+  full_name: Joi.string().min(2).max(120).optional(),
+  phone:     Joi.string().pattern(/^\+?[0-9]{8,15}$/).optional(),
+  current_password: Joi.string().when("new_password", {
+    is: Joi.exist(), then: Joi.required(), otherwise: Joi.optional(),
+  }),
+  new_password: Joi.string().min(8).max(128).optional(),
+}).min(1);
+
+async function updateUserProfile(req, res) {
+  const { value, error } = updateUserProfileSchema.validate(req.body);
+  if (error) throw BadRequest(error.message);
+
+  const user = await User.findByIdWithAuth(req.user.id);
+  if (!user) throw BadRequest("Utilisateur introuvable");
+
+  // Changement de mot de passe
+  if (value.new_password) {
+    if (!user.password_hash) {
+      throw BadRequest("Aucun mot de passe défini. Utilisez 'Mot de passe oublié' sur la page de connexion.");
+    }
+    const ok = await User.verifyPassword(user, value.current_password);
+    if (!ok) throw Unauthorized("Mot de passe actuel incorrect");
+    await User.updatePasswordById(user.id, value.new_password);
+  }
+
+  // Changement de téléphone (= login)
+  if (value.phone && value.phone !== user.phone) {
+    const existing = await User.findByPhone(value.phone);
+    if (existing && existing.id !== user.id) throw Conflict("Ce numéro est déjà utilisé par un autre compte");
+    await User.updatePhone(user.id, value.phone);
+  }
+
+  // Changement de nom
+  if (value.full_name && value.full_name !== user.full_name) {
+    await User.updateFullName(user.id, value.full_name);
+  }
+
+  const updated = await User.findById(user.id);
+  res.json({ user: updated });
+}
+
+module.exports = { register, login, verifyPhone, me, refresh, resendOtp, forgotPassword, resetPassword, updateEmail, updateUserProfile };

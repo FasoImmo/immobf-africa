@@ -8,7 +8,6 @@ import {
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
 import { Analytics, Auth } from "../lib/api";
-import api from "../lib/api";
 import { formatFCFA } from "../lib/format";
 
 const EUR_RATE = 655.957;
@@ -48,13 +47,26 @@ export default function AccountPage() {
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailMsg, setEmailMsg] = useState(null);
 
+  // Profile edit
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [phoneInput, setPhoneInput] = useState("");
+  const [curPwd, setCurPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [profileBusy, setProfileBusy] = useState(false);
+  const [profileMsg, setProfileMsg] = useState(null);
+
   const [draftSaved, setDraftSaved] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("immobf_user");
     const token = localStorage.getItem("immobf_token");
     if (!stored || !token) { router.replace("/login?redirect=/account"); return; }
-    setUser(JSON.parse(stored));
+    const u = JSON.parse(stored);
+    setUser(u);
+    setNameInput(u.full_name || "");
+    setPhoneInput(u.phone || "");
 
     if (router.query.draft_saved) setDraftSaved(true);
 
@@ -74,6 +86,51 @@ export default function AccountPage() {
 
   function resumeDraft(propertyId) {
     router.push(`/sell?resume=${propertyId}`);
+  }
+
+  async function saveProfile(e) {
+    e.preventDefault();
+    setProfileMsg(null);
+    const payload = {};
+    if (nameInput && nameInput !== user.full_name) payload.full_name = nameInput;
+    if (phoneInput && phoneInput !== user.phone) payload.phone = phoneInput;
+    if (newPwd) {
+      if (newPwd !== confirmPwd) {
+        setProfileMsg({ type: "error", text: "Les mots de passe ne correspondent pas." });
+        return;
+      }
+      if (newPwd.length < 8) {
+        setProfileMsg({ type: "error", text: "Nouveau mot de passe : 8 caractères minimum." });
+        return;
+      }
+      if (!curPwd) {
+        setProfileMsg({ type: "error", text: "Saisissez le mot de passe actuel." });
+        return;
+      }
+      payload.current_password = curPwd;
+      payload.new_password = newPwd;
+    }
+    if (!Object.keys(payload).length) {
+      setProfileMsg({ type: "info", text: "Aucune modification détectée." });
+      return;
+    }
+    setProfileBusy(true);
+    try {
+      const { user: updated } = await Auth.updateProfile(payload);
+      setUser(updated);
+      localStorage.setItem("immobf_user", JSON.stringify(updated));
+      setNameInput(updated.full_name || "");
+      setPhoneInput(updated.phone || "");
+      setCurPwd(""); setNewPwd(""); setConfirmPwd("");
+      setProfileMsg({ type: "success", text: "Profil mis à jour." });
+      setProfileOpen(false);
+    } catch (err) {
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.error?.message || "Erreur lors de la mise à jour.";
+      setProfileMsg({ type: "error", text: status === 409 ? "Ce numéro est déjà utilisé par un autre compte." : msg });
+    } finally {
+      setProfileBusy(false);
+    }
   }
 
   async function saveEmail() {
@@ -122,12 +179,73 @@ export default function AccountPage() {
 
       {user && (
         <Paper elevation={0} sx={{ p: 2, mb: 3, bgcolor: "#f5f5f5", borderRadius: 2 }}>
-          <Typography variant="subtitle1" fontWeight={600}>{user.full_name || user.phone}</Typography>
-          <Typography variant="body2" color="text.secondary">{user.phone}</Typography>
+          <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 1 }}>
+            <Box>
+              <Typography variant="subtitle1" fontWeight={600}>{user.full_name || user.phone}</Typography>
+              <Typography variant="body2" color="text.secondary">📞 {user.phone}</Typography>
+              <Typography variant="body2" color={user.email ? "text.secondary" : "warning.main"}>
+                ✉️ {user.email || t("account.email_missing")}
+              </Typography>
+            </Box>
+            <Button size="small" variant="outlined" onClick={() => { setProfileOpen((v) => !v); setProfileMsg(null); }}>
+              {profileOpen ? "Fermer" : "Modifier mes informations"}
+            </Button>
+          </Box>
+
+          {profileOpen && (
+            <Box component="form" onSubmit={saveProfile} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+              <Divider />
+              <Typography variant="caption" color="text.secondary" fontWeight={600}>INFORMATIONS DE BASE</Typography>
+              <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                <TextField
+                  size="small" label="Nom complet" value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  sx={{ flex: 1, minWidth: 200, bgcolor: "white" }}
+                />
+                <TextField
+                  size="small" label="Téléphone (login)" value={phoneInput}
+                  onChange={(e) => setPhoneInput(e.target.value)}
+                  placeholder="+22670000000"
+                  sx={{ flex: 1, minWidth: 200, bgcolor: "white" }}
+                  helperText="Changer le téléphone change aussi votre identifiant de connexion"
+                />
+              </Box>
+
+              <Divider />
+              <Typography variant="caption" color="text.secondary" fontWeight={600}>CHANGER LE MOT DE PASSE (optionnel)</Typography>
+              <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                <TextField size="small" label="Mot de passe actuel" type="password"
+                  value={curPwd} onChange={(e) => setCurPwd(e.target.value)}
+                  sx={{ flex: 1, minWidth: 180, bgcolor: "white" }} />
+                <TextField size="small" label="Nouveau mot de passe (8 car. min.)" type="password"
+                  value={newPwd} onChange={(e) => setNewPwd(e.target.value)}
+                  sx={{ flex: 1, minWidth: 200, bgcolor: "white" }} />
+                <TextField size="small" label="Confirmer le nouveau mot de passe" type="password"
+                  value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)}
+                  sx={{ flex: 1, minWidth: 200, bgcolor: "white" }} />
+              </Box>
+
+              {profileMsg && <Alert severity={profileMsg.type}>{profileMsg.text}</Alert>}
+
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <Button type="submit" variant="contained" size="small" disabled={profileBusy}>
+                  {profileBusy ? <CircularProgress size={16} color="inherit" /> : "Enregistrer"}
+                </Button>
+                <Button size="small" onClick={() => { setProfileOpen(false); setProfileMsg(null); }}>
+                  Annuler
+                </Button>
+              </Box>
+            </Box>
+          )}
+
+          <Divider sx={{ my: 1.5 }} />
 
           {!emailEditing && (
-            <Box sx={{ mt: 1, display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-              <Typography variant="body2" color={user.email ? "text.secondary" : "warning.main"}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: 12 }}>
+                Email de contact :
+              </Typography>
+              <Typography variant="body2" color={user.email ? "text.secondary" : "warning.main"} sx={{ fontSize: 12 }}>
                 {user.email || t("account.email_missing")}
               </Typography>
               <Button

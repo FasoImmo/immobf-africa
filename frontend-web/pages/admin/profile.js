@@ -66,6 +66,10 @@ export default function AdminProfile() {
       setPwdMsg({ type: "error", text: "Le nouveau mot de passe doit faire au moins 8 caractères." });
       return;
     }
+    if (!currentPwd) {
+      setPwdMsg({ type: "error", text: "Veuillez saisir le mot de passe actuel." });
+      return;
+    }
     setPwdBusy(true);
     try {
       await Admin.updateProfile({ current_password: currentPwd, new_password: newPwd });

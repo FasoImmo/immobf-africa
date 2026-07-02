@@ -38,12 +38,20 @@ async function findById(id) {
 }
 
 // Variante incluant les champs internes nécessaires pour (ré)émettre des
-// tokens (token_version) et vérifier le blocage — utilisée par le flux
-// /auth/refresh, jamais renvoyée telle quelle au client.
+// tokens (token_version), vérifier le blocage, et vérifier le mot de passe
+// actuel (changement de mot de passe). Jamais renvoyée telle quelle au client.
 async function findByIdWithAuth(id) {
   const { rows } = await query(
-    `SELECT ${PUBLIC_FIELDS}, is_blocked, token_version FROM users WHERE id = $1`,
+    `SELECT ${PUBLIC_FIELDS}, password_hash, is_blocked, token_version FROM users WHERE id = $1`,
     [id]
+  );
+  return rows[0] || null;
+}
+
+async function updateFullName(id, fullName) {
+  const { rows } = await query(
+    `UPDATE users SET full_name = $1 WHERE id = $2 RETURNING ${PUBLIC_FIELDS}`,
+    [fullName, id]
   );
   return rows[0] || null;
 }
@@ -158,5 +166,6 @@ async function forceLogout(id) {
 module.exports = {
   create, findByPhone, findByEmail, findById, findByIdWithAuth, verifyPassword, markPhoneVerified,
   updatePassword, updatePasswordByEmail, updateEmail, updatePhone, updatePasswordById,
+  updateFullName,
   list, setBlocked, forceLogout,
 };

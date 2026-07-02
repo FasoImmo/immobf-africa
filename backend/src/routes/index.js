@@ -17,7 +17,12 @@ const adminCtl = require("../controllers/adminController");
 const router = express.Router();
 
 // Rate limits
-const authLimiter = rateLimit({ windowMs: 60_000, max: 10, standardHeaders: true });
+const authLimiter  = rateLimit({ windowMs: 60_000,      max: 10, standardHeaders: true });
+// Login : plus strict — 5 tentatives / 15 min / IP (le lockout Redis prend le relais par compte)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60_000, max: 5, standardHeaders: true,
+  message: { error: { message: "Trop de tentatives de connexion depuis cette adresse IP. Réessayez dans 15 minutes." } },
+});
 const publicLimiter = rateLimit({ windowMs: 60_000, max: 60 });
 
 // Health
@@ -25,7 +30,7 @@ router.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 
 // --- Auth ---
 router.post("/auth/register",   authLimiter, asyncHandler(authCtl.register));
-router.post("/auth/login",      authLimiter, asyncHandler(authCtl.login));
+router.post("/auth/login",      loginLimiter, asyncHandler(authCtl.login));
 router.post("/auth/refresh",          authLimiter, asyncHandler(authCtl.refresh));
 router.post("/auth/otp/verify",       authLimiter, asyncHandler(authCtl.verifyPhone));
 router.post("/auth/otp/resend",       authLimiter, asyncHandler(authCtl.resendOtp));
@@ -33,6 +38,7 @@ router.post("/auth/forgot-password",  authLimiter, asyncHandler(authCtl.forgotPa
 router.post("/auth/reset-password",   authLimiter, asyncHandler(authCtl.resetPassword));
 router.get  ("/auth/me",               requireAuth, asyncHandler(authCtl.me));
 router.patch("/auth/me/email",         requireAuth, asyncHandler(authCtl.updateEmail));
+router.patch("/auth/me/profile",       requireAuth, asyncHandler(authCtl.updateUserProfile));
 
 // --- Properties ---
 router.get ("/properties",              publicLimiter, asyncHandler(propCtl.search));

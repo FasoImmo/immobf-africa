@@ -87,6 +87,7 @@ export const Auth = {
   forgotPassword: (email) => api.post("/auth/forgot-password", { email }).then((r) => r.data),
   resetPassword: (data) => api.post("/auth/reset-password", data).then((r) => r.data),
   updateEmail: (email) => api.patch("/auth/me/email", { email }).then((r) => r.data),
+  updateProfile: (data) => api.patch("/auth/me/profile", data).then((r) => r.data),
 };
 
 export const Analytics = {
