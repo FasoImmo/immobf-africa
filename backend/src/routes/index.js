@@ -53,17 +53,13 @@ router.post("/payments/:id/escrow/release", requireAuth, asyncHandler(payCtl.rel
 // Webhooks — raw body parser (HMAC verification)
 router.post("/payments/webhooks/:provider", rawBody, asyncHandler(payCtl.webhook));
 
+// --- Admin : suivi des abonnés + délais de publication + blocage/déconnexion ---
+const requireAdmin = [requireAuth, requireRole("admin")];
+
 // DIAGNOSTIC TEMPORAIRE (29/06/2026) — voir paymentsController.js. À retirer
 // une fois le callback PawaPay confirmé stable.
-// Sécurisé admin-only (30/06/2026) — requireAdmin au lieu de requireAuth.
 router.get ("/admin/pawapay/last",                      requireAdmin, asyncHandler(payCtl.adminPawapayLast));
 router.post("/admin/pawapay/resend-callback/:depositId", requireAdmin, asyncHandler(payCtl.adminPawapayResendCallback));
-
-// --- Admin : suivi des abonnés + délais de publication + blocage/déconnexion ---
-// CORRECTIF (30/06/2026) : la page admin ne donnait aucun moyen de
-// consulter la liste des utilisateurs ni d'agir sur eux. requireRole("admin")
-// était défini mais jamais branché à une route — corrigé ici.
-const requireAdmin = [requireAuth, requireRole("admin")];
 router.get  ("/admin/users",                requireAdmin, asyncHandler(adminCtl.listUsers));
 router.patch("/admin/users/:id/block",      requireAdmin, asyncHandler(adminCtl.setUserBlocked));
 router.post ("/admin/users/:id/logout",     requireAdmin, asyncHandler(adminCtl.logoutUser));
