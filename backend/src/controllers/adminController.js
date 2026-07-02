@@ -119,6 +119,9 @@ async function updateAdminProfile(req, res) {
 
   // Vérification mot de passe actuel si changement demandé
   if (value.new_password) {
+    if (!admin.password_hash) {
+      throw BadRequest("Ce compte n'a pas de mot de passe défini. Utilisez 'Mot de passe oublié' sur la page de connexion pour en créer un via email.");
+    }
     const ok = await argon2.verify(admin.password_hash, value.current_password);
     if (!ok) throw BadRequest("Mot de passe actuel incorrect");
     await User.updatePasswordById(req.user.id, value.new_password);
