@@ -6,7 +6,7 @@ import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
 
-const APK_URL = process.env.NEXT_PUBLIC_APK_URL || "https://github.com/FasoImmo/immobf-africa/releases/latest/download/immobf-africa.apk";
+const APK_URL = process.env.NEXT_PUBLIC_APK_URL || "https://expo.dev/accounts/immobfs-team/projects/immobilier-en-afrique/builds/11591b13-5a84-423f-8bbe-e65058eedbde";
 
 export default function DownloadPage() {
   const { t } = useTranslation();
