@@ -116,7 +116,7 @@ export default function BrowseScreen({ navigation }) {
     setRefreshing(true);
     try {
       const params = { limit: 30, lang };
-      if (country) params.country_code = country;
+      if (country) params.country = country;
       if (city.trim()) params.q = city.trim();
       if (txType) params.transaction_type = txType;
       const d = await Properties.search(params);

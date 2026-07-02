@@ -62,6 +62,7 @@ async function search(req, res) {
   const schema = Joi.object({
     q: Joi.string().allow("", null),
     country: Joi.string().length(2).uppercase(),
+    transaction_type: Joi.string().valid("sale", "rent_long", "rent_short"),
     city: Joi.string(),
     neighborhood: Joi.string(),
     type: Joi.string().valid("land", "house", "apartment", "office", "commercial"),
