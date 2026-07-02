@@ -272,9 +272,9 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
             {isPawapay && pawapayOperator === "orange" && (
               <>
                 <Alert severity="info" sx={{ mb: 2 }}>
-                  Composez le service USSD Orange Money sur votre téléphone, demandez un
-                  code temporaire avec votre code secret Orange Money, puis saisissez ce
-                  code ci-dessous avant de cliquer sur « Payer ».
+                  Composez <strong>*144*4*6#</strong> sur votre téléphone Orange Money,
+                  entrez votre code secret pour recevoir un code OTP temporaire,
+                  puis saisissez ce code ci-dessous avant de cliquer sur « Payer ».
                 </Alert>
                 <TextField
                   fullWidth label="Code OTP Orange Money" sx={{ mb: 2 }}
@@ -331,15 +331,36 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
             Ne fermez pas cette fenêtre.
           </Alert>
         )}
-        {status === "succeeded" && purpose === "commission" && (
-          <Alert severity="success" sx={{ mt: 2 }}>
-            ✓ Commission ImmoBF réglée. Le paiement du séjour/loyer se fait directement
-            avec le propriétaire, en mobile money, au numéro affiché sur l'annonce
-            ({property?.owner_phone || property?.owner_whatsapp || "—"}). Un reçu vous a été envoyé par email.
-          </Alert>
-        )}
-        {status === "succeeded" && purpose !== "commission" && (
-          <Alert severity="success" sx={{ mt: 2 }}>✓ Paiement confirmé. Un reçu vous a été envoyé par email.</Alert>
+        {status === "succeeded" && (
+          <Box sx={{ mt: 2 }}>
+            <Alert severity="success">
+              {purpose === "commission"
+                ? "✓ Commission ImmoBF réglée. Contactez maintenant l'annonceur pour finaliser votre réservation."
+                : "✓ Paiement confirmé."
+              } Un reçu vous a été envoyé par email.
+            </Alert>
+            {/* Bouton WhatsApp vers l'annonceur */}
+            {(() => {
+              const wa = property?.owner_whatsapp || property?.owner_phone;
+              if (!wa) return null;
+              const clean = wa.replace(/\s+/g, "").replace(/^\+/, "");
+              const msg = encodeURIComponent(
+                `Bonjour, je viens de régler la commission ImmoBF Africa pour votre annonce "${property?.title}". Je souhaite finaliser la réservation.`
+              );
+              return (
+                <Button
+                  fullWidth
+                  variant="contained"
+                  href={`https://wa.me/${clean}?text=${msg}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{ mt: 2, bgcolor: "#25D366", "&:hover": { bgcolor: "#1ebe57" }, fontWeight: 700, fontSize: 15, py: 1.5 }}
+                >
+                  💬 Contacter l'annonceur sur WhatsApp — {wa}
+                </Button>
+              );
+            })()}
+          </Box>
         )}
         {status === "failed" && (
           <Alert severity="error" sx={{ mt: 2 }}>
