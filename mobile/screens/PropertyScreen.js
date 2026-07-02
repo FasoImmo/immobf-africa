@@ -290,5 +290,4 @@ const styles = StyleSheet.create({
   },
   waIcon: { fontSize: 20 },
   waBtnText: { color: "white", fontWeight: "700", fontSize: 14, flex: 1 },
-  noContact: { color: "#999", fontStyle: "italic" },
-});
+  noContact: { color: "#999", fontStyle: "italic

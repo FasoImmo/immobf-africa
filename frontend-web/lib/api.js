@@ -73,8 +73,10 @@ export const Properties = {
   search: (params) => api.get("/properties", { params: { ...params, lang: getLang() } }).then((r) => r.data),
   get: (id) => api.get(`/properties/${id}`, { params: { lang: getLang() } }).then((r) => r.data),
   create: (data) => api.post("/properties", data).then((r) => r.data),
+  update: (id, data) => api.patch(`/properties/${id}`, data).then((r) => r.data),
   publish: (id) => api.post(`/properties/${id}/publish`).then((r) => r.data),
   estimate: (data) => api.post("/properties/estimate", data).then((r) => r.data),
+  myListings: () => api.get("/my/listings").then((r) => r.data),
 };
 
 export const Auth = {
@@ -120,6 +122,8 @@ export const Photos = {
       headers: { "Content-Type": "multipart/form-data" },
     }).then((r) => r.data);
   },
+  delete: (propertyId, photoId) =>
+    api.delete(`/properties/${propertyId}/photos/${photoId}`).then((r) => r.data),
 };
 
 export const Payments = {
@@ -137,4 +141,6 @@ export const Admin = {
   logoutUser: (id) => api.post(`/admin/users/${id}/logout`).then((r) => r.data),
   properties: (params) => api.get("/admin/properties", { params }).then((r) => r.data),
   revenues: () => api.get("/admin/revenues").then((r) => r.data),
+  paymentStats: (params) => api.get("/admin/payment-stats", { params }).then((r) => r.data),
+  updateProfile: (data) => api.patch("/admin/profile", data).then((r) => r.data),
 };

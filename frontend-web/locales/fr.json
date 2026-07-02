@@ -66,7 +66,13 @@
     "email_invalid": "Email invalide.",
     "email_updated": "Email mis à jour avec succès.",
     "email_taken": "Cet email est déjà utilisé par un autre compte.",
-    "email_save_error": "Impossible d'enregistrer l'email. Réessayez."
+    "email_save_error": "Impossible d'enregistrer l'email. Réessayez.",
+    "draft_saved": "Brouillon enregistré — retrouvez-le ci-dessous pour finaliser la publication.",
+    "drafts": "Brouillons",
+    "draft_badge": "Brouillon",
+    "draft_resume": "Payer & publier",
+    "edit": "Modifier",
+    "untitled": "Sans titre"
   },
   "sell": {
     "title": "Publier une annonce",
@@ -119,7 +125,8 @@
     "period_weekly": "Par semaine",
     "period_nightly": "Par nuit",
     "pay_failed": "Le paiement a échoué. Veuillez réessayer.",
-    "ussd_hint": "Générez ce code via le service USSD Orange Money avant de payer."
+    "ussd_hint": "Générez ce code via le service USSD Orange Money avant de payer.",
+    "save_draft": "Enregistrer comme brouillon"
   },
   "types": {
     "land": "Terrain / Parcelle",
@@ -363,5 +370,16 @@
       "art22_title": "Article 22 — Signalement",
       "art22_p1": "Tout contenu manifestement illicite peut être signalé à"
     }
+  },
+  "edit": {
+    "page_title": "Modifier l'annonce",
+    "duration_locked": "Durée de publication inchangée",
+    "save_btn": "Enregistrer les modifications",
+    "save_success": "Annonce mise à jour avec succès.",
+    "current_photos": "Photos actuelles",
+    "no_photos": "Aucune photo pour le moment.",
+    "add_photos": "Ajouter des photos",
+    "confirm_delete_photo": "Supprimer cette photo définitivement ?",
+    "delete_photo_error": "Impossible de supprimer la photo. Réessayez."
   }
 }

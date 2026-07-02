@@ -217,11 +217,15 @@ function CountryModal({ visible, selected, onSelect, onClose, title }) {
 }
 
 // ─── Composant principal ──────────────────────────────────────────────────────
-export default function SellScreen({ navigation }) {
+export default function SellScreen({ navigation, route }) {
   const { lang } = useLang();
   const t = T[lang] || T.fr;
   const txTypes = TX_TYPES[lang] || TX_TYPES.fr;
   const propTypes = PROP_TYPES[lang] || PROP_TYPES.fr;
+
+  // Params de navigation : editMode=true + propertyId + initialData pour édition
+  // ou resumeId pour reprendre un brouillon
+  const routeParams = route?.params || {};
 
   const [loggedIn, setLoggedIn] = useState(null); // null=loading
 
@@ -247,6 +251,44 @@ export default function SellScreen({ navigation }) {
   const [showCountryModal, setShowCountryModal] = useState(false);
   const [formBusy, setFormBusy] = useState(false);
 
+  // Mode édition ou reprise de brouillon via navigation params
+  useEffect(() => {
+    const { editMode, initialData, resumeId } = routeParams;
+    if (editMode && initialData) {
+      // Mode édition : pré-remplir le formulaire, sauter le paiement
+      setForm({
+        transaction_type: initialData.transaction_type || "sale",
+        type: initialData.type || "house",
+        title: initialData.title || "",
+        description: initialData.description || "",
+        price: initialData.price ? String(initialData.price) : "",
+        currency: initialData.currency || "XOF",
+        country_code: initialData.country_code || "BF",
+        city: initialData.city || "",
+      });
+      setPropertyId(routeParams.propertyId);
+    } else if (resumeId) {
+      // Reprise brouillon : charger depuis l'API puis aller au paiement
+      Properties.get(resumeId).then((d) => {
+        const p = d.property;
+        setForm({
+          transaction_type: p.transaction_type || "sale",
+          type: p.type || "house",
+          title: p.title || "",
+          description: p.description || "",
+          price: p.price ? String(p.price) : "",
+          currency: p.currency || "XOF",
+          country_code: p.country_code || "BF",
+          city: p.city || "",
+        });
+        setPropertyId(resumeId);
+        setStep(2);
+      }).catch(() => {});
+    }
+  }, []); // eslint-disable-line
+
+  const isEditMode = Boolean(routeParams.editMode && routeParams.propertyId);
+
   async function submitForm() {
     if (!form.title.trim() || !form.city.trim() || !form.price) {
       return Alert.alert("Erreur", t.errRequired);
@@ -259,9 +301,42 @@ export default function SellScreen({ navigation }) {
         price: Number(form.price),
         rent_period: isRent ? "monthly" : null,
       };
+
+      if (isEditMode) {
+        // Mode édition : PATCH + aller directement aux photos
+        await Properties.update(propertyId, payload);
+        setStep(3);
+        return;
+      }
+
       const res = await Properties.create(payload);
       setPropertyId(res.property.id);
       setStep(2);
+    } catch (e) {
+      Alert.alert("Erreur", e?.response?.data?.error?.message || e.message);
+    } finally { setFormBusy(false); }
+  }
+
+  // Enregistrer comme brouillon sans passer au paiement
+  async function saveDraft() {
+    if (!form.title.trim() || !form.city.trim() || !form.price) {
+      return Alert.alert("Erreur", t.errRequired);
+    }
+    setFormBusy(true);
+    try {
+      const isRent = form.transaction_type !== "sale";
+      await Properties.create({
+        ...form,
+        price: Number(form.price),
+        rent_period: isRent ? "monthly" : null,
+      });
+      Alert.alert(
+        lang === "fr" ? "Brouillon enregistré" : "Draft saved",
+        lang === "fr"
+          ? "Retrouvez votre brouillon dans votre compte pour le finaliser."
+          : "Find your draft in your account to complete it.",
+        [{ text: "OK", onPress: () => navigation.navigate("Compte") }]
+      );
     } catch (e) {
       Alert.alert("Erreur", e?.response?.data?.error?.message || e.message);
     } finally { setFormBusy(false); }
@@ -520,9 +595,25 @@ export default function SellScreen({ navigation }) {
           >
             {formBusy
               ? <ActivityIndicator color="white" />
-              : <Text style={s.btnText}>{t.nextBtn}</Text>
+              : <Text style={s.btnText}>
+                  {isEditMode
+                    ? (lang === "fr" ? "Enregistrer les modifications" : "Save changes")
+                    : t.nextBtn}
+                </Text>
             }
           </TouchableOpacity>
+
+          {/* Bouton brouillon — masqué en mode édition */}
+          {!isEditMode && (
+            <TouchableOpacity
+              style={[s.btnOutline, formBusy && s.btnDisabled, { marginTop: 10 }]}
+              onPress={saveDraft} disabled={formBusy}
+            >
+              <Text style={s.btnOutlineText}>
+                💾 {lang === "fr" ? "Enregistrer comme brouillon" : "Save as draft"}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -794,7 +885,9 @@ const s = StyleSheet.create({
   doneHint: { fontSize: 15, color: "#555", textAlign: "center", marginTop: 12, lineHeight: 22 },
   // Shared
   btn: { marginTop: 20, backgroundColor: "#0E7C66", borderRadius: 8, padding: 14, alignItems: "center" },
-  btnDisabled: { backgroundColor: "#aaa" },
+  btnOutline: { borderWidth: 1.5, borderColor: "#0E7C66", borderRadius: 8, padding: 13, alignItems: "center" },
+  btnOutlineText: { color: "#0E7C66", fontWeight: "600", fontSize: 15 },
+  btnDisabled: { backgroundColor: "#aaa", borderColor: "#aaa" },
   btnText: { color: "white", fontWeight: "700", fontSize: 16 },
   // Modal
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },

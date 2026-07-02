@@ -205,6 +205,35 @@ export default function SellPage() {
     }
   }, [router.isReady, router.query.tx]); // eslint-disable-line
 
+  // ─── Reprise d'un brouillon via ?resume=propertyId ───────────────────────
+  useEffect(function() {
+    if (!router.isReady) return;
+    var resumeId = router.query.resume;
+    if (!resumeId) return;
+    Properties.get(resumeId).then(function(d) {
+      var p = d.property;
+      setForm({
+        transaction_type: p.transaction_type || "sale",
+        type: p.type || "house",
+        title: p.title || "",
+        description: p.description || "",
+        price: p.price || "",
+        currency: p.currency || "XOF",
+        area_m2: p.area_m2 || "",
+        bedrooms: p.bedrooms || "",
+        bathrooms: p.bathrooms || "",
+        country_code: p.country_code || "BF",
+        city: p.city || "",
+        address: p.address || "",
+        neighborhood: p.neighborhood || "",
+        is_furnished: p.is_furnished || false,
+        rent_period: p.rent_period || "monthly",
+      });
+      setPropertyId(resumeId);
+      setStep(2); // brouillon déjà créé → aller directement au paiement
+    }).catch(function() {});
+  }, [router.isReady, router.query.resume]); // eslint-disable-line
+
   // Pré-sélectionne le pays acheteur = pays de l'annonce dès l'arrivée à
   // l'étape 2 (point de départ raisonnable), mais l'utilisateur peut le
   // changer ci-dessous s'il paie depuis un autre pays.
@@ -273,6 +302,26 @@ export default function SellPage() {
       var res = await Properties.create(payload);
       setPropertyId(res.property.id);
       setStep(2);
+    } catch (err) {
+      setFormErr(err && err.response && err.response.data && err.response.data.error
+        ? err.response.data.error.message : err.message);
+    } finally { setFormBusy(false); }
+  }
+
+  // ─── Enregistrer comme brouillon (sans passer au paiement) ───────────────
+  async function saveDraft(e) {
+    e.preventDefault(); setFormErr(null); setFormBusy(true);
+    try {
+      var payload = Object.assign({}, form, {
+        price: Number(form.price) || 0,
+        area_m2: form.area_m2 ? Number(form.area_m2) : null,
+        bedrooms: form.bedrooms ? Number(form.bedrooms) : null,
+        bathrooms: form.bathrooms ? Number(form.bathrooms) : null,
+        is_furnished: Boolean(form.is_furnished),
+        rent_period: isRent ? form.rent_period : null,
+      });
+      await Properties.create(payload);
+      router.push("/account?draft_saved=1");
     } catch (err) {
       setFormErr(err && err.response && err.response.data && err.response.data.error
         ? err.response.data.error.message : err.message);
@@ -485,7 +534,14 @@ export default function SellPage() {
             </Grid>
 
             {formErr && <Alert severity="error" sx={{ mt: 2 }}>{formErr}</Alert>}
-            <Box sx={{ mt: 3, textAlign: "right" }}>
+            <Box sx={{ mt: 3, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }}>
+              <Button
+                variant="outlined" color="inherit" disabled={formBusy}
+                onClick={saveDraft}
+                sx={{ color: "text.secondary" }}
+              >
+                💾 {t("sell.save_draft")}
+              </Button>
               <Button type="submit" variant="contained" disabled={formBusy}>
                 {t("sell.next_btn")}
               </Button>

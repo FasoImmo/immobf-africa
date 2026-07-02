@@ -48,11 +48,15 @@ export default function AccountPage() {
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailMsg, setEmailMsg] = useState(null);
 
+  const [draftSaved, setDraftSaved] = useState(false);
+
   useEffect(() => {
     const stored = localStorage.getItem("immobf_user");
     const token = localStorage.getItem("immobf_token");
     if (!stored || !token) { router.replace("/login?redirect=/account"); return; }
     setUser(JSON.parse(stored));
+
+    if (router.query.draft_saved) setDraftSaved(true);
 
     Analytics.myStats()
       .then((r) => setListings(r.listings || []))
@@ -62,6 +66,14 @@ export default function AccountPage() {
 
   function renew(propertyId) {
     router.push(`/sell?renew=${propertyId}`);
+  }
+
+  function editListing(propertyId) {
+    router.push(`/properties/${propertyId}/edit`);
+  }
+
+  function resumeDraft(propertyId) {
+    router.push(`/sell?resume=${propertyId}`);
   }
 
   async function saveEmail() {
@@ -88,16 +100,25 @@ export default function AccountPage() {
     }
   }
 
+  const drafts = listings.filter((l) => l.status === "draft");
+  const published = listings.filter((l) => l.status !== "draft");
+
   const stats = {
-    total: listings.length,
-    active: listings.filter((l) => l.subscription_status === "active").length,
-    expiring: listings.filter((l) => l.subscription_status === "expiring_soon").length,
-    expired: listings.filter((l) => l.subscription_status === "expired").length,
+    total: published.length,
+    active: published.filter((l) => l.subscription_status === "active").length,
+    expiring: published.filter((l) => l.subscription_status === "expiring_soon").length,
+    expired: published.filter((l) => l.subscription_status === "expired").length,
   };
 
   return (
     <Layout title={`${t("account.title")} — ImmoBF Africa`}>
       <Typography variant="h4" gutterBottom>{t("account.title")}</Typography>
+
+      {draftSaved && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setDraftSaved(false)}>
+          {t("account.draft_saved")}
+        </Alert>
+      )}
 
       {user && (
         <Paper elevation={0} sx={{ p: 2, mb: 3, bgcolor: "#f5f5f5", borderRadius: 2 }}>
@@ -179,8 +200,43 @@ export default function AccountPage() {
         </Alert>
       )}
 
+      {/* ─── Brouillons ────────────────────────────────────────────────────── */}
+      {!loading && drafts.length > 0 && (
+        <>
+          <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
+            📝 {t("account.drafts")} ({drafts.length})
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            {drafts.map((p) => (
+              <Grid item xs={12} sm={6} md={4} key={p.id}>
+                <Card elevation={1} sx={{ border: "1px dashed #ccc" }}>
+                  <CardContent sx={{ pb: 1 }}>
+                    <Chip label={t("account.draft_badge")} size="small" color="default" sx={{ mb: 1 }} />
+                    <Typography variant="subtitle2" noWrap>{p.title || t("account.untitled")}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {p.city} {p.price ? `· ${formatFCFA(p.price, p.currency)}` : ""}
+                    </Typography>
+                  </CardContent>
+                  <Divider />
+                  <CardActions sx={{ gap: 1, px: 2 }}>
+                    <Button size="small" variant="outlined" onClick={() => resumeDraft(p.id)}>
+                      {t("account.draft_resume")}
+                    </Button>
+                    <Button size="small" onClick={() => editListing(p.id)}>
+                      {t("account.edit")}
+                    </Button>
+                  </CardActions>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+          <Divider sx={{ mb: 3 }} />
+        </>
+      )}
+
+      {/* ─── Annonces publiées ──────────────────────────────────────────────── */}
       <Grid container spacing={2}>
-        {listings.map((p) => {
+        {published.map((p) => {
           const cover = p.photos?.[0]?.url || `https://picsum.photos/seed/${p.id}/400/250`;
           const isExpiringSoon = p.subscription_status === "expiring_soon";
           const isExpired = p.subscription_status === "expired";
@@ -224,10 +280,15 @@ export default function AccountPage() {
                   )}
                 </CardContent>
                 <Divider />
-                <CardActions sx={{ justifyContent: "space-between", px: 2 }}>
-                  <Button size="small" component={Link} href={`/properties/${p.id}`}>
-                    {t("account.view")}
-                  </Button>
+                <CardActions sx={{ justifyContent: "space-between", px: 2, flexWrap: "wrap", gap: 1 }}>
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <Button size="small" component={Link} href={`/properties/${p.id}`}>
+                      {t("account.view")}
+                    </Button>
+                    <Button size="small" variant="outlined" onClick={() => editListing(p.id)}>
+                      ✏️ {t("account.edit")}
+                    </Button>
+                  </Box>
                   {(isExpiringSoon || isExpired) && (
                     <Button
                       size="small" variant="contained" color="warning"

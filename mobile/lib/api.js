@@ -50,6 +50,7 @@ export const Properties = {
   search: (params) => api.get("/properties", { params }).then((r) => r.data),
   get: (id, lang) => api.get(`/properties/${id}`, { params: lang ? { lang } : {} }).then((r) => r.data),
   create: (data) => api.post("/properties", data).then((r) => r.data),
+  update: (id, data) => api.patch(`/properties/${id}`, data).then((r) => r.data),
   myListings: () => api.get("/my/listings").then((r) => r.data),
 };
 
@@ -66,6 +67,8 @@ export const Photos = {
       headers: { "Content-Type": "multipart/form-data" },
     }).then((r) => r.data);
   },
+  delete: (propertyId, photoId) =>
+    api.delete(`/properties/${propertyId}/photos/${photoId}`).then((r) => r.data),
 };
 
 export const Auth = {

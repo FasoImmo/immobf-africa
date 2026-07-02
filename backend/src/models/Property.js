@@ -331,7 +331,67 @@ async function listAllForAdmin(opts) {
   return rows.map(hydrate);
 }
 
+// Mise à jour des champs d'une annonce (hors durée/statut de publication).
+// Seul le propriétaire peut modifier ses propres annonces.
+const UPDATABLE_FIELDS = [
+  "transaction_type", "type", "title", "description",
+  "price", "currency", "area_m2", "bedrooms", "bathrooms",
+  "country_code", "city", "neighborhood", "address",
+  "lat", "lng", "is_furnished", "rent_period", "features",
+];
+
+async function update(id, ownerId, data) {
+  const sets = [];
+  const values = [];
+
+  for (const key of UPDATABLE_FIELDS) {
+    if (data[key] === undefined) continue;
+    let expr;
+    if (key === "features") {
+      values.push(JSON.stringify(data[key]));
+      expr = `features = $${values.length}::jsonb`;
+    } else if (key === "city") {
+      values.push(data[key]);
+      expr = `city = TRIM($${values.length})`;
+    } else {
+      values.push(data[key]);
+      expr = `${key} = $${values.length}`;
+    }
+    sets.push(expr);
+  }
+
+  if (sets.length === 0) return findById(id);
+
+  values.push(id, ownerId);
+  const { rows } = await query(
+    `UPDATE properties
+     SET ${sets.join(", ")}, updated_at = NOW(),
+         title_translations = '{}'::jsonb,
+         description_translations = '{}'::jsonb
+     WHERE id = $${values.length - 1} AND owner_id = $${values.length}
+     RETURNING ${RETURNING_COLS}`,
+    values
+  );
+  return hydrate(rows[0] || null);
+}
+
+// Suppression d'une photo après vérification que l'annonce appartient à l'owner.
+async function deletePhoto(photoId, propertyId, ownerId) {
+  const { rows: own } = await query(
+    "SELECT 1 FROM properties WHERE id = $1 AND owner_id = $2",
+    [propertyId, ownerId]
+  );
+  if (!own.length) return false;
+
+  const { rows } = await query(
+    "DELETE FROM property_photos WHERE id = $1 AND property_id = $2 RETURNING id",
+    [photoId, propertyId]
+  );
+  return rows.length > 0;
+}
+
 module.exports = {
   create, findById, search, publish, markListingFeePaid, updateStatus, boost,
   addPhoto, photosFor, setExpiry, listForOwner, listAllForAdmin, withTransaction,
+  update, deletePhoto,
 };

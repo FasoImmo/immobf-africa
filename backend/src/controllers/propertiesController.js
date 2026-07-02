@@ -104,4 +104,41 @@ async function myListings(req, res) {
   res.json({ items: result });
 }
 
-module.exports = { create, get, publish, search, estimate, myListings };
+// Schéma de mise à jour — tous les champs sont optionnels.
+// Les champs de durée/publication sont volontairement absents.
+const updateSchema = Joi.object({
+  transaction_type: Joi.string().valid("sale", "rent_long", "rent_short"),
+  type: Joi.string().valid("land", "house", "apartment", "office", "commercial"),
+  title: Joi.string().min(5).max(200),
+  description: Joi.string().max(5000).allow("", null),
+  price: Joi.number().positive(),
+  currency: Joi.string().length(3).uppercase(),
+  area_m2: Joi.number().positive().allow(null),
+  bedrooms: Joi.number().integer().min(0).allow(null),
+  bathrooms: Joi.number().integer().min(0).allow(null),
+  country_code: Joi.string().length(2).uppercase(),
+  city: Joi.string().min(2).max(120),
+  neighborhood: Joi.string().max(150).allow("", null),
+  address: Joi.string().max(300).allow("", null),
+  lat: Joi.number().min(-90).max(90).allow(null),
+  lng: Joi.number().min(-180).max(180).allow(null),
+  is_furnished: Joi.boolean(),
+  rent_period: Joi.string().valid("monthly", "weekly", "nightly").allow(null),
+  features: Joi.object().unknown(true),
+});
+
+async function update(req, res) {
+  const { value, error } = updateSchema.validate(req.body);
+  if (error) throw BadRequest(error.message);
+
+  const p = await Property.findById(req.params.id);
+  if (!p) throw NotFound("Annonce introuvable");
+  if (p.owner_id !== req.user.id) throw Forbidden("Non autorisé");
+
+  const updated = await Property.update(req.params.id, req.user.id, value);
+  if (!updated) throw Forbidden("Non autorisé ou annonce introuvable");
+  const photos = await Property.photosFor(updated.id);
+  res.json({ property: { ...updated, photos } });
+}
+
+module.exports = { create, get, publish, search, estimate, myListings, update };

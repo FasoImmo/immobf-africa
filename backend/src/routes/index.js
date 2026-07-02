@@ -39,9 +39,11 @@ router.get ("/properties",              publicLimiter, asyncHandler(propCtl.sear
 router.post("/properties/estimate",     publicLimiter, asyncHandler(propCtl.estimate));
 router.get ("/properties/:id",          publicLimiter, asyncHandler(propCtl.get));
 router.post("/properties",              requireAuth,   asyncHandler(propCtl.create));
-router.post("/properties/:id/publish",  requireAuth,   asyncHandler(propCtl.publish));
-router.post("/properties/:id/photos",   requireAuth,   asyncHandler(photoCtl.uploadPhotos));
-router.get ("/my/listings",             requireAuth,   asyncHandler(propCtl.myListings));
+router.post  ("/properties/:id/publish",             requireAuth, asyncHandler(propCtl.publish));
+router.patch ("/properties/:id",                    requireAuth, asyncHandler(propCtl.update));
+router.post  ("/properties/:id/photos",             requireAuth, asyncHandler(photoCtl.uploadPhotos));
+router.delete("/properties/:id/photos/:photoId",    requireAuth, asyncHandler(photoCtl.deletePhoto));
+router.get   ("/my/listings",                       requireAuth, asyncHandler(propCtl.myListings));
 
 // --- Payments ---
 router.get ("/payments/providers",       asyncHandler(payCtl.listProviders));
@@ -65,6 +67,8 @@ router.patch("/admin/users/:id/block",      requireAdmin, asyncHandler(adminCtl.
 router.post ("/admin/users/:id/logout",     requireAdmin, asyncHandler(adminCtl.logoutUser));
 router.get  ("/admin/properties",           requireAdmin, asyncHandler(adminCtl.listProperties));
 router.get  ("/admin/revenues",             requireAdmin, asyncHandler(adminCtl.listRevenues));
+router.get  ("/admin/payment-stats",        requireAdmin, asyncHandler(adminCtl.paymentStats));
+router.patch("/admin/profile",              requireAdmin, asyncHandler(adminCtl.updateAdminProfile));
 
 // --- Analytics ---
 const analyticsLimiter = rateLimit({ windowMs: 10_000, max: 30 });

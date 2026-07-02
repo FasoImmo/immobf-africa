@@ -66,7 +66,13 @@
     "email_invalid": "Invalid email.",
     "email_updated": "Email updated successfully.",
     "email_taken": "This email is already used by another account.",
-    "email_save_error": "Could not save the email. Please try again."
+    "email_save_error": "Could not save the email. Please try again.",
+    "draft_saved": "Draft saved — find it below to complete the listing.",
+    "drafts": "Drafts",
+    "draft_badge": "Draft",
+    "draft_resume": "Pay & publish",
+    "edit": "Edit",
+    "untitled": "Untitled"
   },
   "sell": {
     "title": "Post a listing",
@@ -119,7 +125,8 @@
     "period_weekly": "Per week",
     "period_nightly": "Per night",
     "pay_failed": "Payment failed. Please try again.",
-    "ussd_hint": "Generate this code via the USSD Orange Money service before paying."
+    "ussd_hint": "Generate this code via the USSD Orange Money service before paying.",
+    "save_draft": "Save as draft"
   },
   "types": {
     "land": "Land / Plot",
@@ -363,5 +370,16 @@
       "art22_title": "Article 22 — Reporting",
       "art22_p1": "Any manifestly unlawful content may be reported to"
     }
+  },
+  "edit": {
+    "page_title": "Edit listing",
+    "duration_locked": "Publication duration unchanged",
+    "save_btn": "Save changes",
+    "save_success": "Listing updated successfully.",
+    "current_photos": "Current photos",
+    "no_photos": "No photos yet.",
+    "add_photos": "Add photos",
+    "confirm_delete_photo": "Delete this photo permanently?",
+    "delete_photo_error": "Could not delete photo. Please try again."
   }
 }

@@ -372,24 +372,4 @@ const s = StyleSheet.create({
   btn: { marginTop: 24, backgroundColor: "#0E7C66", borderRadius: 8, padding: 16, alignItems: "center" },
   btnDisabled: { backgroundColor: "#aaa" },
   btnText: { color: "white", fontWeight: "700", fontSize: 16 },
-  noProvider: { marginTop: 8, color: "#888", fontStyle: "italic", fontSize: 14 },
-  infoBox: { marginTop: 10, backgroundColor: "#e8f5e9", padding: 12, borderRadius: 8 },
-  infoText: { color: "#2e7d32", fontSize: 13, lineHeight: 18 },
-  info: { marginTop: 16, backgroundColor: "#fffbea", padding: 12, borderRadius: 8 },
-  linkBtn: { marginTop: 12, padding: 12, alignItems: "center" },
-  linkBtnText: { color: "#0E7C66", fontWeight: "600" },
-  // Modal
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
-  sheet: { backgroundColor: "white", borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: "65%" },
-  sheetHeader: {
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    padding: 16, borderBottomWidth: 1, borderBottomColor: "#eee",
-  },
-  sheetTitle: { fontSize: 16, fontWeight: "700" },
-  sheetClose: { fontSize: 18, color: "#888", padding: 4 },
-  option: { padding: 14, flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderBottomColor: "#f5f5f5" },
-  optionActive: { backgroundColor: "#f0faf6" },
-  optionText: { flex: 1, fontSize: 15, color: "#333" },
-  optionTextActive: { color: "#0E7C66", fontWeight: "600" },
-  optionDial: { fontSize: 13, color: "#888", marginRight: 8 },
-});
+  noProvider: { margin

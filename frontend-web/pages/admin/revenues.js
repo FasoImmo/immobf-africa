@@ -1,18 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import {
   Box, Paper, Typography, Table, TableHead, TableRow, TableCell,
   TableBody, Button, CircularProgress, Chip, TextField, InputAdornment,
+  Grid, Divider, Alert,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import Layout from "../../components/Layout";
 import { Admin } from "../../lib/api";
 import { formatFCFA } from "../../lib/format";
-
-// Page dédiée au suivi des annonceurs : par pays, montant total payé à
-// ImmoBF (fidélité), nombre d'annonces publiées, et date de dernière
-// activité. Chaque ligne représente un utilisateur ayant au moins une
-// transaction ou une annonce.
 
 function badge(n) {
   if (n >= 5) return { label: "Fidèle ⭐", color: "success" };
@@ -30,34 +26,105 @@ function accessGuard(router, setAuthorized) {
   setAuthorized(true);
 }
 
+// KPI card component
+function KpiCard({ label, value, color = "text.primary", subtitle }) {
+  return (
+    <Paper elevation={1} sx={{ p: 2, textAlign: "center", height: "100%" }}>
+      <Typography variant="h4" color={color} fontWeight={700}>{value}</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{label}</Typography>
+      {subtitle && (
+        <Typography variant="caption" color="text.disabled">{subtitle}</Typography>
+      )}
+    </Paper>
+  );
+}
+
+// Preset period helpers
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+function daysAgo(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+function startOfMonth() {
+  const d = new Date();
+  d.setDate(1);
+  return d.toISOString().slice(0, 10);
+}
+function startOfYear() {
+  const d = new Date();
+  d.setMonth(0, 1);
+  return d.toISOString().slice(0, 10);
+}
+
+const PRESETS = [
+  { label: "Aujourd'hui",      start: today,        end: today },
+  { label: "7 derniers jours", start: () => daysAgo(6), end: today },
+  { label: "30 derniers jours",start: () => daysAgo(29), end: today },
+  { label: "Ce mois",         start: startOfMonth, end: today },
+  { label: "Cette année",     start: startOfYear,  end: today },
+  { label: "Tout",            start: () => "",     end: () => "" },
+];
+
 export default function AdminRevenues() {
   const router = useRouter();
   const [authorized, setAuthorized] = useState(null);
+
+  // Period filter
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  // Payment stats
+  const [period, setPeriod] = useState(null);
+  const [byProvider, setByProvider] = useState([]);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsErr, setStatsErr] = useState(null);
+
+  // Annonceurs
   const [annonceurs, setAnnonceurs] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [annLoading, setAnnLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [filterCountry, setFilterCountry] = useState("");
 
   useEffect(() => { accessGuard(router, setAuthorized); }, []); // eslint-disable-line
 
+  // Load annonceurs once on mount
   useEffect(() => {
     if (authorized !== true) return;
-    setLoading(true);
+    setAnnLoading(true);
     Admin.revenues()
       .then((d) => setAnnonceurs(d.annonceurs || []))
-      .finally(() => setLoading(false));
+      .finally(() => setAnnLoading(false));
   }, [authorized]);
+
+  // Load payment stats (re-runs on period change)
+  const loadStats = useCallback(() => {
+    if (authorized !== true) return;
+    setStatsLoading(true);
+    setStatsErr(null);
+    const params = {};
+    if (startDate) params.start = startDate;
+    if (endDate)   params.end   = endDate;
+    Admin.paymentStats(params)
+      .then((d) => { setPeriod(d.period); setByProvider(d.byProvider || []); })
+      .catch(() => setStatsErr("Impossible de charger les statistiques de paiement."))
+      .finally(() => setStatsLoading(false));
+  }, [authorized, startDate, endDate]);
+
+  useEffect(() => { loadStats(); }, [loadStats]);
 
   if (authorized === null) {
     return (
-      <Layout title="Revenus par annonceur — Admin ImmoBF">
+      <Layout title="Paiements — Admin ImmoBF">
         <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box>
       </Layout>
     );
   }
   if (authorized === false) {
     return (
-      <Layout title="Revenus — Admin ImmoBF">
+      <Layout title="Paiements — Admin ImmoBF">
         <Paper sx={{ p: 4, textAlign: "center" }}>
           <Typography variant="h5">Accès refusé</Typography>
         </Paper>
@@ -65,9 +132,8 @@ export default function AdminRevenues() {
     );
   }
 
-  // Pays disponibles dans la liste pour le filtre
+  // Annonceurs filter
   const countries = [...new Set(annonceurs.map((a) => a.main_country).filter(Boolean))].sort();
-
   const filtered = annonceurs.filter((a) => {
     const q = search.toLowerCase();
     const matchSearch = !q ||
@@ -77,7 +143,6 @@ export default function AdminRevenues() {
     const matchCountry = !filterCountry || a.main_country === filterCountry;
     return matchSearch && matchCountry;
   });
-
   const totalRevenue = filtered.reduce((s, a) => s + Number(a.total_paid || 0), 0);
 
   function exportCsv() {
@@ -95,17 +160,200 @@ export default function AdminRevenues() {
     URL.revokeObjectURL(url);
   }
 
+  const periodLabel = (!startDate && !endDate)
+    ? "Tout"
+    : `${startDate || "…"} → ${endDate || "…"}`;
+
   return (
-    <Layout title="Revenus par annonceur — Admin ImmoBF">
+    <Layout title="Paiements & Revenus — Admin ImmoBF">
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3, flexWrap: "wrap" }}>
         <Button variant="text" onClick={() => router.push("/admin")}>← Tableau de bord</Button>
         <Typography variant="h5" fontWeight={700} sx={{ flex: 1 }}>
-          Revenus par annonceur
+          Paiements &amp; Revenus
+        </Typography>
+        <Button variant="text" size="small" onClick={() => router.push("/admin/profile")}>
+          ⚙️ Mon profil
+        </Button>
+      </Box>
+
+      {/* ── Section 1 : filtre période ───────────────────────────────────── */}
+      <Paper elevation={0} sx={{ p: 2, mb: 3, bgcolor: "#f9f9f9", borderRadius: 2 }}>
+        <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+          Période d'analyse
+        </Typography>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
+          {PRESETS.map((p) => (
+            <Chip
+              key={p.label}
+              label={p.label}
+              size="small"
+              clickable
+              variant={
+                startDate === p.start() && endDate === p.end() ? "filled" : "outlined"
+              }
+              color={startDate === p.start() && endDate === p.end() ? "primary" : "default"}
+              onClick={() => { setStartDate(p.start()); setEndDate(p.end()); }}
+            />
+          ))}
+        </Box>
+        <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
+          <TextField
+            size="small" type="date" label="Du"
+            value={startDate} onChange={(e) => setStartDate(e.target.value)}
+            InputLabelProps={{ shrink: true }} sx={{ width: 160 }}
+          />
+          <TextField
+            size="small" type="date" label="Au"
+            value={endDate} onChange={(e) => setEndDate(e.target.value)}
+            InputLabelProps={{ shrink: true }} sx={{ width: 160 }}
+          />
+          {statsLoading && <CircularProgress size={18} />}
+        </Box>
+      </Paper>
+
+      {statsErr && <Alert severity="error" sx={{ mb: 2 }}>{statsErr}</Alert>}
+
+      {/* ── Section 2 : KPIs période ────────────────────────────────────── */}
+      {period && (
+        <>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
+            KPIs — {periodLabel}
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={6} sm={3}>
+              <KpiCard
+                label="CA total"
+                value={formatFCFA(period.total_revenue)}
+                color="success.main"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <KpiCard
+                label="Transactions réussies"
+                value={period.nb_succeeded}
+                color="success.main"
+                subtitle={`dont frais: ${formatFCFA(period.revenue_listing)}`}
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <KpiCard
+                label="Transactions échouées"
+                value={period.nb_failed}
+                color="error.main"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <KpiCard
+                label="En attente"
+                value={period.nb_pending}
+                color="warning.main"
+                subtitle={`Annulés: ${period.nb_cancelled}`}
+              />
+            </Grid>
+          </Grid>
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={6} sm={3}>
+              <KpiCard label="Total transactions" value={period.nb_total} />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <KpiCard
+                label="Annonceurs actifs"
+                value={period.nb_annonceurs_actifs}
+                color="primary.main"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <KpiCard
+                label="CA frais publication"
+                value={formatFCFA(period.revenue_listing)}
+                color="primary.main"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <KpiCard
+                label="CA commissions"
+                value={formatFCFA(period.revenue_commission)}
+                color="primary.main"
+              />
+            </Grid>
+          </Grid>
+        </>
+      )}
+
+      {/* ── Section 3 : répartition par provider ────────────────────────── */}
+      {byProvider.length > 0 && (
+        <>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
+            Répartition par source de paiement
+          </Typography>
+          <Paper sx={{ overflowX: "auto", mb: 4 }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ "& th": { fontWeight: 700, background: "#f5f5f5" } }}>
+                  <TableCell>Provider</TableCell>
+                  <TableCell align="right">CA réussi</TableCell>
+                  <TableCell align="right">Réussies</TableCell>
+                  <TableCell align="right">Échouées</TableCell>
+                  <TableCell align="right">En attente</TableCell>
+                  <TableCell align="right">Total</TableCell>
+                  <TableCell align="right">Taux succès</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {byProvider.map((p) => {
+                  const rate = Number(p.nb_total) > 0
+                    ? Math.round((Number(p.nb_succeeded) / Number(p.nb_total)) * 100)
+                    : 0;
+                  return (
+                    <TableRow key={p.provider} hover>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600} sx={{ textTransform: "capitalize" }}>
+                          {p.provider}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" fontWeight={700} color={Number(p.total_revenue) > 0 ? "success.main" : "text.secondary"}>
+                          {formatFCFA(p.total_revenue)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" color="success.main">{p.nb_succeeded}</Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" color={Number(p.nb_failed) > 0 ? "error.main" : "text.secondary"}>
+                          {p.nb_failed}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" color="warning.main">{p.nb_pending}</Typography>
+                      </TableCell>
+                      <TableCell align="right">{p.nb_total}</TableCell>
+                      <TableCell align="right">
+                        <Chip
+                          label={`${rate}%`}
+                          size="small"
+                          color={rate >= 70 ? "success" : rate >= 40 ? "warning" : "error"}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </Paper>
+        </>
+      )}
+
+      <Divider sx={{ mb: 3 }} />
+
+      {/* ── Section 4 : annonceurs (all-time) ───────────────────────────── */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, flexWrap: "wrap" }}>
+        <Typography variant="h6" fontWeight={700} sx={{ flex: 1 }}>
+          Revenus par annonceur (all-time)
         </Typography>
         <Button variant="outlined" size="small" onClick={exportCsv}>Exporter CSV</Button>
       </Box>
 
-      {/* Filtres */}
       <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
         <TextField
           size="small" placeholder="Nom, téléphone, email…"
@@ -126,7 +374,7 @@ export default function AdminRevenues() {
         </Typography>
       </Box>
 
-      {loading && <CircularProgress size={20} sx={{ mb: 2 }} />}
+      {annLoading && <CircularProgress size={20} sx={{ mb: 2 }} />}
 
       <Paper sx={{ overflowX: "auto" }}>
         <Table size="small">
@@ -148,42 +396,29 @@ export default function AdminRevenues() {
                 <TableRow key={a.id} hover>
                   <TableCell>
                     <Typography variant="body2" fontWeight={600}>{a.full_name || "—"}</Typography>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      {a.phone}
-                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">{a.phone}</Typography>
                     {a.email && (
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        {a.email}
-                      </Typography>
+                      <Typography variant="caption" color="text.secondary" display="block">{a.email}</Typography>
                     )}
                   </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{a.main_country || "—"}</Typography>
-                  </TableCell>
+                  <TableCell><Typography variant="body2">{a.main_country || "—"}</Typography></TableCell>
                   <TableCell align="right">{a.nb_annonces}</TableCell>
                   <TableCell align="right">{a.nb_transactions}</TableCell>
                   <TableCell align="right">
-                    <Typography
-                      variant="body2" fontWeight={700}
-                      color={Number(a.total_paid) > 0 ? "#1B6B3A" : "text.secondary"}
-                    >
+                    <Typography variant="body2" fontWeight={700} color={Number(a.total_paid) > 0 ? "#1B6B3A" : "text.secondary"}>
                       {formatFCFA(a.total_paid)}
                     </Typography>
                   </TableCell>
-                  <TableCell>
-                    <Chip label={b.label} color={b.color} size="small" />
-                  </TableCell>
+                  <TableCell><Chip label={b.label} color={b.color} size="small" /></TableCell>
                   <TableCell>
                     <Typography variant="caption">
-                      {a.last_payment_at
-                        ? new Date(a.last_payment_at).toLocaleDateString("fr-FR")
-                        : "—"}
+                      {a.last_payment_at ? new Date(a.last_payment_at).toLocaleDateString("fr-FR") : "—"}
                     </Typography>
                   </TableCell>
                 </TableRow>
               );
             })}
-            {filtered.length === 0 && !loading && (
+            {filtered.length === 0 && !annLoading && (
               <TableRow>
                 <TableCell colSpan={7} align="center" sx={{ py: 4, color: "text.secondary" }}>
                   Aucun annonceur trouvé
@@ -194,7 +429,6 @@ export default function AdminRevenues() {
         </Table>
       </Paper>
 
-      {/* Légende fidélité */}
       <Box sx={{ mt: 2, display: "flex", gap: 2, flexWrap: "wrap" }}>
         <Typography variant="caption" color="text.secondary">Fidélité :</Typography>
         <Chip label="Nouveau (1 tx)" color="default" size="small" />

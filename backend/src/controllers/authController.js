@@ -170,14 +170,4 @@ async function resetPassword(req, res) {
   const { getRedis } = require("../config/redis");
   const redis = getRedis();
   const stored = await redis.get(`otp:email:${value.email.toLowerCase()}`);
-  if (!stored || stored !== value.code) throw BadRequest("Code invalide ou expiré");
-  await redis.del(`otp:email:${value.email.toLowerCase()}`);
-
-  const user = await User.findByEmail(value.email);
-  if (!user) throw BadRequest("Utilisateur introuvable");
-
-  await User.updatePasswordByEmail(value.email, value.new_password);
-  res.json({ success: true });
-}
-
-module.exports = { register, login, verifyPhone, me, refresh, resendOtp, forgotPassword, resetPassword, updateEmail };
+  if (!stored || s

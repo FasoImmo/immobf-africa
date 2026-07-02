@@ -88,6 +88,25 @@ async function updateEmail(id, email) {
   return rows[0] || null;
 }
 
+// Changer le téléphone (login) d'un utilisateur — usage admin seulement.
+async function updatePhone(id, phone) {
+  const { rows } = await query(
+    `UPDATE users SET phone = $1 WHERE id = $2 RETURNING ${PUBLIC_FIELDS}`,
+    [phone, id]
+  );
+  return rows[0] || null;
+}
+
+// Changer le mot de passe d'un utilisateur par son ID (admin, ou après vérif).
+async function updatePasswordById(id, newPassword) {
+  const password_hash = await argon2.hash(newPassword, { type: argon2.argon2id });
+  const { rows } = await query(
+    `UPDATE users SET password_hash = $1 WHERE id = $2 RETURNING id`,
+    [password_hash, id]
+  );
+  return rows[0] || null;
+}
+
 // Liste paginée pour le dashboard admin — pas d'abonnés/followers au sens
 // réseau social ici, "abonné" = utilisateur inscrit sur la plateforme.
 // Inclut le nombre d'annonces publiées par l'utilisateur (utile pour
@@ -138,5 +157,6 @@ async function forceLogout(id) {
 
 module.exports = {
   create, findByPhone, findByEmail, findById, findByIdWithAuth, verifyPassword, markPhoneVerified,
-  updatePassword, updatePasswordByEmail, updateEmail, list, setBlocked, forceLogout,
+  updatePassword, updatePasswordByEmail, updateEmail, updatePhone, updatePasswordById,
+  list, setBlocked, forceLogout,
 };

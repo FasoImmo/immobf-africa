@@ -7,10 +7,11 @@
 // seule — aucune action ni vue détaillée par utilisateur n'existait.
 
 const Joi = require("joi");
+const argon2 = require("argon2");
 const User = require("../models/User");
 const Property = require("../models/Property");
 const Transaction = require("../models/Transaction");
-const { BadRequest, NotFound } = require("../utils/errors");
+const { BadRequest, NotFound, Conflict } = require("../utils/errors");
 
 const listSchema = Joi.object({
   limit: Joi.number().integer().min(1).max(500).default(100),
@@ -72,4 +73,77 @@ async function listRevenues(req, res) {
   res.json({ stats, annonceurs, transactions });
 }
 
-module.exports = { listUsers, setUserBlocked, logoutUser, listProperties, listRevenues };
+const periodStatsSchema = Joi.object({
+  start: Joi.string().isoDate().allow(null, "").default(null),
+  end:   Joi.string().isoDate().allow(null, "").default(null),
+});
+
+/**
+ * GET /admin/payment-stats?start=YYYY-MM-DD&end=YYYY-MM-DD
+ * Retourne :
+ *   - period : KPIs filtrés par période (ou all-time si pas de filtre)
+ *   - byProvider : répartition par provider de paiement
+ */
+async function paymentStats(req, res) {
+  const { value, error } = periodStatsSchema.validate(req.query);
+  if (error) throw BadRequest(error.message);
+  const start = value.start || null;
+  const end   = value.end   || null;
+  const [period, byProvider] = await Promise.all([
+    Transaction.statsByPeriod(start, end),
+    Transaction.statsByProvider(start, end),
+  ]);
+  res.json({ period, byProvider });
+}
+
+const adminProfileSchema = Joi.object({
+  current_password: Joi.string().when("new_password", {
+    is: Joi.exist(), then: Joi.required(), otherwise: Joi.optional(),
+  }),
+  new_password: Joi.string().min(8).optional(),
+  phone:  Joi.string().pattern(/^\+?[0-9]{8,15}$/).optional(),
+  email:  Joi.string().email().optional(),
+}).min(1);
+
+/**
+ * PATCH /admin/profile
+ * Permet à l'admin de changer son mot de passe, son login (téléphone) et/ou son email.
+ * Si new_password est fourni, current_password est obligatoire.
+ */
+async function updateAdminProfile(req, res) {
+  const { value, error } = adminProfileSchema.validate(req.body);
+  if (error) throw BadRequest(error.message);
+
+  const admin = await User.findByIdWithAuth(req.user.id);
+  if (!admin) throw NotFound("Compte introuvable");
+
+  // Vérification mot de passe actuel si changement demandé
+  if (value.new_password) {
+    const ok = await argon2.verify(admin.password_hash, value.current_password);
+    if (!ok) throw BadRequest("Mot de passe actuel incorrect");
+    await User.updatePasswordById(req.user.id, value.new_password);
+  }
+
+  // Changement téléphone
+  if (value.phone && value.phone !== admin.phone) {
+    const existing = await User.findByPhone(value.phone);
+    if (existing && existing.id !== req.user.id) throw Conflict("Ce numéro est déjà utilisé");
+    await User.updatePhone(req.user.id, value.phone);
+  }
+
+  // Changement email
+  if (value.email && value.email.toLowerCase() !== (admin.email || "").toLowerCase()) {
+    const existing = await User.findByEmail(value.email);
+    if (existing && existing.id !== req.user.id) throw Conflict("Cet email est déjà utilisé");
+    await User.updateEmail(req.user.id, value.email);
+  }
+
+  // Retourner le profil mis à jour
+  const updated = await User.findById(req.user.id);
+  res.json({ user: updated });
+}
+
+module.exports = {
+  listUsers, setUserBlocked, logoutUser, listProperties, listRevenues,
+  paymentStats, updateAdminProfile,
+};

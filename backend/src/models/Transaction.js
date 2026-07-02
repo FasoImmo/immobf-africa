@@ -162,8 +162,54 @@ async function globalRevenueStats() {
   return rows[0];
 }
 
+/**
+ * KPIs par période : total CA, succeeded/failed/pending, CA listing_fee vs commission.
+ * startDate et endDate sont des strings ISO 'YYYY-MM-DD' ou null (= tout).
+ */
+async function statsByPeriod(startDate, endDate) {
+  const { rows } = await query(`
+    SELECT
+      COALESCE(SUM(amount) FILTER (WHERE status = 'succeeded'), 0)::int          AS total_revenue,
+      COALESCE(SUM(amount) FILTER (WHERE status = 'succeeded' AND purpose = 'listing_fee'), 0)::int  AS revenue_listing,
+      COALESCE(SUM(amount) FILTER (WHERE status = 'succeeded' AND purpose = 'commission'), 0)::int   AS revenue_commission,
+      COUNT(*) FILTER (WHERE status = 'succeeded')                                AS nb_succeeded,
+      COUNT(*) FILTER (WHERE status = 'failed')                                   AS nb_failed,
+      COUNT(*) FILTER (WHERE status = 'pending')                                  AS nb_pending,
+      COUNT(*) FILTER (WHERE status IN ('refunded','cancelled'))                  AS nb_cancelled,
+      COUNT(*)                                                                     AS nb_total,
+      COUNT(DISTINCT buyer_id) FILTER (WHERE status = 'succeeded')                AS nb_annonceurs_actifs
+    FROM transactions
+    WHERE ($1::date IS NULL OR created_at >= $1::date)
+      AND ($2::date IS NULL OR created_at < ($2::date::date + INTERVAL '1 day'))
+  `, [startDate || null, endDate || null]);
+  return rows[0];
+}
+
+/**
+ * Répartition par provider de paiement sur la période donnée.
+ * Retourne une ligne par provider : nb_succeeded, nb_failed, total_revenue.
+ */
+async function statsByProvider(startDate, endDate) {
+  const { rows } = await query(`
+    SELECT
+      provider,
+      COUNT(*) FILTER (WHERE status = 'succeeded')                              AS nb_succeeded,
+      COUNT(*) FILTER (WHERE status = 'failed')                                 AS nb_failed,
+      COUNT(*) FILTER (WHERE status = 'pending')                                AS nb_pending,
+      COUNT(*)                                                                   AS nb_total,
+      COALESCE(SUM(amount) FILTER (WHERE status = 'succeeded'), 0)::int         AS total_revenue
+    FROM transactions
+    WHERE ($1::date IS NULL OR created_at >= $1::date)
+      AND ($2::date IS NULL OR created_at < ($2::date::date + INTERVAL '1 day'))
+    GROUP BY provider
+    ORDER BY total_revenue DESC
+  `, [startDate || null, endDate || null]);
+  return rows;
+}
+
 module.exports = {
   create, findByReference, findByExternalId, findById, updateStatus,
   logEvent, findLatestEvent, listForUser,
   listAllForAdmin, revenuesByUser, globalRevenueStats,
+  statsByPeriod, statsByProvider,
 };

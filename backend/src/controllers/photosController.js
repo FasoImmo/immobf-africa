@@ -76,4 +76,19 @@ async function uploadPhotos(req, res) {
   res.status(201).json({ photos });
 }
 
-module.exports = { uploadPhotos };
+async function deletePhoto(req, res) {
+  const { id: propertyId, photoId } = req.params;
+  const { NotFound } = require("../utils/errors");
+
+  const existing = await Property.findById(propertyId);
+  if (!existing) throw BadRequest("Annonce introuvable");
+  if (existing.owner_id !== req.user.id && req.user.role !== "admin") {
+    throw Forbidden("Vous n'êtes pas propriétaire de cette annonce");
+  }
+
+  const deleted = await Property.deletePhoto(photoId, propertyId, req.user.id);
+  if (!deleted) throw NotFound("Photo introuvable");
+  res.json({ deleted: true });
+}
+
+module.exports = { uploadPhotos, deletePhoto };

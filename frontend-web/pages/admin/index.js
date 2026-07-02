@@ -154,7 +154,10 @@ export default function AdminDashboard() {
           Delais de publication
         </Button>
         <Button variant="contained" color="secondary" onClick={() => router.push("/admin/revenues")}>
-          Revenus par annonceur
+          Paiements &amp; Revenus
+        </Button>
+        <Button variant="outlined" onClick={() => router.push("/admin/profile")}>
+          ⚙️ Mon profil
         </Button>
       </Box>
 
