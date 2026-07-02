@@ -222,6 +222,54 @@ export default function AdminProfile() {
           </Button>
         </Box>
       </Section>
+
+      {/* ─── Diagnostic email ────────────────────────────────────────────── */}
+      <Section title="Diagnostic email (Resend)">
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Envoie un email de test depuis Railway vers l'adresse de ton choix pour vérifier que Resend fonctionne.
+        </Typography>
+        <TestEmailPanel />
+      </Section>
     </Layout>
+  );
+}
+
+function TestEmailPanel() {
+  const [dest, setDest] = useState("");
+  const [result, setResult] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  async function run(e) {
+    e.preventDefault();
+    setBusy(true); setResult(null);
+    try {
+      const data = await Admin.testEmail(dest);
+      setResult({ ok: data.ok, from: data.from, raw: data.resend });
+    } catch (err) {
+      setResult({ ok: false, error: err?.response?.data?.error?.message || String(err) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Box component="form" onSubmit={run} sx={{ display: "flex", flexDirection: "column", gap: 2, maxWidth: 440 }}>
+      <TextField
+        size="small" label="Email destinataire" type="email"
+        value={dest} onChange={(e) => setDest(e.target.value)} required
+        placeholder="kosmad.mk@gmail.com"
+      />
+      <Button type="submit" variant="outlined" disabled={busy} sx={{ alignSelf: "flex-start" }}>
+        {busy ? <CircularProgress size={18} color="inherit" /> : "Envoyer email test"}
+      </Button>
+      {result && (
+        <Alert severity={result.ok ? "success" : "error"} sx={{ whiteSpace: "pre-wrap", fontFamily: "monospace", fontSize: 12 }}>
+          {result.ok
+            ? `✅ Email envoyé\nFROM : ${result.from}\nResend ID : ${result.raw?.data?.id}`
+            : `❌ Échec\n${result.error || JSON.stringify(result.raw, null, 2)}`
+          }
+        </Alert>
+      )}
+    </Box>
   );
 }

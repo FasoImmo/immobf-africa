@@ -143,7 +143,36 @@ async function updateAdminProfile(req, res) {
   res.json({ user: updated });
 }
 
+/**
+ * POST /admin/test-email
+ * { to: "dest@example.com" }
+ * Envoie un email de test et renvoie le résultat Resend brut pour diagnostic.
+ */
+async function testEmail(req, res) {
+  const { to } = req.body || {};
+  if (!to || !to.includes("@")) throw BadRequest("Adresse email invalide");
+
+  const { Resend } = require("resend");
+  const config = require("../config");
+  const FROM = config.email.from || "ImmoBF Africa <noreply@immoafrica.online>";
+
+  if (!config.email.resendKey) {
+    return res.json({ ok: false, error: "RESEND_API_KEY non configurée dans Railway", from: FROM });
+  }
+
+  const resend = new Resend(config.email.resendKey);
+  const result = await resend.emails.send({
+    from: FROM,
+    to,
+    subject: "Test email — ImmoBF Africa (admin diagnostic)",
+    html: `<p>Email de test envoyé depuis Railway à ${new Date().toISOString()}.</p><p>FROM : ${FROM}</p>`,
+    text: `Email de test ImmoBF Africa. FROM: ${FROM}`,
+  });
+
+  res.json({ ok: !result?.error, from: FROM, resend: result });
+}
+
 module.exports = {
   listUsers, setUserBlocked, logoutUser, listProperties, listRevenues,
-  paymentStats, updateAdminProfile,
+  paymentStats, updateAdminProfile, testEmail,
 };

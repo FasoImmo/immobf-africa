@@ -69,6 +69,7 @@ router.get  ("/admin/properties",           requireAdmin, asyncHandler(adminCtl.
 router.get  ("/admin/revenues",             requireAdmin, asyncHandler(adminCtl.listRevenues));
 router.get  ("/admin/payment-stats",        requireAdmin, asyncHandler(adminCtl.paymentStats));
 router.patch("/admin/profile",              requireAdmin, asyncHandler(adminCtl.updateAdminProfile));
+router.post ("/admin/test-email",           requireAdmin, asyncHandler(adminCtl.testEmail));
 
 // --- Analytics ---
 const analyticsLimiter = rateLimit({ windowMs: 10_000, max: 30 });

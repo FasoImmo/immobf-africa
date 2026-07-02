@@ -143,4 +143,5 @@ export const Admin = {
   revenues: () => api.get("/admin/revenues").then((r) => r.data),
   paymentStats: (params) => api.get("/admin/payment-stats", { params }).then((r) => r.data),
   updateProfile: (data) => api.patch("/admin/profile", data).then((r) => r.data),
+  testEmail: (to) => api.post("/admin/test-email", { to }).then((r) => r.data),
 };
