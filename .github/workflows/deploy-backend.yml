@@ -64,21 +64,16 @@ jobs:
         run: npm test
 
       # ---------- Deploy to Railway ----------
-      - name: Install Railway CLI
-        if: success()
-        run: npm i -g @railway/cli@3
-
-      - name: Deploy to Railway
-        if: success()
+      # Railway auto-déploie via webhook GitHub — ce step est optionnel.
+      # Si RAILWAY_TOKEN n'est pas défini dans les secrets, on skip sans erreur.
+      - name: Deploy to Railway (optionnel)
+        if: success() && env.RAILWAY_TOKEN != ''
         working-directory: backend
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_SERVICE: ${{ secrets.RAILWAY_BACKEND_SERVICE }}
         run: |
-          if [ -z "$RAILWAY_TOKEN" ]; then
-            echo "::error::RAILWAY_TOKEN secret is missing — set it in repo settings"
-            exit 1
-          fi
+          npm i -g @railway/cli@3
           railway up --service "$RAILWAY_SERVICE" --detach
 
       # ---------- Smoke test post-deploy ----------
