@@ -34,7 +34,9 @@ USER immobf
 EXPOSE 4000
 
 # Healthcheck Railway / Docker
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+# start-period=90s : laisse le temps aux migrations de s'exécuter avant
+# que Docker (ou Railway) ne commence à compter les échecs.
+HEALTHCHECK --interval=15s --timeout=5s --start-period=90s --retries=5 \
   CMD wget -qO- http://127.0.0.1:4000/api/v1/health || exit 1
 
 ENTRYPOINT ["/sbin/tini", "--"]
