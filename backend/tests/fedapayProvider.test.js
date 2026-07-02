@@ -1,6 +1,6 @@
 "use strict";
 
-// Mode stub : pas de FEDAPAY_SECRET_KEY -> initiate ne fait pas d'appel HTTP
+// Mode stub : pas de FEDAPAY_SECRET_KEY -> initiate ne fait pas d appel HTTP
 process.env.JWT_SECRET = "test";
 process.env.DATABASE_URL = process.env.DATABASE_URL || "postgres://test:test@localhost/test";
 delete process.env.FEDAPAY_SECRET_KEY;
@@ -13,33 +13,32 @@ describe("FedaPayProvider", () => {
   let provider;
 
   beforeAll(() => {
-    // Re-require pour prendre en compte les env vars supprimées
     jest.resetModules();
     registry = require("../src/services/PaymentProviderRegistry");
     provider = registry.get("fedapay");
   });
 
-  test("est enregistré comme provider", () => {
+  test("est enregistre comme provider", () => {
     expect(registry.all()).toContain("fedapay");
   });
 
-  test("couvre BF + UEMOA + Guinée", () => {
+  test("couvre UEMOA hors BF (BF retire temporairement — ticket support #38974)", () => {
+    // BF retire le 28/06/2026 : Orange/Moov BF absents du compte Live FedaPay.
+    // Reactiver quand le ticket support confirme la disponibilite.
     expect(provider.countries).toEqual(
-      expect.arrayContaining(["BF", "BJ", "CI", "SN", "TG", "NE", "ML", "GN"])
+      expect.arrayContaining(["BJ", "CI", "SN", "TG", "NE", "ML", "GN"])
     );
+    // BF n est pas dans la liste tant que le ticket n est pas resolu
+    expect(provider.countries).not.toContain("BF");
   });
 
   test("supporte XOF et GNF", () => {
     expect(provider.currencies).toEqual(expect.arrayContaining(["XOF", "GNF"]));
   });
 
-  test("apparaît en tête de la liste pour BF", () => {
-    const names = registry.listForCountry("BF").map((p) => p.name);
-    expect(names[0]).toBe("fedapay");
-  });
-
   describe("initiate (mode stub)", () => {
-    test("retourne payment_url et external_id sans clé", async () => {
+    // En stub, FedaPayProvider auto-valide sans appel HTTP reel.
+    test("retourne external_id auto-valide sans cle", async () => {
       const r = await provider.initiate({
         amount: 4250000,
         currency: "XOF",
@@ -49,19 +48,19 @@ describe("FedaPayProvider", () => {
         customerName: "Jean Ouedraogo",
         preferredOperator: "orange",
       });
-      expect(r.status).toBe("pending");
-      expect(r.external_id).toMatch(/fp_stub_/);
-      expect(r.payment_url).toContain("IMO-TEST-1");
-      expect(r.ussd_code).toBe("*144*4*6#");
+      expect(r.status).toBe("succeeded");
+      expect(r.external_id).toMatch(/fp_stub_IMO-TEST-1/);
+      expect(r.payment_url).toBeNull();
+      expect(r.ussd_code).toBeNull();
       expect(r.raw.stub).toBe(true);
     });
 
-    test("ussd_code null si aucun opérateur préféré", async () => {
+    test("external_id contient la reference", async () => {
       const r = await provider.initiate({
         amount: 1000, currency: "XOF", reference: "IMO-TEST-2",
         customerPhone: "+22670000002",
       });
-      expect(r.ussd_code).toBeNull();
+      expect(r.external_id).toContain("IMO-TEST-2");
     });
   });
 
@@ -114,21 +113,25 @@ describe("FedaPayProvider", () => {
       expect(provider.verifyWebhookSignature({}, Buffer.from("{}"))).toBe(true);
     });
 
-    test("avec secret : signature valide acceptée, invalide rejetée", () => {
-      // Ré-instancie le provider avec un secret pour ce test
+    test("avec secret : signature valide acceptee, invalide rejetee", () => {
       jest.resetModules();
       process.env.FEDAPAY_WEBHOOK_SECRET = "whsec_test_123";
       const reg2 = require("../src/services/PaymentProviderRegistry");
       const p2 = reg2.get("fedapay");
 
+      // FedaPay utilise le format Stripe-like : t=<timestamp>,s=<hmac>
+      // Le payload signe est "${timestamp}.${body}"
       const body = Buffer.from(JSON.stringify({ name: "transaction.approved" }));
+      const ts = "1700000000";
+      const signedPayload = ts + "." + body.toString("utf8");
       const goodSig = crypto
         .createHmac("sha256", "whsec_test_123")
-        .update(body)
+        .update(signedPayload, "utf8")
         .digest("hex");
+      const header = "t=" + ts + ",s=" + goodSig;
 
-      expect(p2.verifyWebhookSignature({ "x-fedapay-signature": goodSig }, body)).toBe(true);
-      expect(p2.verifyWebhookSignature({ "x-fedapay-signature": "deadbeef" }, body)).toBe(false);
+      expect(p2.verifyWebhookSignature({ "x-fedapay-signature": header }, body)).toBe(true);
+      expect(p2.verifyWebhookSignature({ "x-fedapay-signature": "t=" + ts + ",s=deadbeef" }, body)).toBe(false);
       expect(p2.verifyWebhookSignature({}, body)).toBe(false);
 
       delete process.env.FEDAPAY_WEBHOOK_SECRET;
