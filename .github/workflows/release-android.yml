@@ -1,6 +1,5 @@
 name: Build & Release APK Android
 
-# Déclenché automatiquement quand tu pousses un tag de version (ex: v1.1.0)
 on:
   push:
     tags:
@@ -10,31 +9,28 @@ jobs:
   build-and-release:
     name: Build APK et publier sur GitHub Releases
     runs-on: ubuntu-latest
-    timeout-minutes: 60  # EAS build peut prendre jusqu'à 30-40 min
+    timeout-minutes: 60
 
     steps:
       - name: Checkout du code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: npm
-          cache-dependency-path: mobile/package-lock.json
+          node-version: '20'
 
-      - name: Setup EAS (Expo Application Services)
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Installer EAS CLI (via npm)
+        run: npm install -g eas-cli
 
       - name: Installer les dépendances
         working-directory: ./mobile
-        run: npm ci
+        run: npm install
 
       - name: Lancer le build APK sur EAS
         working-directory: ./mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           echo "Démarrage du build EAS (profil: apk)..."
           eas build \
@@ -44,7 +40,6 @@ jobs:
             --wait \
             --json 2>/dev/null > build-result.json
 
-          # Extraire l'URL de téléchargement du fichier APK
           APK_URL=$(cat build-result.json | jq -r '.[0].artifacts.buildUrl')
           echo "APK_URL=$APK_URL" >> $GITHUB_ENV
           echo "Build terminé. URL: $APK_URL"
@@ -62,9 +57,9 @@ jobs:
             ## ImmoBF Africa ${{ github.ref_name }}
 
             ### Installation
-            1. Télécharge le fichier `immobf-africa.apk` ci-dessous
-            2. Sur ton Android : Paramètres → Sécurité → Autoriser sources inconnues
-            3. Ouvre le fichier téléchargé pour installer
+            1. Télécharge `immobf-africa.apk` ci-dessous
+            2. Android : Paramètres → Sécurité → Autoriser sources inconnues
+            3. Ouvre le fichier pour installer
 
             > URL permanente : https://github.com/${{ github.repository }}/releases/latest/download/immobf-africa.apk
           files: immobf-africa.apk
