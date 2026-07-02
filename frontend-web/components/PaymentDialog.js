@@ -391,4 +391,6 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
           </Button>
         )}
       </DialogActions>
-    </Dialog
+    </Dialog>
+  );
+}

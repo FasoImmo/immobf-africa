@@ -269,4 +269,4 @@ const s = StyleSheet.create({
   optionActive: { backgroundColor: "#f0faf6" },
   optionText: { fontSize: 15, color: "#333" },
   optionTextActive: { color: "#0E7C66", fontWeight: "600" },
-})
+});

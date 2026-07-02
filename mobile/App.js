@@ -73,4 +73,20 @@ function AppNavigator() {
       }}
     >
       <Stack.Screen name="ImmoBF Africa" component={HomeTabs} />
-      <Stack.Screen name="Property" component={PropertyScreen} o
+      <Stack.Screen name="Property" component={PropertyScreen} options={{ title: "Annonce" }} />
+      <Stack.Screen name="Payment" component={PaymentScreen} options={{ title: "Paiement" }} />
+    </Stack.Navigator>
+  );
+}
+
+export default function App() {
+  useEffect(() => { try { initOffline(); } catch {} }, []);
+  return (
+    <LangProvider>
+      <NavigationContainer>
+        <StatusBar style="light" />
+        <AppNavigator />
+      </NavigationContainer>
+    </LangProvider>
+  );
+}

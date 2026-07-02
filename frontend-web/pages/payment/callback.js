@@ -40,4 +40,9 @@ export default function Callback() {
           <Typography variant="h5" gutterBottom>{t("payment.callback_title")} {ref}</Typography>
           {status === "pending" && (<><CircularProgress /><Typography sx={{ mt: 2 }}>{t("payment.callback_waiting")}</Typography></>)}
           {status === "succeeded" && <Alert severity="success">{t("payment.callback_confirmed")}</Alert>}
-          {status === "failed" && <Alert severity="error">{t("payment.callback_fai
+          {status === "failed" && <Alert severity="error">{t("payment.callback_failed")}</Alert>}
+        </Paper>
+      </Box>
+    </Layout>
+  );
+}

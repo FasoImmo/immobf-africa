@@ -191,4 +191,167 @@ export default function LoginScreen() {
         <View style={s.profileCard}>
           <Text style={s.avatar}>{(me.full_name || me.phone || "?")[0].toUpperCase()}</Text>
           <Text style={s.h1}>{t.hello}, {me.full_name || me.phone}</Text>
-          {me.email && <Text style={s.sub}>{me.email
+          {me.email && <Text style={s.sub}>{me.email}</Text>}
+          <Text style={s.sub}>{t.role} : {me.role}</Text>
+        </View>
+        <TouchableOpacity style={[s.btn, { backgroundColor: "#c0392b", marginTop: 24 }]} onPress={doLogout}>
+          <Text style={s.btnText}>{t.logout}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // ─── Mot de passe oublié ───────────────────────────────────────────────────
+  if (mode === "forgot") {
+    return (
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <ScrollView style={s.container} keyboardShouldPersistTaps="handled">
+          <Text style={s.h1}>{t.forgotTitle}</Text>
+
+          {forgotStep === 1 && (
+            <>
+              <Text style={s.hint}>{t.forgotHint}</Text>
+              <TextInput
+                placeholder={t.emailLogin}
+                value={forgotEmail} onChangeText={setForgotEmail}
+                style={s.input} keyboardType="email-address" autoCapitalize="none"
+              />
+              <TouchableOpacity
+                style={[s.btn, busy && { backgroundColor: "#aaa" }]}
+                onPress={doForgotSend}
+                disabled={busy}
+              >
+                <Text style={s.btnText}>{busy ? "…" : t.sendCode}</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {forgotStep === 2 && (
+            <>
+              <Text style={s.hint}>{t.codeSent}</Text>
+              <TextInput
+                placeholder={t.otpCode}
+                value={forgotCode} onChangeText={setForgotCode}
+                style={s.input} keyboardType="number-pad" maxLength={6}
+              />
+              <View style={s.pwRow}>
+                <TextInput
+                  placeholder={t.newPassword}
+                  value={newPassword} onChangeText={setNewPassword}
+                  style={[s.input, { flex: 1, marginTop: 0 }]}
+                  secureTextEntry={!showNewPassword}
+                />
+                <TouchableOpacity style={s.eyeBtn} onPress={() => setShowNewPassword(!showNewPassword)}>
+                  <Text style={{ fontSize: 18 }}>{showNewPassword ? "🙈" : "👁️"}</Text>
+                </TouchableOpacity>
+              </View>
+              <TextInput
+                placeholder={t.confirmPassword}
+                value={confirmPassword} onChangeText={setConfirmPassword}
+                style={s.input} secureTextEntry={!showNewPassword}
+              />
+              <TouchableOpacity
+                style={[s.btn, busy && { backgroundColor: "#aaa" }]}
+                onPress={doForgotReset}
+                disabled={busy}
+              >
+                <Text style={s.btnText}>{busy ? "…" : t.resetBtn}</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          <TouchableOpacity style={s.switchBtn} onPress={goBackToLogin}>
+            <Text style={s.switchText}>{t.backToLogin}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  // ─── Login / Register ──────────────────────────────────────────────────────
+  return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <ScrollView style={s.container} keyboardShouldPersistTaps="handled">
+        <Text style={s.h1}>{mode === "login" ? t.login : t.register}</Text>
+
+        {mode === "register" && (
+          <TextInput
+            placeholder={t.fullName}
+            value={fullName} onChangeText={setFullName}
+            style={s.input} autoCapitalize="words"
+          />
+        )}
+
+        {/* Email */}
+        <TextInput
+          placeholder={mode === "login" ? t.emailLogin : t.email}
+          value={email} onChangeText={setEmail}
+          style={s.input} keyboardType="email-address" autoCapitalize="none"
+        />
+
+        {/* WhatsApp — inscription seulement */}
+        {mode === "register" && (
+          <TextInput
+            placeholder={t.phone}
+            value={phone} onChangeText={setPhone}
+            style={s.input} keyboardType="phone-pad"
+          />
+        )}
+
+        <View style={s.pwRow}>
+          <TextInput
+            placeholder={t.password}
+            value={password} onChangeText={setPassword}
+            style={[s.input, { flex: 1, marginTop: 0 }]}
+            secureTextEntry={!showPassword}
+          />
+          <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPassword(!showPassword)}>
+            <Text style={{ fontSize: 18 }}>{showPassword ? "🙈" : "👁️"}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={[s.btn, busy && { backgroundColor: "#aaa" }]}
+          onPress={mode === "login" ? doLogin : doRegister}
+          disabled={busy}
+        >
+          <Text style={s.btnText}>{busy ? "…" : (mode === "login" ? t.loginBtn : t.registerBtn)}</Text>
+        </TouchableOpacity>
+
+        {/* Mot de passe oublié — visible en mode login seulement */}
+        {mode === "login" && (
+          <TouchableOpacity style={s.forgotBtn} onPress={() => { setForgotEmail(email); setMode("forgot"); }}>
+            <Text style={s.forgotText}>{t.forgotBtn}</Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity style={s.switchBtn} onPress={() => setMode(mode === "login" ? "register" : "login")}>
+          <Text style={s.switchText}>{mode === "login" ? t.noAccount : t.haveAccount}</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+const s = StyleSheet.create({
+  container: { flex: 1, padding: 20, backgroundColor: "white" },
+  profileCard: { alignItems: "center", marginTop: 32, padding: 24, backgroundColor: "#f0faf6", borderRadius: 16 },
+  avatar: {
+    width: 64, height: 64, borderRadius: 32,
+    backgroundColor: "#0E7C66", color: "white",
+    fontSize: 28, fontWeight: "700", textAlign: "center", lineHeight: 64,
+    marginBottom: 12,
+  },
+  h1: { fontSize: 22, fontWeight: "700", marginTop: 16, marginBottom: 8 },
+  sub: { color: "#666", marginTop: 4 },
+  hint: { color: "#555", fontSize: 14, marginTop: 8, marginBottom: 4, lineHeight: 20 },
+  input: { borderWidth: 1, borderColor: "#ddd", borderRadius: 8, padding: 12, marginTop: 12, fontSize: 15 },
+  pwRow: { flexDirection: "row", alignItems: "center", marginTop: 12, gap: 8 },
+  eyeBtn: { padding: 10, justifyContent: "center" },
+  btn: { marginTop: 20, backgroundColor: "#0E7C66", borderRadius: 8, padding: 14, alignItems: "center" },
+  btnText: { color: "white", fontWeight: "700", fontSize: 16 },
+  forgotBtn: { marginTop: 10, alignItems: "flex-end", paddingRight: 4 },
+  forgotText: { color: "#0E7C66", fontSize: 13 },
+  switchBtn: { marginTop: 16, alignItems: "center", padding: 8 },
+  switchText: { color: "#0E7C66", fontSize: 14 },
+});
