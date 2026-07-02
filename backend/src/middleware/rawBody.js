@@ -14,7 +14,7 @@ module.exports = function rawBody(req, res, next) {
     try {
       req.body = data.length ? JSON.parse(data) : {};
       return next();
-    } catch (_e) {}
+    } catch (_e) { /* noop */ }
     // 2. Fallback : application/x-www-form-urlencoded (PayDunya IPN).
     //    Le champ `data` contient un objet JSON sérialisé — on le parse automatiquement
     //    pour que req.body.data soit directement un objet JS dans le contrôleur.

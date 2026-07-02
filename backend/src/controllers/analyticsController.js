@@ -50,7 +50,7 @@ async function trackView(req, res) {
           visitorCountry: country_code,
         });
       }
-    } catch (_) {}
+    } catch (_) { /* noop */ }
   }
 
   res.json({ ok: true });

@@ -221,14 +221,14 @@ class PayDunyaProvider extends PaymentProvider {
    */
   _parseIpnBody(rawBody) {
     const s = typeof rawBody === "string" ? rawBody : (rawBody?.toString?.("utf8") || "");
-    try { return JSON.parse(s); } catch {}
+    try { return JSON.parse(s); } catch { /* noop */ }
     try {
       const params = new URLSearchParams(s);
       const dataStr = params.get("data");
       if (dataStr) {
         try { return { data: JSON.parse(dataStr) }; } catch { return { data: dataStr }; }
       }
-    } catch {}
+    } catch { /* noop */ }
     return {};
   }
 }

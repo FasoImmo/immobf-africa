@@ -102,7 +102,7 @@ router.post("/newsletter/subscribe", publicLimiter, asyncHandler(async (req, res
        ON CONFLICT (email) DO NOTHING`,
       [email, name || null]
     );
-  } catch (_) {}
+  } catch (_) { /* noop */ }
   res.json({ subscribed: true });
 }));
 
