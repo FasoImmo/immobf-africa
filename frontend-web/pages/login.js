@@ -92,7 +92,9 @@ export default function Login() {
   const redirect = router.query.redirect || "/";
 
   // Connexion
+  const [loginMode, setLoginMode] = useState("phone"); // "phone" | "email"
   const [phone, setPhone] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [err, setErr] = useState(null);
@@ -110,7 +112,8 @@ export default function Login() {
     e.preventDefault();
     setErr(null);
     try {
-      const { access, refresh, user } = await Auth.login({ phone, password });
+      const credential = loginMode === "email" ? { email: loginEmail, password } : { phone, password };
+      const { access, refresh, user } = await Auth.login(credential);
       localStorage.setItem("immobf_token", access);
       localStorage.setItem("immobf_refresh", refresh);
       localStorage.setItem("immobf_user", JSON.stringify(user));
@@ -164,12 +167,35 @@ export default function Login() {
             {/* ── CONNEXION ── */}
             {tab === 0 && (
               <form onSubmit={onLogin} autoComplete="off">
-                <PhoneInput
-                  label={t("auth.phone")}
-                  value={phone}
-                  onChange={setPhone}
-                  required
-                />
+                <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
+                  <Button
+                    size="small"
+                    variant="text"
+                    sx={{ fontSize: 12, color: "#0E7C66", textTransform: "none" }}
+                    onClick={() => { setLoginMode(m => m === "phone" ? "email" : "phone"); setErr(null); }}
+                  >
+                    {loginMode === "phone" ? "Se connecter avec email" : "Se connecter avec téléphone"}
+                  </Button>
+                </Box>
+                {loginMode === "phone" ? (
+                  <PhoneInput
+                    label={t("auth.phone")}
+                    value={phone}
+                    onChange={setPhone}
+                    required
+                  />
+                ) : (
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    type="email"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    sx={{ mt: 1, mb: 0.5 }}
+                  />
+                )}
                 <TextField fullWidth label={t("auth.password")} type={showPassword ? "text" : "password"} margin="normal"
                   value={password} onChange={(e) => setPassword(e.target.value)} required
                   autoComplete="current-password"
