@@ -4,7 +4,7 @@ import {
   Alert, ScrollView, KeyboardAvoidingView, Platform,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Auth } from "../lib/api";
+import { Auth, Properties } from "../lib/api";
 import { useLang } from "../lib/lang";
 
 const T = {
@@ -77,6 +77,84 @@ const T = {
     errCodeRequired: "Code and new password required",
   },
 };
+
+
+function ProfileView({ me, onLogout, t }) {
+  const [listings, setListings] = React.useState([]);
+  const [loadingListings, setLoadingListings] = React.useState(false);
+  const [showListings, setShowListings] = React.useState(false);
+
+  function loadListings() {
+    if (showListings) { setShowListings(false); return; }
+    setLoadingListings(true);
+    Properties.myListings()
+      .then((d) => { setListings(d.items || []); setShowListings(true); })
+      .catch(() => Alert.alert("Erreur", "Impossible de charger vos annonces."))
+      .finally(() => setLoadingListings(false));
+  }
+
+  async function handleDelete(id, title) {
+    Alert.alert(
+      "Supprimer",
+      `Supprimer "${title}" ? Action irréversible.`,
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer", style: "destructive",
+          onPress: async () => {
+            try {
+              await Properties.deleteListing(id);
+              setListings((prev) => prev.filter((l) => l.id !== id));
+            } catch (e) {
+              Alert.alert("Erreur", e?.response?.data?.error?.message || "Erreur lors de la suppression.");
+            }
+          },
+        },
+      ]
+    );
+  }
+
+  return (
+    <ScrollView style={s.container} contentContainerStyle={{ paddingBottom: 40 }}>
+      <View style={s.profileCard}>
+        <Text style={s.avatar}>{(me.full_name || me.phone || "?")[0].toUpperCase()}</Text>
+        <Text style={s.h1}>{t.hello}, {me.full_name || me.phone}</Text>
+        {me.email && <Text style={s.sub}>{me.email}</Text>}
+        <Text style={s.sub}>{t.role} : {me.role}</Text>
+      </View>
+
+      <TouchableOpacity style={[s.btn, { backgroundColor: "#0E7C66", marginTop: 16 }]} onPress={loadListings}>
+        <Text style={s.btnText}>{loadingListings ? "…" : (showListings ? "Masquer mes annonces" : "Mes annonces")}</Text>
+      </TouchableOpacity>
+
+      {showListings && listings.length === 0 && (
+        <Text style={{ textAlign: "center", color: "#666", marginTop: 12 }}>Aucune annonce.</Text>
+      )}
+
+      {showListings && listings.map((item) => (
+        <View key={item.id} style={{ backgroundColor: "#fff", borderRadius: 8, padding: 12, marginTop: 10, borderWidth: 1, borderColor: "#e0e0e0" }}>
+          <Text style={{ fontWeight: "700", fontSize: 14 }} numberOfLines={1}>{item.title || "Sans titre"}</Text>
+          <Text style={{ color: "#666", fontSize: 12, marginTop: 2 }}>{item.city} — {item.status}</Text>
+          {item.listing_expires_at && (
+            <Text style={{ color: "#888", fontSize: 11, marginTop: 2 }}>
+              Expire : {new Date(item.listing_expires_at).toLocaleDateString("fr-FR")}
+            </Text>
+          )}
+          <TouchableOpacity
+            style={{ marginTop: 8, padding: 8, backgroundColor: "#c0392b", borderRadius: 6, alignItems: "center" }}
+            onPress={() => handleDelete(item.id, item.title || "cette annonce")}
+          >
+            <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>🗑 Supprimer</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+
+      <TouchableOpacity style={[s.btn, { backgroundColor: "#c0392b", marginTop: 24 }]} onPress={onLogout}>
+        <Text style={s.btnText}>{t.logout}</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+}
 
 export default function LoginScreen() {
   const { lang } = useLang();
@@ -186,19 +264,7 @@ export default function LoginScreen() {
 
   // ─── Profil connecté ───────────────────────────────────────────────────────
   if (me) {
-    return (
-      <View style={s.container}>
-        <View style={s.profileCard}>
-          <Text style={s.avatar}>{(me.full_name || me.phone || "?")[0].toUpperCase()}</Text>
-          <Text style={s.h1}>{t.hello}, {me.full_name || me.phone}</Text>
-          {me.email && <Text style={s.sub}>{me.email}</Text>}
-          <Text style={s.sub}>{t.role} : {me.role}</Text>
-        </View>
-        <TouchableOpacity style={[s.btn, { backgroundColor: "#c0392b", marginTop: 24 }]} onPress={doLogout}>
-          <Text style={s.btnText}>{t.logout}</Text>
-        </TouchableOpacity>
-      </View>
-    );
+    return <ProfileView me={me} onLogout={doLogout} t={t} />;
   }
 
   // ─── Mot de passe oublié ───────────────────────────────────────────────────
