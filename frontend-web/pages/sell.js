@@ -127,14 +127,56 @@ const PROVIDER_LABELS = {
   pawapay:        "PawaPay (Moov Money, Orange Money)",
 };
 
-// PawaPay : Moov = push simple. Orange = flux PREAUTH — le client doit
-// d'abord générer un code OTP via le service USSD Orange Money (avec son
-// code secret) et le saisir ici (voir PawaPayProvider.js, même logique que
-// PaymentDialog.js pour le paiement d'une commission/réservation).
-const PAWAPAY_OPERATORS = [
-  { value: "moov", label: "Moov Money" },
-  { value: "orange", label: "Orange Money (code OTP requis)" },
-];
+// PawaPay : opérateurs par pays. Orange = flux PREAUTH — le client doit générer
+// un code OTP via le service USSD indiqué (code secret) avant de payer.
+// Le champ ussd indique le code exact à composer pour chaque opérateur.
+const PAWAPAY_OPS_BY_COUNTRY = {
+  BF: [
+    { value: "moov",   label: "Moov Money" },
+    { value: "orange", label: "Orange Money (code OTP requis)", otp: true, ussd: "*144*4*6#" },
+  ],
+  CI: [
+    { value: "orange", label: "Orange Money",    otp: true, ussd: "*144#" },
+    { value: "mtn",    label: "MTN Mobile Money" },
+    { value: "moov",   label: "Moov Money" },
+  ],
+  SN: [
+    { value: "orange", label: "Orange Money",    otp: true, ussd: "*144#" },
+    { value: "free",   label: "Free Money" },
+    { value: "wave",   label: "Wave" },
+  ],
+  ML: [
+    { value: "orange", label: "Orange Money",    otp: true, ussd: "*144#" },
+    { value: "moov",   label: "Moov Money" },
+  ],
+  TG: [
+    { value: "moov",   label: "Moov Money" },
+    { value: "orange", label: "Orange Money",    otp: true, ussd: "#144#" },
+  ],
+  BJ: [
+    { value: "moov",   label: "Moov Money" },
+    { value: "mtn",    label: "MTN Mobile Money" },
+  ],
+  NE: [
+    { value: "orange", label: "Orange Money",    otp: true, ussd: "*144#" },
+    { value: "moov",   label: "Moov Money" },
+  ],
+  GN: [
+    { value: "orange", label: "Orange Money",    otp: true, ussd: "*144#" },
+    { value: "mtn",    label: "MTN Mobile Money" },
+  ],
+  CM: [
+    { value: "orange", label: "Orange Money",    otp: true, ussd: "*150*50#" },
+    { value: "mtn",    label: "MTN Mobile Money" },
+  ],
+  GH: [
+    { value: "mtn",    label: "MTN Mobile Money" },
+  ],
+  default: [
+    { value: "moov",   label: "Moov Money" },
+    { value: "orange", label: "Orange Money" },
+  ],
+};
 
 export default function SellPage() {
   const { t } = useTranslation();
@@ -166,10 +208,12 @@ export default function SellPage() {
   // déconnecté du choix de fournisseurs.
   const [buyerCountry, setBuyerCountry] = useState("BF");
   const dialCode = (AFRICAN_COUNTRIES.find((c) => c.code === buyerCountry) || {}).dial || "+226";
+  const pawapayOperators = PAWAPAY_OPS_BY_COUNTRY[buyerCountry] || PAWAPAY_OPS_BY_COUNTRY.default;
   const [localPhone, setLocalPhone] = useState("");
   const phone = dialCode + localPhone.replace(/\D/g, "");
   const [pawapayOperator, setPawapayOperator] = useState("moov");
   const [pawapayOtp, setPawapayOtp] = useState("");
+  const currentOp = pawapayOperators.find((o) => o.value === pawapayOperator) || {};
   const [selectedPlan, setSelectedPlan] = useState(LISTING_PLANS[0]);
   const [payErr, setPayErr] = useState(null);
   const [payBusy, setPayBusy] = useState(false);
@@ -234,6 +278,37 @@ export default function SellPage() {
     }).catch(function() {});
   }, [router.isReady, router.query.resume]); // eslint-disable-line
 
+  // ─── Renouvellement via ?renew=propertyId ─────────────────────────────────
+  // Même logique que ?resume : pré-remplit le formulaire avec les données
+  // existantes de l'annonce et saute directement à l'étape paiement.
+  useEffect(function() {
+    if (!router.isReady) return;
+    var renewId = router.query.renew;
+    if (!renewId) return;
+    Properties.get(renewId).then(function(d) {
+      var p = d.property;
+      setForm({
+        transaction_type: p.transaction_type || "sale",
+        type: p.type || "house",
+        title: p.title || "",
+        description: p.description || "",
+        price: p.price || "",
+        currency: p.currency || "XOF",
+        area_m2: p.area_m2 || "",
+        bedrooms: p.bedrooms || "",
+        bathrooms: p.bathrooms || "",
+        country_code: p.country_code || "BF",
+        city: p.city || "",
+        address: p.address || "",
+        neighborhood: p.neighborhood || "",
+        is_furnished: p.is_furnished || false,
+        rent_period: p.rent_period || "monthly",
+      });
+      setPropertyId(renewId);
+      setStep(2); // annonce existe déjà → aller directement au paiement
+    }).catch(function() {});
+  }, [router.isReady, router.query.renew]); // eslint-disable-line
+
   // Pré-sélectionne le pays acheteur = pays de l'annonce dès l'arrivée à
   // l'étape 2 (point de départ raisonnable), mais l'utilisateur peut le
   // changer ci-dessous s'il paie depuis un autre pays.
@@ -246,7 +321,8 @@ export default function SellPage() {
   // l'arrivée sur l'étape 2).
   useEffect(function() {
     if (step !== 2 || !buyerCountry) return;
-    setPawapayOperator("moov");
+    const ops = PAWAPAY_OPS_BY_COUNTRY[buyerCountry] || PAWAPAY_OPS_BY_COUNTRY.default;
+    setPawapayOperator(ops[0]?.value || "moov");
     setPawapayOtp("");
     Payments.providers(buyerCountry).then(function(d) {
       setProviders(d.providers || []);
@@ -341,7 +417,7 @@ export default function SellPage() {
         customer_phone: phone,
         description: `Abonnement ImmoBF Africa — ${selectedPlan.price.toLocaleString("fr-FR")} FCFA / ${selectedPlan.label}`,
         preferred_operator: provider === "pawapay" ? pawapayOperator : null,
-        pawapay_otp: provider === "pawapay" && pawapayOperator === "orange" ? pawapayOtp : null,
+        pawapay_otp: provider === "pawapay" && currentOp.otp ? pawapayOtp : null,
       });
       setTxId(res.transaction_id);
       // Stub mode : succès immédiat → passer directement à l'étape photos
@@ -367,14 +443,20 @@ export default function SellPage() {
   }
 
   // ─── Étape 3 : upload photos ─────────────────────────────────────────────
+  function filterImages(files) {
+    return files.filter(function(f) { return /^image\/(jpeg|png|webp)$/.test(f.type); });
+  }
+
   var onFilePick = useCallback(function(e) {
-    var picked = Array.from(e.target.files || []);
+    var picked = filterImages(Array.from(e.target.files || []));
     setFiles(function(prev) { return prev.concat(picked).slice(0, 10); });
+    // Reset input pour permettre de re-sélectionner le même fichier
+    e.target.value = "";
   }, []);
 
   var onDrop = useCallback(function(e) {
     e.preventDefault();
-    var dropped = Array.from(e.dataTransfer.files || []);
+    var dropped = filterImages(Array.from(e.dataTransfer.files || []));
     setFiles(function(prev) { return prev.concat(dropped).slice(0, 10); });
   }, []);
 
@@ -671,20 +753,22 @@ export default function SellPage() {
                     onChange={(e) => setPawapayOperator(e.target.value)}
                     disabled={polling}
                   >
-                    {PAWAPAY_OPERATORS.map((op) => (
+                    {pawapayOperators.map((op) => (
                       <MenuItem key={op.value} value={op.value}>{op.label}</MenuItem>
                     ))}
                   </TextField>
                 </Grid>
-                {pawapayOperator === "orange" && (
+                {currentOp.otp && (
                   <Grid item xs={12} sm={6}>
                     <TextField
-                      fullWidth label="Code OTP Orange Money"
+                      fullWidth label={`Code OTP — ${currentOp.label}`}
                       value={pawapayOtp}
                       onChange={(e) => setPawapayOtp(e.target.value.replace(/\D/g, ""))}
                       disabled={polling}
-                      placeholder="Composez #144#391#code secret#"
-                      helperText={t("sell.ussd_hint")}
+                      placeholder="Ex: 477728"
+                      helperText={currentOp.ussd
+                        ? `Composez ${currentOp.ussd} puis entrez le code reçu`
+                        : t("sell.ussd_hint")}
                     />
                   </Grid>
                 )}
@@ -725,7 +809,7 @@ export default function SellPage() {
               variant="contained" size="large"
               disabled={
                 payBusy || polling || !phone || !provider ||
-                (provider === "pawapay" && pawapayOperator === "orange" && !pawapayOtp)
+                (provider === "pawapay" && currentOp.otp && !pawapayOtp)
               }
               onClick={payListingFee}
             >
@@ -758,7 +842,7 @@ export default function SellPage() {
           >
             <Typography>{t("sell.photos_drop")}</Typography>
             <input id="file-input" type="file" multiple
-              accept="image/*,video/mp4,video/quicktime,video/webm"
+              accept="image/jpeg,image/png,image/webp"
               style={{ display: "none" }} onChange={onFilePick} />
           </Box>
 
