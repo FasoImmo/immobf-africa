@@ -3,8 +3,9 @@ import { useRouter } from "next/router";
 import {
   Box, Paper, Typography, Table, TableHead, TableRow, TableCell,
   TableBody, Button, CircularProgress, Chip, TextField, InputAdornment,
-  Grid, Divider, Alert,
+  Grid, Divider, Alert, Drawer, IconButton,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
 import Layout from "../../components/Layout";
 import { Admin } from "../../lib/api";
@@ -87,6 +88,8 @@ export default function AdminRevenues() {
   const [annLoading, setAnnLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [filterCountry, setFilterCountry] = useState("");
+  const [detailUser, setDetailUser] = useState(null);    // { user, transactions, interactions }
+  const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => { accessGuard(router, setAuthorized); }, []); // eslint-disable-line
 
@@ -144,6 +147,19 @@ export default function AdminRevenues() {
     return matchSearch && matchCountry;
   });
   const totalRevenue = filtered.reduce((s, a) => s + Number(a.total_paid || 0), 0);
+
+  async function openDetail(userId) {
+    setDetailLoading(true);
+    setDetailUser(null);
+    try {
+      const d = await Admin.userStats(userId);
+      setDetailUser(d);
+    } catch (e) {
+      alert(e?.response?.data?.error?.message || "Erreur lors du chargement des détails.");
+    } finally {
+      setDetailLoading(false);
+    }
+  }
 
   function exportCsv() {
     const rows = [["nom","email","telephone","pays_principal","nb_annonces","nb_transactions","total_paye_xof","fidelite","dernier_paiement"]]
@@ -387,6 +403,7 @@ export default function AdminRevenues() {
               <TableCell align="right">Total payé à ImmoBF</TableCell>
               <TableCell>Fidélité</TableCell>
               <TableCell>Dernière activité</TableCell>
+              <TableCell></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -415,6 +432,11 @@ export default function AdminRevenues() {
                       {a.last_payment_at ? new Date(a.last_payment_at).toLocaleDateString("fr-FR") : "—"}
                     </Typography>
                   </TableCell>
+                  <TableCell>
+                    <Button size="small" variant="outlined" onClick={() => openDetail(a.id)}>
+                      Détails
+                    </Button>
+                  </TableCell>
                 </TableRow>
               );
             })}
@@ -435,6 +457,159 @@ export default function AdminRevenues() {
         <Chip label="Régulier (2–4 tx)" color="primary" size="small" />
         <Chip label="Fidèle ⭐ (5+ tx)" color="success" size="small" />
       </Box>
+
+      {/* ── Drawer : détails annonceur ───────────────────────────────────── */}
+      <Drawer
+        anchor="right"
+        open={!!detailUser || detailLoading}
+        onClose={() => setDetailUser(null)}
+        PaperProps={{ sx: { width: { xs: "100%", sm: 560 }, p: 3, overflowX: "hidden" } }}
+      >
+        {detailLoading && (
+          <Box sx={{ display: "flex", justifyContent: "center", pt: 8 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {!detailLoading && detailUser && (
+          <>
+            {/* En-tête */}
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
+              <Box>
+                <Typography variant="h6" fontWeight={700}>
+                  {detailUser.user.full_name || detailUser.user.phone}
+                </Typography>
+                {detailUser.user.email && (
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    {detailUser.user.email}
+                  </Typography>
+                )}
+                {detailUser.user.phone && detailUser.user.full_name && (
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    {detailUser.user.phone}
+                  </Typography>
+                )}
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Inscrit le {new Date(detailUser.user.created_at).toLocaleDateString("fr-FR")}
+                </Typography>
+              </Box>
+              <IconButton onClick={() => setDetailUser(null)} size="small">
+                <CloseIcon />
+              </IconButton>
+            </Box>
+
+            <Divider sx={{ mb: 2 }} />
+
+            {/* Transactions */}
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
+              Transactions ({detailUser.transactions.length})
+            </Typography>
+
+            {detailUser.transactions.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Aucune transaction.
+              </Typography>
+            ) : (
+              <Box sx={{ overflowX: "auto", mb: 3 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ "& th": { fontWeight: 700, fontSize: "0.72rem", whiteSpace: "nowrap" } }}>
+                      <TableCell>Date</TableCell>
+                      <TableCell align="right">Montant</TableCell>
+                      <TableCell>Provider</TableCell>
+                      <TableCell>Référence</TableCell>
+                      <TableCell>Annonce</TableCell>
+                      <TableCell>Statut</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {detailUser.transactions.map((t) => (
+                      <TableRow key={t.id} hover>
+                        <TableCell>
+                          <Typography variant="caption" sx={{ whiteSpace: "nowrap" }}>
+                            {new Date(t.created_at).toLocaleDateString("fr-FR")}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="caption" fontWeight={700} color={t.status === "succeeded" ? "#1B6B3A" : "text.secondary"}>
+                            {formatFCFA(t.amount)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="caption" sx={{ textTransform: "capitalize" }}>
+                            {t.provider || "—"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="caption" sx={{ fontFamily: "monospace", fontSize: "0.68rem" }}>
+                            {t.reference ? t.reference.slice(0, 12) + (t.reference.length > 12 ? "…" : "") : "—"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="caption" sx={{ maxWidth: 120, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {t.property_title || "—"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={t.status}
+                            size="small"
+                            color={t.status === "succeeded" ? "success" : t.status === "pending" ? "warning" : "error"}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
+            )}
+
+            <Divider sx={{ mb: 2 }} />
+
+            {/* Interactions */}
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
+              Interactions sur les annonces ({detailUser.interactions.length} annonce(s))
+            </Typography>
+
+            {detailUser.interactions.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                Aucune interaction enregistrée.
+              </Typography>
+            ) : (
+              <Box sx={{ overflowX: "auto" }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ "& th": { fontWeight: 700, fontSize: "0.72rem" } }}>
+                      <TableCell>Annonce</TableCell>
+                      <TableCell align="right">Vues</TableCell>
+                      <TableCell align="right">Clics WhatsApp</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {detailUser.interactions.map((i) => (
+                      <TableRow key={i.property_id} hover>
+                        <TableCell>
+                          <Typography variant="caption" sx={{ maxWidth: 200, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {i.property_title || `Annonce #${i.property_id}`}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="caption" fontWeight={700}>{i.views || 0}</Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="caption" fontWeight={700} color={Number(i.whatsapp_clicks) > 0 ? "success.main" : "text.secondary"}>
+                            {i.whatsapp_clicks || 0}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
+            )}
+          </>
+        )}
+      </Drawer>
     </Layout>
   );
 }
