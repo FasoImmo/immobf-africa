@@ -77,6 +77,8 @@ export const Properties = {
   publish: (id) => api.post(`/properties/${id}/publish`).then((r) => r.data),
   estimate: (data) => api.post("/properties/estimate", data).then((r) => r.data),
   myListings: () => api.get("/my/listings").then((r) => r.data),
+  deleteListing: (id) => api.delete(`/my/listings/${id}`).then((r) => r.data),
+  renewListing: (id) => api.post(`/my/listings/${id}/renew`).then((r) => r.data),
 };
 
 export const Auth = {
@@ -140,9 +142,13 @@ export const Admin = {
   users: (params) => api.get("/admin/users", { params }).then((r) => r.data),
   setUserBlocked: (id, blocked) => api.patch(`/admin/users/${id}/block`, { blocked }).then((r) => r.data),
   logoutUser: (id) => api.post(`/admin/users/${id}/logout`).then((r) => r.data),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`).then((r) => r.data),
   properties: (params) => api.get("/admin/properties", { params }).then((r) => r.data),
+  deleteProperty: (id) => api.delete(`/admin/properties/${id}`).then((r) => r.data),
   revenues: () => api.get("/admin/revenues").then((r) => r.data),
   paymentStats: (params) => api.get("/admin/payment-stats", { params }).then((r) => r.data),
   updateProfile: (data) => api.patch("/admin/profile", data).then((r) => r.data),
   testEmail: (to) => api.post("/admin/test-email", { to }).then((r) => r.data),
+  userStats: (id) => api.get(`/admin/users/${id}/stats`).then((r) => r.data),
+  sendNewsletter: (data) => api.post("/admin/newsletter", data).then((r) => r.data),
 };

@@ -48,6 +48,21 @@ async function logoutUser(req, res) {
   res.json({ ok: true });
 }
 
+async function deleteUser(req, res) {
+  if (req.params.id === req.user.id) {
+    throw BadRequest("Vous ne pouvez pas supprimer votre propre compte admin.");
+  }
+  const deleted = await User.deleteById(req.params.id);
+  if (!deleted) throw NotFound("Utilisateur introuvable");
+  res.json({ deleted: true, user: deleted });
+}
+
+async function deleteProperty(req, res) {
+  const deleted = await Property.deleteForAdmin(req.params.id);
+  if (!deleted) throw NotFound("Annonce introuvable");
+  res.json({ deleted: true, property: deleted });
+}
+
 async function listProperties(req, res) {
   const { value, error } = listSchema.validate(req.query);
   if (error) throw BadRequest(error.message);
@@ -94,6 +109,72 @@ async function paymentStats(req, res) {
     Transaction.statsByProvider(start, end),
   ]);
   res.json({ period, byProvider });
+}
+
+/**
+ * GET /admin/users/:id/stats
+ * Stats détaillées d'un annonceur : transactions + interactions sur ses annonces.
+ */
+async function userStats(req, res) {
+  const user = await User.findById(req.params.id);
+  if (!user) throw NotFound("Utilisateur introuvable");
+  const [transactions, interactions] = await Promise.all([
+    Transaction.listForUserAdmin(req.params.id),
+    Transaction.interactionStatsByUser(req.params.id),
+  ]);
+  res.json({ user, transactions, interactions });
+}
+
+/**
+ * POST /admin/newsletter
+ * Envoie une newsletter à tous les utilisateurs ayant un email,
+ * avec filtre optionnel par pays (country_code).
+ */
+const newsletterSchema = Joi.object({
+  subject:      Joi.string().min(3).max(200).required(),
+  html:         Joi.string().min(10).required(),
+  country_code: Joi.string().length(2).uppercase().allow(null, "").default(null),
+});
+
+async function sendNewsletter(req, res) {
+  const { value, error } = newsletterSchema.validate(req.body);
+  if (error) throw BadRequest(error.message);
+
+  const config = require("../config");
+  if (!config.email.resendKey) throw BadRequest("RESEND_API_KEY non configurée");
+
+  const { Resend } = require("resend");
+  const resend = new Resend(config.email.resendKey);
+  const FROM   = config.email.from || "ImmoBF Africa <no-reply@immoafrica.online>";
+
+  // Récupérer tous les comptes avec un email, filtrés par pays si demandé
+  const { query } = require("../config/db");
+  const sql = value.country_code
+    ? `SELECT email FROM users WHERE email IS NOT NULL AND country_code = $1 LIMIT 500`
+    : `SELECT email FROM users WHERE email IS NOT NULL LIMIT 500`;
+  const params = value.country_code ? [value.country_code] : [];
+  const { rows } = await query(sql, params);
+
+  const emails = [...new Set(rows.map((r) => r.email).filter(Boolean))];
+  if (!emails.length) return res.json({ sent: 0, message: "Aucun destinataire trouvé." });
+
+  // Resend supporte jusqu'à 50 destinataires par appel en batch
+  const BATCH = 50;
+  let sent = 0;
+  for (let i = 0; i < emails.length; i += BATCH) {
+    const batch = emails.slice(i, i + BATCH);
+    await resend.emails.send({
+      from: FROM,
+      to: batch,
+      subject: value.subject,
+      html: value.html,
+    });
+    sent += batch.length;
+  }
+
+  const logger = require("../utils/logger");
+  logger.info({ sent, country: value.country_code }, "newsletter envoyée");
+  res.json({ sent, total_recipients: emails.length });
 }
 
 const adminProfileSchema = Joi.object({
@@ -176,6 +257,7 @@ async function testEmail(req, res) {
 }
 
 module.exports = {
-  listUsers, setUserBlocked, logoutUser, listProperties, listRevenues,
-  paymentStats, updateAdminProfile, testEmail,
+  listUsers, setUserBlocked, logoutUser, deleteUser,
+  listProperties, deleteProperty, listRevenues,
+  paymentStats, userStats, sendNewsletter, updateAdminProfile, testEmail,
 };

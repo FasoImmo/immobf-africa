@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, StyleSheet, TouchableOpacity,
   ActivityIndicator, Alert, Linking, ScrollView, Modal, FlatList,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Payments } from "../lib/api";
 import { useLang } from "../lib/lang";
 
@@ -25,22 +26,50 @@ const COUNTRIES = [
 ];
 
 // Opérateurs PawaPay par pays
+// ussd : code à composer pour générer le code OTP (si otp: true)
+// Les codes sont mis à jour selon les instructions officielles de chaque opérateur.
 const PAWAPAY_OPS = {
   BF: [
     { value: "moov",   label: "Moov Money" },
-    { value: "orange", label: "Orange Money (OTP requis)", otp: true },
+    { value: "orange", label: "Orange Money (OTP requis)", otp: true, ussd: "*144*4*6#" },
   ],
   CI: [
-    { value: "orange", label: "Orange Money" },
+    { value: "orange", label: "Orange Money", otp: true, ussd: "*144#" },
     { value: "mtn",    label: "MTN Mobile Money" },
+    { value: "moov",   label: "Moov Money" },
   ],
   SN: [
-    { value: "orange", label: "Orange Money" },
+    { value: "orange", label: "Orange Money", otp: true, ussd: "*144#" },
     { value: "free",   label: "Free Money" },
+    { value: "wave",   label: "Wave" },
   ],
   ML: [
-    { value: "orange", label: "Orange Money" },
+    { value: "orange", label: "Orange Money", otp: true, ussd: "*144#" },
     { value: "moov",   label: "Moov Money" },
+  ],
+  TG: [
+    { value: "moov",   label: "Moov Money" },
+    { value: "orange", label: "Orange Money", otp: true, ussd: "*144#" },
+  ],
+  BJ: [
+    { value: "moov",   label: "Moov Money" },
+    { value: "mtn",    label: "MTN Mobile Money" },
+  ],
+  NE: [
+    { value: "orange", label: "Orange Money", otp: true, ussd: "*144#" },
+    { value: "moov",   label: "Moov Money" },
+  ],
+  GN: [
+    { value: "orange", label: "Orange Money", otp: true, ussd: "*144#" },
+    { value: "mtn",    label: "MTN Mobile Money" },
+  ],
+  GH: [
+    { value: "mtn",    label: "MTN Mobile Money" },
+    { value: "vodafone", label: "Vodafone Cash" },
+  ],
+  CM: [
+    { value: "orange", label: "Orange Money", otp: true, ussd: "*150*50#" },
+    { value: "mtn",    label: "MTN Mobile Money" },
   ],
   default: [
     { value: "moov",   label: "Moov Money" },
@@ -66,12 +95,15 @@ const T = {
     chooseCountry: "Choisir votre pays",
     paymentOp: "Mode de paiement",
     mobileNet: "Réseau mobile",
-    otpLabel: "Code OTP Orange Money",
-    otpHint: "Composez *144*4*6# puis entrez le code reçu",
+    otpLabel: "Code OTP",
+    otpHintPrefix: "Composez",
+    otpHintSuffix: "puis entrez le code reçu",
     phoneLabel: "Numéro de téléphone mobile money",
     payBtn: "Payer",
     errPhone: "Entrez votre numéro de téléphone",
-    errOtp: "Entrez le code OTP Orange Money",
+    errOtp: "Entrez le code OTP reçu",
+    loginRequired: "Connexion requise",
+    loginRequiredMsg: "Veuillez vous connecter avant d'effectuer un paiement.",
     confirmed: "✓ Paiement confirmé",
     contactNow: "Contactez maintenant l'annonceur pour finaliser votre réservation.",
     whatsappOwner: "Contacter l'annonceur sur WhatsApp",
@@ -87,12 +119,15 @@ const T = {
     chooseCountry: "Choose your country",
     paymentOp: "Payment method",
     mobileNet: "Mobile network",
-    otpLabel: "Orange Money OTP code",
-    otpHint: "Dial *144*4*6# then enter the code received",
+    otpLabel: "OTP code",
+    otpHintPrefix: "Dial",
+    otpHintSuffix: "then enter the received code",
     phoneLabel: "Mobile money phone number",
     payBtn: "Pay",
     errPhone: "Enter your phone number",
-    errOtp: "Enter the Orange Money OTP code",
+    errOtp: "Enter the OTP code received",
+    loginRequired: "Login required",
+    loginRequiredMsg: "Please log in before making a payment.",
     confirmed: "✓ Payment confirmed",
     contactNow: "Contact the advertiser now to finalize your booking.",
     whatsappOwner: "Contact advertiser on WhatsApp",
@@ -173,6 +208,13 @@ export default function PaymentScreen({ route }) {
   const canPay = phoneLocal.length >= 6 && provider && !(needsOtp && !pawapayOtp);
 
   async function pay() {
+    // Vérification token avant tout appel réseau — évite "Missing bearer token"
+    // si la session a expiré entre l'ouverture de l'annonce et le paiement.
+    const token = await AsyncStorage.getItem("immobf_token");
+    if (!token) {
+      Alert.alert(t.loginRequired, t.loginRequiredMsg);
+      return;
+    }
     if (!canPay) {
       Alert.alert("Champs requis", needsOtp ? t.errOtp : t.errPhone);
       return;
@@ -261,8 +303,14 @@ export default function PaymentScreen({ route }) {
 
           {needsOtp && (
             <>
-              <Text style={s.label}>{t.otpLabel}</Text>
-              <Text style={s.hint}>{t.otpHint}</Text>
+              <Text style={s.label}>{t.otpLabel} — {currentOp.label}</Text>
+              {currentOp.ussd && (
+                <View style={[s.infoBox, { marginTop: 6 }]}>
+                  <Text style={[s.infoText, { fontWeight: "700" }]}>
+                    {t.otpHintPrefix} {currentOp.ussd} {t.otpHintSuffix}
+                  </Text>
+                </View>
+              )}
               <TextInput
                 value={pawapayOtp} onChangeText={setPawapayOtp}
                 style={s.input} keyboardType="numeric" placeholder="Ex: 123456" maxLength={8}

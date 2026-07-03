@@ -26,6 +26,7 @@ export default function AdminProperties() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [actingId, setActingId] = useState(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -37,14 +38,31 @@ export default function AdminProperties() {
     setAuthorized(true);
   }, []); // eslint-disable-line
 
-  useEffect(() => {
-    if (authorized !== true) return;
+  function load() {
     setLoading(true); setError(null);
     Admin.properties({ limit: 300 })
       .then((d) => setProperties(d.properties || []))
       .catch((e) => setError(e?.response?.data?.error?.message || e.message))
       .finally(() => setLoading(false));
-  }, [authorized]);
+  }
+
+  useEffect(() => {
+    if (authorized !== true) return;
+    load();
+  }, [authorized]); // eslint-disable-line
+
+  async function handleDelete(p) {
+    if (!window.confirm(`Supprimer définitivement l'annonce "${p.title}" de ${p.owner_name || p.owner_phone} ?`)) return;
+    setActingId(p.id);
+    try {
+      await Admin.deleteProperty(p.id);
+      setProperties((prev) => prev.filter((x) => x.id !== p.id));
+    } catch (e) {
+      setError(e?.response?.data?.error?.message || e.message);
+    } finally {
+      setActingId(null);
+    }
+  }
 
   if (authorized === null) {
     return (
@@ -93,6 +111,7 @@ export default function AdminProperties() {
                 <TableCell align="right">Prix</TableCell>
                 <TableCell>Statut abonnement</TableCell>
                 <TableCell align="right">Jours restants</TableCell>
+                <TableCell></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -107,6 +126,15 @@ export default function AdminProperties() {
                     <TableCell><Chip label={meta.label} color={meta.color} size="small" /></TableCell>
                     <TableCell align="right">
                       {p.days_remaining != null ? p.days_remaining : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="small" color="error" variant="outlined"
+                        disabled={actingId === p.id}
+                        onClick={() => handleDelete(p)}
+                      >
+                        🗑 Supprimer
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );

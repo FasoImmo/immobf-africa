@@ -50,6 +50,8 @@ router.patch ("/properties/:id",                    requireAuth, asyncHandler(pr
 router.post  ("/properties/:id/photos",             requireAuth, asyncHandler(photoCtl.uploadPhotos));
 router.delete("/properties/:id/photos/:photoId",    requireAuth, asyncHandler(photoCtl.deletePhoto));
 router.get   ("/my/listings",                       requireAuth, asyncHandler(propCtl.myListings));
+router.delete("/my/listings/:id",                   requireAuth, asyncHandler(propCtl.deleteListing));
+router.post  ("/my/listings/:id/renew",             requireAuth, asyncHandler(propCtl.renewListing));
 
 // --- Payments ---
 router.get ("/payments/providers",       asyncHandler(payCtl.listProviders));
@@ -71,8 +73,12 @@ router.post("/admin/pawapay/resend-callback/:depositId", requireAdmin, asyncHand
 router.get  ("/admin/users",                requireAdmin, asyncHandler(adminCtl.listUsers));
 router.patch("/admin/users/:id/block",      requireAdmin, asyncHandler(adminCtl.setUserBlocked));
 router.post ("/admin/users/:id/logout",     requireAdmin, asyncHandler(adminCtl.logoutUser));
-router.get  ("/admin/properties",           requireAdmin, asyncHandler(adminCtl.listProperties));
+router.delete("/admin/users/:id",           requireAdmin, asyncHandler(adminCtl.deleteUser));
+router.get   ("/admin/properties",          requireAdmin, asyncHandler(adminCtl.listProperties));
+router.delete("/admin/properties/:id",      requireAdmin, asyncHandler(adminCtl.deleteProperty));
 router.get  ("/admin/revenues",             requireAdmin, asyncHandler(adminCtl.listRevenues));
+router.get  ("/admin/users/:id/stats",      requireAdmin, asyncHandler(adminCtl.userStats));
+router.post ("/admin/newsletter",           requireAdmin, asyncHandler(adminCtl.sendNewsletter));
 router.get  ("/admin/payment-stats",        requireAdmin, asyncHandler(adminCtl.paymentStats));
 router.patch("/admin/profile",              requireAdmin, asyncHandler(adminCtl.updateAdminProfile));
 router.post ("/admin/test-email",           requireAdmin, asyncHandler(adminCtl.testEmail));

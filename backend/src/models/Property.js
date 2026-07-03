@@ -375,6 +375,24 @@ async function update(id, ownerId, data) {
   return hydrate(rows[0] || null);
 }
 
+// Suppression complète d'une annonce par son propriétaire (cascade photos).
+async function deleteForOwner(propertyId, ownerId) {
+  const { rows } = await query(
+    "DELETE FROM properties WHERE id = $1 AND owner_id = $2 RETURNING id",
+    [propertyId, ownerId]
+  );
+  return rows.length > 0;
+}
+
+// Suppression admin : sans vérification d'ownership (modération ou expiration).
+async function deleteForAdmin(propertyId) {
+  const { rows } = await query(
+    "DELETE FROM properties WHERE id = $1 RETURNING id, title, owner_id",
+    [propertyId]
+  );
+  return rows[0] || null;
+}
+
 // Suppression d'une photo après vérification que l'annonce appartient à l'owner.
 async function deletePhoto(photoId, propertyId, ownerId) {
   const { rows: own } = await query(
@@ -393,5 +411,5 @@ async function deletePhoto(photoId, propertyId, ownerId) {
 module.exports = {
   create, findById, search, publish, markListingFeePaid, updateStatus, boost,
   addPhoto, photosFor, setExpiry, listForOwner, listAllForAdmin, withTransaction,
-  update, deletePhoto,
+  update, deletePhoto, deleteForOwner, deleteForAdmin,
 };

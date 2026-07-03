@@ -149,25 +149,29 @@ async function initiate(req, res) {
     // ne déclenchait aucun reçu — l'UI affichait pourtant déjà "reçu envoyé
     // par email" dans ce cas, ce qui était faux à 100%.
     try {
-      const recipientEmail = tx.customer_email || req.user?.email;
+      // Pour une commission, on n'envoie le reçu que si le client a explicitement
+      // fourni son email (flux web). Sur mobile, customer_email n'est jamais envoyé
+      // et on ne veut pas solliciter l'email du compte (l'utilisateur ne s'attend
+      // pas à recevoir un email de reçu dans ce cas).
+      const recipientEmail = value.purpose === "commission"
+        ? tx.customer_email                        // mobile → null → pas d'email
+        : tx.customer_email || req.user?.email;    // listing_fee → fallback compte
       if (recipientEmail) {
         const { sendPaymentReceipt } = require("../services/email");
         const plans = config.commissions.listingPlans;
         const months = Object.entries(plans).find(([, v]) => v === value.amount)?.[0] || 1;
-        await sendPaymentReceipt(recipientEmail, {
+        // Fire-and-forget : on ne bloque pas la réponse HTTP sur l'API Resend
+        sendPaymentReceipt(recipientEmail, {
           amount: value.amount,
           currency: value.currency,
           reference: tx.reference,
           purpose: value.purpose,
           propertyTitle: property?.title,
           months: Number(months),
-        });
+        }).catch((e) => logger.warn({ err: e.message }, "stub: receipt email failed"));
       } else {
-        logger.warn({ transaction_id: tx.id }, "stub: aucun email destinataire pour le reçu");
+        logger.info({ transaction_id: tx.id, purpose: value.purpose }, "stub: pas d'email reçu (mobile commission ou email absent)");
       }
-    } catch (e) {
-      logger.warn({ err: e.message }, "stub: receipt email failed");
-    }
   }
 
   res.status(201).json({
