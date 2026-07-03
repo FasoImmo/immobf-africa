@@ -31,6 +31,19 @@ export default function PropertyDetail() {
   const [similar, setSimilar] = useState([]);
   const [bookingUnits, setBookingUnits] = useState(1);
   const [checkIn, setCheckIn] = useState("");
+  const [commissionPaid, setCommissionPaid] = useState(false);
+
+  // Charge l'état "commission payée" depuis localStorage dès que l'id est connu
+  useEffect(() => {
+    if (!id) return;
+    try { setCommissionPaid(localStorage.getItem(`commission_paid_${id}`) === "1"); } catch {}
+  }, [id]);
+
+  function handleCommissionPaid() {
+    setCommissionPaid(true);
+    try { localStorage.setItem(`commission_paid_${id}`, "1"); } catch {}
+    setPayOpen(false);
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -183,7 +196,7 @@ export default function PropertyDetail() {
               </>
             )}
 
-            {p.owner_whatsapp && (
+            {p.owner_whatsapp && (!isRent || commissionPaid) && (
               <Button
                 fullWidth variant="contained" size="large"
                 sx={{ mt: 1, bgcolor: "#25D366", "&:hover": { bgcolor: "#1ebe5a" }, color: "white" }}
@@ -196,6 +209,11 @@ export default function PropertyDetail() {
               >
                 💬 {t("property.contact_whatsapp")}
               </Button>
+            )}
+            {p.owner_whatsapp && isRent && !commissionPaid && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, textAlign: "center" }}>
+                🔒 Réglez la commission ci-dessus pour débloquer le contact WhatsApp de l&apos;annonceur.
+              </Typography>
             )}
           </Paper>
         </Grid>
@@ -219,6 +237,7 @@ export default function PropertyDetail() {
         <PaymentDialog
           open={payOpen}
           onClose={function() { setPayOpen(false); }}
+          onSuccess={handleCommissionPaid}
           property={p}
           amount={commissionAmount}
           purpose="commission"

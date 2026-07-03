@@ -42,7 +42,7 @@ const FEDAPAY_OPERATORS = [
   { value: "card", label: "Carte Visa/Mastercard" },
 ];
 
-export default function PaymentDialog({ open, onClose, property, amount, purpose = "deposit", bookingUnits, checkIn }) {
+export default function PaymentDialog({ open, onClose, onSuccess, property, amount, purpose = "deposit", bookingUnits, checkIn }) {
   const { t } = useTranslation();
   const [providers, setProviders] = useState([]);
   // CORRECTIF (30/06/2026) : avant, on interrogeait toujours les fournisseurs
@@ -71,6 +71,13 @@ export default function PaymentDialog({ open, onClose, property, amount, purpose
   const pollRef = useRef(null);
   const pollAttemptsRef = useRef(0);
   const MAX_POLL_ATTEMPTS = 40; // ~3 minutes à 4.5s d'intervalle
+
+  // Notifie le parent dès que le paiement commission est confirmé (WhatsApp unlock)
+  useEffect(() => {
+    if (status === "succeeded" && purpose === "commission" && onSuccess) {
+      onSuccess();
+    }
+  }, [status]); // eslint-disable-line
 
   function stopPolling() {
     if (pollRef.current) {
