@@ -149,13 +149,10 @@ async function initiate(req, res) {
     // ne déclenchait aucun reçu — l'UI affichait pourtant déjà "reçu envoyé
     // par email" dans ce cas, ce qui était faux à 100%.
     try {
-      // Pour une commission, on n'envoie le reçu que si le client a explicitement
-      // fourni son email (flux web). Sur mobile, customer_email n'est jamais envoyé
-      // et on ne veut pas solliciter l'email du compte (l'utilisateur ne s'attend
-      // pas à recevoir un email de reçu dans ce cas).
-      const recipientEmail = value.purpose === "commission"
-        ? tx.customer_email                        // mobile → null → pas d'email
-        : tx.customer_email || req.user?.email;    // listing_fee → fallback compte
+      // On envoie le reçu à l'email saisi à la caisse (customer_email) ou, à
+      // défaut, à l'email du compte connecté. Cela couvre le flux mobile où
+      // customer_email n'est pas envoyé : l'annonceur reçoit quand même sa facture.
+      const recipientEmail = tx.customer_email || req.user?.email;
       if (recipientEmail) {
         const { sendPaymentReceipt } = require("../services/email");
         const plans = config.commissions.listingPlans;

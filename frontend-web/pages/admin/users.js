@@ -61,6 +61,18 @@ export default function AdminUsers() {
     } finally { setActingId(null); }
   }
 
+  async function handleDelete(u) {
+    if (!window.confirm(`Supprimer définitivement le compte de "${u.full_name || u.phone}" ? Toutes ses annonces seront aussi supprimées. Action irréversible.`)) return;
+    setActingId(u.id);
+    try {
+      await Admin.deleteUser(u.id);
+      setToast(`Compte de ${u.full_name || u.phone} supprimé.`);
+      load();
+    } catch (e) {
+      setError(e?.response?.data?.error?.message || e.message);
+    } finally { setActingId(null); }
+  }
+
   if (authorized === null) {
     return (
       <Layout title="Abonnés — Admin"><Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box></Layout>
@@ -77,7 +89,7 @@ export default function AdminUsers() {
     );
   }
 
-  const roleLabels = { buyer: "Acheteur", seller: "Vendeur", agent: "Agent", admin: "Admin" };
+  const roleLabels = { buyer: "Client", seller: "Vendeur", agent: "Agent", admin: "Admin" };
 
   return (
     <Layout title="Abonnés — Admin">
@@ -126,6 +138,9 @@ export default function AdminUsers() {
                     </Button>
                     <Button size="small" disabled={actingId === u.id} onClick={() => handleLogout(u)}>
                       Déconnecter
+                    </Button>
+                    <Button size="small" color="error" disabled={actingId === u.id} onClick={() => handleDelete(u)}>
+                      🗑 Supprimer
                     </Button>
                   </TableCell>
                 </TableRow>
