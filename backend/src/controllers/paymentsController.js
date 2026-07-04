@@ -2,6 +2,7 @@
 
 const Joi = require("joi");
 const Transaction = require("../models/Transaction");
+const Booking     = require("../models/Booking");
 const Escrow = require("../models/Escrow");
 const Property = require("../models/Property");
 const User = require("../models/User");
@@ -169,6 +170,22 @@ async function initiate(req, res) {
       } else {
         logger.info({ transaction_id: tx.id, purpose: value.purpose }, "stub: pas d'email reçu (mobile commission ou email absent)");
       }
+
+      // Créer la réservation calendrier pour les courts séjours (stub)
+      if (value.purpose === "commission" && value.property_id && value.check_in && value.booking_units) {
+        try {
+          const checkIn  = new Date(value.check_in);
+          const checkOut = new Date(checkIn);
+          checkOut.setDate(checkOut.getDate() + Number(value.booking_units));
+          await Booking.create(value.property_id, tx.id, checkIn, checkOut);
+          logger.info({ property_id: value.property_id, check_in: value.check_in, nights: value.booking_units }, "stub: booking créé");
+        } catch (e) {
+          logger.warn({ err: e.message }, "stub: booking creation failed");
+        }
+      }
+    } catch (e) {
+      logger.warn({ err: e.message }, "stub: post-payment hook failed");
+    }
   }
 
   res.status(201).json({
@@ -303,6 +320,22 @@ async function webhook(req, res) {
           }
         } catch (e) {
           logger.warn({ err: e.message }, "Owner commission receipt copy failed");
+        }
+      }
+
+      // --- Créer la réservation calendrier (court séjour, webhook) ---
+      if (updated.purpose === "commission" && updated.property_id) {
+        try {
+          const details = await Transaction.findLatestEvent(updated.id, "booking_details");
+          if (details?.check_in && details?.booking_units) {
+            const checkIn  = new Date(details.check_in);
+            const checkOut = new Date(checkIn);
+            checkOut.setDate(checkOut.getDate() + Number(details.booking_units));
+            await Booking.create(updated.property_id, updated.id, checkIn, checkOut);
+            logger.info({ property_id: updated.property_id, check_in: details.check_in }, "webhook: booking créé");
+          }
+        } catch (e) {
+          logger.warn({ err: e.message }, "webhook: booking creation failed");
         }
       }
     } catch (e) {

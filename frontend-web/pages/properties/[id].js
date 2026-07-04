@@ -32,11 +32,13 @@ export default function PropertyDetail() {
   const [bookingUnits, setBookingUnits] = useState(1);
   const [checkIn, setCheckIn] = useState("");
   const [commissionPaid, setCommissionPaid] = useState(false);
+  const [bookedRanges, setBookedRanges] = useState([]);
 
-  // Charge l'état "commission payée" depuis localStorage dès que l'id est connu
+  // Charge l'état "commission payée" et les dates réservées depuis localStorage + API
   useEffect(() => {
     if (!id) return;
     try { setCommissionPaid(localStorage.getItem(`commission_paid_${id}`) === "1"); } catch {}
+    Properties.availability(id).then((d) => setBookedRanges(d.booked || [])).catch(() => {});
   }, [id]);
 
   function handleCommissionPaid() {
@@ -88,6 +90,20 @@ export default function PropertyDetail() {
   var unitLabel = p.rent_period === "monthly" ? t("property.unit_months")
     : p.rent_period === "weekly" ? t("property.unit_weeks")
     : t("property.unit_nights");
+
+  // Détecte si les dates choisies chevauchent une réservation existante
+  function hasConflict() {
+    if (!checkIn || !bookedRanges.length) return false;
+    const start = new Date(checkIn);
+    const end   = new Date(start);
+    end.setDate(end.getDate() + units);
+    return bookedRanges.some((b) => {
+      const bStart = new Date(b.check_in);
+      const bEnd   = new Date(b.check_out);
+      return start < bEnd && end > bStart;
+    });
+  }
+  var conflict = isRent && p.transaction_type === "rent_short" ? hasConflict() : false;
 
   return (
     <Layout title={p.title + " — ImmoBF"}>
@@ -183,9 +199,22 @@ export default function PropertyDetail() {
                 <Typography variant="body2" sx={{ mt: 1 }}>
                   {t("property.total_amount")} : <b>{formatFCFA(totalBookingAmount, p.currency)}</b>
                 </Typography>
+                {conflict && (
+                  <Alert severity="error" sx={{ mt: 1 }}>
+                    ⛔ Ces dates sont déjà réservées. Choisissez d&apos;autres dates.
+                  </Alert>
+                )}
+                {bookedRanges.length > 0 && (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                    📅 Occupé : {bookedRanges.map((b) =>
+                      `${new Date(b.check_in).toLocaleDateString("fr-FR")} → ${new Date(b.check_out).toLocaleDateString("fr-FR")}`
+                    ).join(" · ")}
+                  </Typography>
+                )}
                 <Button
                   fullWidth variant="contained" color="primary" size="large"
                   sx={{ mt: 1 }}
+                  disabled={conflict}
                   onClick={function() { setPayOpen(true); }}
                 >
                   {t("property.reserve_btn")} — {formatFCFA(commissionAmount)}

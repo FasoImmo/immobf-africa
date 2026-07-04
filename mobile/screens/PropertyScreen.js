@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ScrollView, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking } from "react-native";
+import { ScrollView, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking, Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLang } from "../lib/lang";
@@ -101,6 +101,7 @@ export default function PropertyScreen({ route, navigation }) {
   const [prop, setProp] = useState(initialProp);
   const [loading, setLoading] = useState(false);
   const [commissionPaid, setCommissionPaid] = useState(false);
+  const [bookedRanges, setBookedRanges] = useState([]);
 
   // Recharge l'état "commission payée" depuis AsyncStorage chaque fois que l'écran est visible
   // (notamment au retour depuis PaymentScreen)
@@ -111,6 +112,14 @@ export default function PropertyScreen({ route, navigation }) {
       .then((v) => { if (v === "1") setCommissionPaid(true); })
       .catch(() => {});
   }, [initialProp?.id]));
+
+  // Charge les dates réservées de l'annonce
+  useEffect(() => {
+    if (!initialProp?.id) return;
+    Properties.availability(initialProp.id)
+      .then((d) => setBookedRanges(d.booked || []))
+      .catch(() => {});
+  }, [initialProp?.id]);
 
   // Re-fetch avec la bonne langue quand lang change
   useEffect(() => {
@@ -220,14 +229,29 @@ export default function PropertyScreen({ route, navigation }) {
 
             <TouchableOpacity
               style={styles.btn}
-              onPress={() => navigation.navigate("Payment", {
-                property: p,
-                amount: commission,
-                duration,
-                arrival: fmtDate(arrival),
-                departure: fmtDate(departure),
-                total: totalAmount,
-              })}
+              onPress={() => {
+                // Vérifier conflit avant navigation
+                const conflicts = bookedRanges.some((b) => {
+                  const bStart = new Date(b.check_in);
+                  const bEnd   = new Date(b.check_out);
+                  return arrival < bEnd && departure > bStart;
+                });
+                if (conflicts) {
+                  Alert.alert(
+                    lang === "fr" ? "Dates indisponibles" : "Dates unavailable",
+                    lang === "fr" ? "Ces dates sont déjà réservées. Veuillez choisir d'autres dates." : "These dates are already booked. Please choose different dates."
+                  );
+                  return;
+                }
+                navigation.navigate("Payment", {
+                  property: p,
+                  amount: commission,
+                  duration,
+                  arrival: fmtDate(arrival),
+                  departure: fmtDate(departure),
+                  total: totalAmount,
+                });
+              }}
             >
               <Text style={styles.btnText}>{t.payBtn}</Text>
             </TouchableOpacity>

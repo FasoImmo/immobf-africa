@@ -87,8 +87,13 @@ router.post ("/admin/test-email",           requireAdmin, asyncHandler(adminCtl.
 const analyticsLimiter = rateLimit({ windowMs: 10_000, max: 30 });
 router.post("/properties/:id/view",     analyticsLimiter, asyncHandler(analytics.trackView));
 router.post("/events/search",           analyticsLimiter, asyncHandler(analytics.trackSearch));
-router.get ("/properties/:id/similar",  publicLimiter,    asyncHandler(analytics.similar));
-router.get ("/properties/:id/stats",    requireAuth,      asyncHandler(analytics.propertyStats));
+router.get ("/properties/:id/similar",      publicLimiter, asyncHandler(analytics.similar));
+router.get ("/properties/:id/stats",        requireAuth,   asyncHandler(analytics.propertyStats));
+router.get ("/properties/:id/availability", publicLimiter, asyncHandler(async (req, res) => {
+  const Booking = require("../models/Booking");
+  const booked = await Booking.listForProperty(req.params.id);
+  res.json({ booked });
+}));
 router.get ("/my/stats",                requireAuth,      asyncHandler(analytics.myStats));
 router.get ("/suggestions",             asyncHandler(analytics.suggestions));
 
