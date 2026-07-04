@@ -408,6 +408,8 @@ export default function SellPage() {
   async function payListingFee() {
     setPayErr(null); setPayBusy(true);
     try {
+      var userEmail = "";
+      try { userEmail = JSON.parse(localStorage.getItem("immobf_user") || "{}").email || ""; } catch (_) {}
       var res = await Payments.initiate({
         provider: provider,
         amount: selectedPlan.price,
@@ -415,6 +417,7 @@ export default function SellPage() {
         property_id: propertyId,
         purpose: "listing_fee",
         customer_phone: phone,
+        customer_email: userEmail || undefined,
         description: `Abonnement ImmoBF Africa — ${selectedPlan.price.toLocaleString("fr-FR")} FCFA / ${selectedPlan.label}`,
         preferred_operator: provider === "pawapay" ? pawapayOperator : null,
         pawapay_otp: provider === "pawapay" && currentOp.otp ? pawapayOtp : null,
