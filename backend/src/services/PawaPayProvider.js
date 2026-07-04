@@ -176,7 +176,7 @@ class PawaPayProvider extends PaymentProvider {
   parseWebhook(body) {
     return {
       external_id: body?.depositId,
-      reference: body?.metadata?.orderId || body?.clientReferenceId,
+      reference: body?.metadata?.[0]?.orderId || body?.clientReferenceId,
       status: body?.status === "COMPLETED" ? "succeeded" : "failed",
       amount: body?.amount ? Number(body.amount) : null,
       currency: body?.currency || "XOF",

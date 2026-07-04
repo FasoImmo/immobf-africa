@@ -57,7 +57,14 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
   const [pawapayOperator, setPawapayOperator] = useState("moov");
   const [pawapayOtp, setPawapayOtp] = useState("");
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  // Pré-rempli depuis le compte connecté — l'utilisateur peut modifier.
+  // Évite les reçus perdus quand le champ est laissé vide (bug historique).
+  const [email, setEmail] = useState(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem("immobf_user") || "{}");
+      return u.email || "";
+    } catch { return ""; }
+  });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -125,7 +132,12 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
   useEffect(() => {
     if (!open) return;
     setBuyerCountry(property?.country_code || "BF");
-  }, [open, property]);
+    // Rafraîchit l'email depuis le compte au moment où le dialog s'ouvre.
+    try {
+      const u = JSON.parse(localStorage.getItem("immobf_user") || "{}");
+      if (u.email && !email) setEmail(u.email);
+    } catch { /* ignore */ }
+  }, [open, property]); // eslint-disable-line
 
   useEffect(() => {
     if (!open || !buyerCountry) return;
