@@ -70,6 +70,14 @@ export default function EditPropertyPage() {
   const [uploadErr, setUploadErr] = useState(null);
   const [deletingPhoto, setDeletingPhoto] = useState(null);
 
+  // ── Blocage de dates (locations courtes durées uniquement) ────────────────
+  const [blocks, setBlocks]           = useState([]);
+  const [blockLoading, setBlockLoading] = useState(false);
+  const [blockCheckIn, setBlockCheckIn] = useState("");
+  const [blockCheckOut, setBlockCheckOut] = useState("");
+  const [blockNote, setBlockNote]     = useState("");
+  const [blockMsg, setBlockMsg]       = useState(null);
+
   const [form, setForm] = useState({
     transaction_type: "sale", type: "house",
     title: "", description: "", price: "", currency: "XOF",
@@ -104,6 +112,9 @@ export default function EditPropertyPage() {
         rent_period: p.rent_period || "monthly",
       });
       setCurrentPhotos(p.photos || []);
+      if (p.transaction_type === "rent_short") {
+        Properties.listBlockDates(id).then(function(r) { setBlocks(r.blocks || []); }).catch(function() {});
+      }
     }).catch(function() {
       router.replace("/account");
     }).finally(function() {
@@ -169,6 +180,36 @@ export default function EditPropertyPage() {
 
   function removeNewFile(i) {
     setNewFiles(function(f) { return f.filter(function(_, idx) { return idx !== i; }); });
+  }
+
+  async function addBlock() {
+    if (!blockCheckIn || !blockCheckOut) {
+      setBlockMsg({ type: "error", text: "Sélectionnez une date de début et de fin." });
+      return;
+    }
+    if (blockCheckOut <= blockCheckIn) {
+      setBlockMsg({ type: "error", text: "La date de fin doit être après la date de début." });
+      return;
+    }
+    setBlockLoading(true); setBlockMsg(null);
+    try {
+      await Properties.addBlockDate(id, { check_in: blockCheckIn, check_out: blockCheckOut, note: blockNote || undefined });
+      const r = await Properties.listBlockDates(id);
+      setBlocks(r.blocks || []);
+      setBlockCheckIn(""); setBlockCheckOut(""); setBlockNote("");
+      setBlockMsg({ type: "success", text: "Période bloquée avec succès." });
+    } catch (err) {
+      setBlockMsg({ type: "error", text: err?.response?.data?.error?.message || "Erreur lors du blocage." });
+    } finally { setBlockLoading(false); }
+  }
+
+  async function removeBlock(blockId) {
+    setBlockLoading(true);
+    try {
+      await Properties.deleteBlockDate(id, blockId);
+      setBlocks(function(prev) { return prev.filter(function(b) { return b.id !== blockId; }); });
+    } catch { setBlockMsg({ type: "error", text: "Erreur lors de la suppression." }); }
+    finally { setBlockLoading(false); }
   }
 
   if (loading) {
@@ -381,6 +422,65 @@ export default function EditPropertyPage() {
           </Box>
         </form>
       </Paper>
+
+      {/* ─── Calendrier de disponibilités (location courte durée) ───────── */}
+      {form.transaction_type === "rent_short" && (
+        <Paper sx={{ p: 3, mt: 2 }} elevation={1}>
+          <Typography variant="h6" gutterBottom>📅 Disponibilités — périodes déjà occupées</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Indiquez les périodes indisponibles (déjà réservées hors plateforme, usage personnel, travaux…).
+            Elles bloqueront automatiquement ces dates pour les locataires sur la plateforme.
+          </Typography>
+
+          {blockMsg && <Alert severity={blockMsg.type} sx={{ mb: 2 }} onClose={() => setBlockMsg(null)}>{blockMsg.text}</Alert>}
+          {blockLoading && <CircularProgress size={20} sx={{ display: "block", mb: 1 }} />}
+
+          {!blockLoading && blocks.length === 0 && (
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Aucune période bloquée pour l&apos;instant.
+            </Typography>
+          )}
+          {blocks.map(function(b) {
+            return (
+              <Box key={b.id} sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1, p: 1.2, bgcolor: "#fff3e0", borderRadius: 1 }}>
+                <Typography variant="body2" sx={{ flex: 1 }}>
+                  🔒 {new Date(b.check_in + "T00:00:00").toLocaleDateString("fr-FR")}
+                  {" → "}
+                  {new Date(b.check_out + "T00:00:00").toLocaleDateString("fr-FR")}
+                  {b.note && <Typography component="span" variant="caption" color="text.secondary"> · {b.note}</Typography>}
+                </Typography>
+                <Button size="small" color="error" onClick={function() { removeBlock(b.id); }} disabled={blockLoading}>
+                  ✕
+                </Button>
+              </Box>
+            );
+          })}
+
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Bloquer une nouvelle période</Typography>
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1 }}>
+            <TextField
+              size="small" type="date" label="Du (check-in)"
+              value={blockCheckIn} onChange={function(e) { setBlockCheckIn(e.target.value); }}
+              InputLabelProps={{ shrink: true }} sx={{ flex: 1, minWidth: 140 }}
+            />
+            <TextField
+              size="small" type="date" label="Au (check-out)"
+              value={blockCheckOut} onChange={function(e) { setBlockCheckOut(e.target.value); }}
+              InputLabelProps={{ shrink: true }} sx={{ flex: 1, minWidth: 140 }}
+            />
+          </Box>
+          <TextField
+            size="small" fullWidth label="Motif (optionnel)" value={blockNote}
+            onChange={function(e) { setBlockNote(e.target.value); }} sx={{ mb: 1.5 }}
+            placeholder="Ex : déjà loué hors plateforme, travaux, usage personnel..."
+          />
+          <Button variant="outlined" size="small" disabled={blockLoading} onClick={addBlock}>
+            {blockLoading ? <CircularProgress size={16} color="inherit" /> : "Bloquer ces dates"}
+          </Button>
+        </Paper>
+      )}
+
     </Layout>
   );
 }
