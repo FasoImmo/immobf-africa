@@ -231,13 +231,13 @@ async function listForUserAdmin(userId) {
 async function interactionStatsByUser(userId) {
   const { rows } = await query(
     `SELECT p.id, p.title, p.status, p.country_code, p.city,
-            COALESCE(SUM(e.count) FILTER (WHERE e.kind = 'view'), 0)::int        AS total_views,
-            COALESCE(SUM(e.count) FILTER (WHERE e.kind = 'whatsapp_click'), 0)::int AS whatsapp_clicks
+            COALESCE(SUM(e.count) FILTER (WHERE e.event_type = 'view'), 0)::int        AS total_views,
+            COALESCE(SUM(e.count) FILTER (WHERE e.event_type = 'whatsapp_click'), 0)::int AS whatsapp_clicks
      FROM properties p
      LEFT JOIN (
-       SELECT property_id, kind, COUNT(*) AS count
-       FROM property_events
-       GROUP BY property_id, kind
+       SELECT property_id, event_type, COUNT(*) AS count
+       FROM property_views
+       GROUP BY property_id, event_type
      ) e ON e.property_id = p.id
      WHERE p.owner_id = $1
      GROUP BY p.id
