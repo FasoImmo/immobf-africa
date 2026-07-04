@@ -191,6 +191,13 @@ export default function PaymentScreen({ route }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
 
+  // Persiste le paiement commission pour débloquer WhatsApp sur PropertyScreen
+  useEffect(() => {
+    if (result?.status === "succeeded" && purpose === "commission" && property?.id) {
+      AsyncStorage.setItem(`commission_paid_${property.id}`, "1").catch(() => {});
+    }
+  }, [result?.status]); // eslint-disable-line
+
   // Recharger les opérateurs quand le pays change
   useEffect(() => {
     setProvider("");

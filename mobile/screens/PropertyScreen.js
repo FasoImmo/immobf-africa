@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { ScrollView, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLang } from "../lib/lang";
 import { Properties } from "../lib/api";
 import FallbackImage from "../components/FallbackImage";
@@ -24,6 +26,7 @@ const T = {
     rentLong: "Location longue durée",
     rentShort: "Court séjour",
     noContact: "Aucun contact disponible",
+    lockMsg: "🔒 Réglez la commission pour débloquer le contact WhatsApp de l'annonceur.",
   },
   en: {
     noListing: "No listing",
@@ -44,6 +47,7 @@ const T = {
     rentLong: "Long-term rental",
     rentShort: "Short stay",
     noContact: "No contact available",
+    lockMsg: "🔒 Pay the commission to unlock the advertiser's WhatsApp contact.",
   },
 };
 
@@ -96,6 +100,17 @@ export default function PropertyScreen({ route, navigation }) {
   const initialProp = route.params?.property;
   const [prop, setProp] = useState(initialProp);
   const [loading, setLoading] = useState(false);
+  const [commissionPaid, setCommissionPaid] = useState(false);
+
+  // Recharge l'état "commission payée" depuis AsyncStorage chaque fois que l'écran est visible
+  // (notamment au retour depuis PaymentScreen)
+  useFocusEffect(useCallback(() => {
+    const id = initialProp?.id;
+    if (!id) return;
+    AsyncStorage.getItem(`commission_paid_${id}`)
+      .then((v) => { if (v === "1") setCommissionPaid(true); })
+      .catch(() => {});
+  }, [initialProp?.id]));
 
   // Re-fetch avec la bonne langue quand lang change
   useEffect(() => {
@@ -125,9 +140,10 @@ export default function PropertyScreen({ route, navigation }) {
   const isLong = type === "rent_long";
   const isSale = !isShort && !isLong;
 
-  // Commission uniquement pour court séjour
+  // Commission court séjour (sur durée choisie) et longue durée (1 mois)
   const totalAmount = unitPrice * duration;
   const commission = Math.round(totalAmount * (Number(p.deposit_pct || 5) / 100));
+  const commissionLong = Math.max(100, Math.round(unitPrice * (Number(p.deposit_pct || 5) / 100)));
   const departure = addDays(arrival, duration);
 
   const typeLabel = isShort ? t.rentShort : isLong ? t.rentLong : t.sale;
@@ -218,8 +234,50 @@ export default function PropertyScreen({ route, navigation }) {
           </>
         )}
 
-        {/* ── VENTE / LOCATION LONGUE DURÉE : contact WhatsApp direct ── */}
-        {!isShort && (
+        {/* ── COURT SÉJOUR : WhatsApp affiché si commission déjà payée ── */}
+        {isShort && commissionPaid && ownerWa && (
+          <View style={[styles.contactBox, { marginTop: 12 }]}>
+            <TouchableOpacity style={styles.waBtn} onPress={openWhatsApp}>
+              <Text style={styles.waIcon}>💬</Text>
+              <Text style={styles.waBtnText}>{ownerWa}  —  {t.whatsappBtn}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* ── LOCATION LONGUE DURÉE : commission + WhatsApp gated ── */}
+        {isLong && (
+          <View style={styles.contactBox}>
+            <Text style={styles.contactLabel}>{t.contactOwner}</Text>
+            {!commissionPaid ? (
+              <>
+                <TouchableOpacity
+                  style={styles.btn}
+                  onPress={() => navigation.navigate("Payment", {
+                    property: p,
+                    amount: commissionLong,
+                    duration: 1,
+                    arrival: fmtDate(today),
+                    departure: fmtDate(addDays(today, 30)),
+                    total: unitPrice,
+                  })}
+                >
+                  <Text style={styles.btnText}>{t.payBtn} — {commissionLong.toLocaleString("fr-FR")} {cur}</Text>
+                </TouchableOpacity>
+                {ownerWa && <Text style={styles.lockMsg}>{t.lockMsg}</Text>}
+              </>
+            ) : (
+              ownerWa ? (
+                <TouchableOpacity style={styles.waBtn} onPress={openWhatsApp}>
+                  <Text style={styles.waIcon}>💬</Text>
+                  <Text style={styles.waBtnText}>{ownerWa}  —  {t.whatsappBtn}</Text>
+                </TouchableOpacity>
+              ) : <Text style={styles.noContact}>{t.noContact}</Text>
+            )}
+          </View>
+        )}
+
+        {/* ── VENTE : contact WhatsApp direct (pas de commission) ── */}
+        {isSale && (
           <View style={styles.contactBox}>
             <Text style={styles.contactLabel}>{t.contactOwner}</Text>
             {ownerWa ? (
@@ -291,4 +349,5 @@ const styles = StyleSheet.create({
   waIcon: { fontSize: 20 },
   waBtnText: { color: "white", fontWeight: "700", fontSize: 14, flex: 1 },
   noContact: { color: "#999", fontStyle: "italic" },
+  lockMsg: { color: "#888", fontSize: 12, marginTop: 8, textAlign: "center" },
 });
