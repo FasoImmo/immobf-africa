@@ -28,3 +28,11 @@ describe("GET /api/v1/health", () => {
     expect(res.body.ok).toBe(true);
   });
 });
+
+describe("404 handler", () => {
+  test("renvoie une erreur structurée", async () => {
+    const res = await request(app).get("/api/v1/nope");
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe("not_found");
+  });
+});

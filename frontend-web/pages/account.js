@@ -7,7 +7,7 @@ import {
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
-import { Analytics, Auth } from "../lib/api";
+import { Analytics, Auth, Properties } from "../lib/api";
 import { formatFCFA } from "../lib/format";
 
 const EUR_RATE = 655.957;
@@ -75,6 +75,16 @@ export default function AccountPage() {
       .catch(() => setErr("Impossible de charger vos annonces."))
       .finally(() => setLoading(false));
   }, []); // eslint-disable-line
+
+  async function deleteListingHandler(propertyId, title) {
+    if (!window.confirm(`Supprimer définitivement l'annonce "${title}" ? Cette action est irréversible.`)) return;
+    try {
+      await Properties.deleteListing(propertyId);
+      setListings((prev) => prev.filter((l) => l.id !== propertyId));
+    } catch (e) {
+      alert(e?.response?.data?.error?.message || "Erreur lors de la suppression.");
+    }
+  }
 
   function renew(propertyId) {
     router.push(`/sell?renew=${propertyId}`);
@@ -336,12 +346,17 @@ export default function AccountPage() {
                     </Typography>
                   </CardContent>
                   <Divider />
-                  <CardActions sx={{ gap: 1, px: 2 }}>
-                    <Button size="small" variant="outlined" onClick={() => resumeDraft(p.id)}>
-                      {t("account.draft_resume")}
-                    </Button>
-                    <Button size="small" onClick={() => editListing(p.id)}>
-                      {t("account.edit")}
+                  <CardActions sx={{ gap: 1, px: 2, justifyContent: "space-between" }}>
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                      <Button size="small" variant="outlined" onClick={() => resumeDraft(p.id)}>
+                        {t("account.draft_resume")}
+                      </Button>
+                      <Button size="small" onClick={() => editListing(p.id)}>
+                        {t("account.edit")}
+                      </Button>
+                    </Box>
+                    <Button size="small" color="error" onClick={() => deleteListingHandler(p.id, p.title || "brouillon")}>
+                      🗑 Supprimer
                     </Button>
                   </CardActions>
                 </Card>
@@ -399,25 +414,28 @@ export default function AccountPage() {
                 </CardContent>
                 <Divider />
                 <CardActions sx={{ justifyContent: "space-between", px: 2, flexWrap: "wrap", gap: 1 }}>
-                  <Box sx={{ display: "flex", gap: 1 }}>
+                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                     <Button size="small" component={Link} href={`/properties/${p.id}`}>
                       {t("account.view")}
                     </Button>
                     <Button size="small" variant="outlined" onClick={() => editListing(p.id)}>
                       ✏️ {t("account.edit")}
                     </Button>
+                    {(isExpiringSoon || isExpired) && (
+                      <Button
+                        size="small" variant="contained" color="warning"
+                        onClick={() => renew(p.id)}
+                      >
+                        {t("account.renew")} — {LISTING_FEE.toLocaleString("fr-FR")} FCFA
+                        <Typography component="span" variant="caption" sx={{ ml: 0.5, opacity: 0.8 }}>
+                          (≈ {(LISTING_FEE / EUR_RATE).toFixed(2)}€)
+                        </Typography>
+                      </Button>
+                    )}
                   </Box>
-                  {(isExpiringSoon || isExpired) && (
-                    <Button
-                      size="small" variant="contained" color="warning"
-                      onClick={() => renew(p.id)}
-                    >
-                      {t("account.renew")} — {LISTING_FEE.toLocaleString("fr-FR")} FCFA
-                      <Typography component="span" variant="caption" sx={{ ml: 0.5, opacity: 0.8 }}>
-                        (≈ {(LISTING_FEE / EUR_RATE).toFixed(2)}€)
-                      </Typography>
-                    </Button>
-                  )}
+                  <Button size="small" color="error" onClick={() => deleteListingHandler(p.id, p.title)}>
+                    🗑 Supprimer
+                  </Button>
                 </CardActions>
               </Card>
             </Grid>

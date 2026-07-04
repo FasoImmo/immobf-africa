@@ -9,7 +9,7 @@ const PUBLIC_FIELDS = `
 `;
 
 async function create({ email, phone, password, full_name, role = "buyer", country_code = "BF", locale = "fr", agency_id = null }) {
-  const password_hash = await argon2.hash(password, { type: argon2.argon2id });
+  const password_hash = await argon2.hash(password, { type: argon2.argon2id, memoryCost: 16384, timeCost: 2, parallelism: 1 });
   const { rows } = await query(
     `INSERT INTO users (email, phone, password_hash, full_name, role, agency_id, country_code, locale)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
@@ -153,6 +153,15 @@ async function setBlocked(id, blocked) {
   return rows[0] || null;
 }
 
+// Suppression définitive d'un compte et de toutes ses annonces (cascade DB).
+async function deleteById(id) {
+  const { rows } = await query(
+    "DELETE FROM users WHERE id = $1 RETURNING id, email, phone, full_name",
+    [id]
+  );
+  return rows[0] || null;
+}
+
 // Déconnexion forcée sans bloquer le compte : incrémente uniquement
 // token_version. L'utilisateur pourra se reconnecter normalement juste après.
 async function forceLogout(id) {
@@ -167,5 +176,5 @@ module.exports = {
   create, findByPhone, findByEmail, findById, findByIdWithAuth, verifyPassword, markPhoneVerified,
   updatePassword, updatePasswordByEmail, updateEmail, updatePhone, updatePasswordById,
   updateFullName,
-  list, setBlocked, forceLogout,
+  list, setBlocked, forceLogout, deleteById,
 };

@@ -141,4 +141,26 @@ async function update(req, res) {
   res.json({ property: { ...updated, photos } });
 }
 
-module.exports = { create, get, publish, search, estimate, myListings, update };
+async function deleteListing(req, res) {
+  const p = await Property.findById(req.params.id);
+  if (!p) throw NotFound("Annonce introuvable");
+  if (p.owner_id !== req.user.id) throw Forbidden("Non autorisé");
+  await Property.deleteForOwner(req.params.id, req.user.id);
+  res.json({ deleted: true });
+}
+
+async function renewListing(req, res) {
+  const p = await Property.findById(req.params.id);
+  if (!p) throw NotFound("Annonce introuvable");
+  if (p.owner_id !== req.user.id) throw Forbidden("Non autorisé");
+  // Renouveler = remettre à zéro listing_fee_paid_at pour forcer un nouveau paiement
+  // Le frontend redirigera vers le flow paiement listing_fee
+  res.json({
+    property_id: req.params.id,
+    current_expiry: p.listing_expires_at,
+    renew_required: true,
+    message: "Procédez au paiement de renouvellement via le formulaire de publication.",
+  });
+}
+
+module.exports = { create, get, publish, search, estimate, myListings, update, deleteListing, renewListing };

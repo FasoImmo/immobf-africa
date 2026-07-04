@@ -22,9 +22,11 @@ async function sendOtp(phone, email = null, purpose = "verification") {
   const redis = getRedis();
   await redis.set(`otp:${phone}`, code, "EX", TTL_SECONDS);
 
-  // Envoi email si disponible (gratuit, prioritaire)
+  // Envoi email si disponible (fire-and-forget — ne bloque pas la réponse)
   if (email) {
-    await sendOtpEmail(email, code, purpose);
+    sendOtpEmail(email, code, purpose).catch((e) =>
+      logger.warn({ err: e.message }, "sendOtp: sendOtpEmail failed")
+    );
   }
 
   // Envoi SMS via Twilio si configuré

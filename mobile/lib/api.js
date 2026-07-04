@@ -4,7 +4,7 @@ import Constants from "expo-constants";
 
 const baseURL = Constants?.expoConfig?.extra?.apiUrl || "http://10.0.2.2:4000";
 
-const api = axios.create({ baseURL: `${baseURL}/api/v1`, timeout: 15000 });
+const api = axios.create({ baseURL: `${baseURL}/api/v1`, timeout: 30000 });
 
 api.interceptors.request.use(async (cfg) => {
   const token = await AsyncStorage.getItem("immobf_token");
@@ -52,6 +52,7 @@ export const Properties = {
   create: (data) => api.post("/properties", data).then((r) => r.data),
   update: (id, data) => api.patch(`/properties/${id}`, data).then((r) => r.data),
   myListings: () => api.get("/my/listings").then((r) => r.data),
+  deleteListing: (id) => api.delete(`/my/listings/${id}`).then((r) => r.data),
 };
 
 export const Photos = {

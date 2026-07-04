@@ -130,6 +130,12 @@ export default function AdminUsers() {
                   </TableCell>
                   <TableCell align="right">
                     <Button
+                      size="small"
+                      onClick={() => router.push(`/admin/users/${u.id}`)}
+                    >
+                      📊 Stats
+                    </Button>
+                    <Button
                       size="small" disabled={actingId === u.id}
                       onClick={() => handleBlock(u, !u.is_blocked)}
                       color={u.is_blocked ? "success" : "error"}

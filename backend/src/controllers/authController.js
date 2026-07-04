@@ -5,6 +5,7 @@ const User = require("../models/User");
 const { signAccess, signRefresh, verify } = require("../middleware/auth");
 const { sendOtp, verifyOtp } = require("../services/otp");
 const { BadRequest, Unauthorized, Conflict } = require("../utils/errors");
+const logger = require("../utils/logger");
 
 const phoneSchema = Joi.string().pattern(/^\+?[0-9]{8,15}$/).required();
 
@@ -192,7 +193,10 @@ async function forgotPassword(req, res) {
     const { getRedis } = require("../config/redis");
     const redis = getRedis();
     await redis.set(`otp:email:${value.email.toLowerCase()}`, code, "EX", 300);
-    await sendOtpEmail(value.email, code, "reset");
+    // Fire-and-forget : on ne bloque pas la réponse sur l'API Resend
+    sendOtpEmail(value.email, code, "reset").catch((e) =>
+      logger.error({ err: e.message }, "forgotPassword: sendOtpEmail failed")
+    );
   }
   res.json({ sent: true });
 }

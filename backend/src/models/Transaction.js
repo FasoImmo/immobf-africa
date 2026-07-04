@@ -207,9 +207,49 @@ async function statsByProvider(startDate, endDate) {
   return rows;
 }
 
+/**
+ * Transactions détaillées d'un annonceur spécifique (panneau admin).
+ * Inclut le provider/opérateur, la référence, le titre de l'annonce liée.
+ */
+async function listForUserAdmin(userId) {
+  const { rows } = await query(
+    `SELECT t.id, t.reference, t.amount, t.currency, t.provider, t.purpose,
+            t.status, t.created_at,
+            p.title AS property_title
+     FROM transactions t
+     LEFT JOIN properties p ON p.id = t.property_id
+     WHERE t.buyer_id = $1
+     ORDER BY t.created_at DESC`,
+    [userId]
+  );
+  return rows;
+}
+
+/**
+ * Stats d'interactions sur les propriétés d'un annonceur (vues, clics WhatsApp).
+ */
+async function interactionStatsByUser(userId) {
+  const { rows } = await query(
+    `SELECT p.id, p.title, p.status, p.country_code, p.city,
+            COALESCE(SUM(e.count) FILTER (WHERE e.kind = 'view'), 0)::int        AS total_views,
+            COALESCE(SUM(e.count) FILTER (WHERE e.kind = 'whatsapp_click'), 0)::int AS whatsapp_clicks
+     FROM properties p
+     LEFT JOIN (
+       SELECT property_id, kind, COUNT(*) AS count
+       FROM property_events
+       GROUP BY property_id, kind
+     ) e ON e.property_id = p.id
+     WHERE p.owner_id = $1
+     GROUP BY p.id
+     ORDER BY total_views DESC`,
+    [userId]
+  );
+  return rows;
+}
+
 module.exports = {
   create, findByReference, findByExternalId, findById, updateStatus,
   logEvent, findLatestEvent, listForUser,
   listAllForAdmin, revenuesByUser, globalRevenueStats,
-  statsByPeriod, statsByProvider,
+  statsByPeriod, statsByProvider, listForUserAdmin, interactionStatsByUser,
 };
