@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import {
   Box, Grid, Paper, Typography, Table, TableHead, TableRow, TableCell,
-  TableBody, Button, CircularProgress, Chip, Divider,
+  TableBody, Button, CircularProgress, Chip, Divider, TextField, Alert,
 } from "@mui/material";
 import Layout from "../../components/Layout";
 import { Admin } from "../../lib/api";
@@ -47,6 +47,9 @@ export default function AdminDashboard() {
   const [data, setData] = useState(null);
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [testEmailTo, setTestEmailTo] = useState("");
+  const [testEmailBusy, setTestEmailBusy] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState(null);
 
   useEffect(() => { accessGuard(router, setAuthorized); }, []); // eslint-disable-line
 
@@ -145,6 +148,40 @@ export default function AdminDashboard() {
       </Grid>
 
       <Divider sx={{ my: 3 }} />
+
+      {/* ─── Diagnostic email ───────────────────────────────────────────── */}
+      <Paper elevation={0} sx={{ p: 2, mb: 3, bgcolor: "#f0f4f8", borderRadius: 2 }}>
+        <Typography variant="subtitle2" sx={{ mb: 1 }}>🔧 Diagnostic Resend — test d&apos;envoi email</Typography>
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+          <TextField
+            size="small" type="email" label="Adresse de destination"
+            value={testEmailTo} onChange={(e) => setTestEmailTo(e.target.value)}
+            sx={{ bgcolor: "white", minWidth: 240 }}
+            placeholder="votre@email.com"
+          />
+          <Button
+            size="small" variant="outlined"
+            disabled={testEmailBusy || !testEmailTo}
+            onClick={async () => {
+              setTestEmailBusy(true); setTestEmailResult(null);
+              try {
+                const r = await Admin.testEmail(testEmailTo);
+                setTestEmailResult({ ok: r.ok, msg: r.ok ? `Envoyé (id: ${r.resend?.data?.id})` : `Refusé : ${JSON.stringify(r.resend?.error || r.error)}`, from: r.from });
+              } catch (e) {
+                setTestEmailResult({ ok: false, msg: e?.response?.data?.error?.message || "Erreur réseau" });
+              } finally { setTestEmailBusy(false); }
+            }}
+          >
+            {testEmailBusy ? <CircularProgress size={16} /> : "Envoyer le test"}
+          </Button>
+        </Box>
+        {testEmailResult && (
+          <Alert severity={testEmailResult.ok ? "success" : "error"} sx={{ mt: 1 }}>
+            {testEmailResult.msg}
+            {testEmailResult.from && <Typography component="span" variant="caption" sx={{ ml: 1, opacity: 0.7 }}>FROM: {testEmailResult.from}</Typography>}
+          </Alert>
+        )}
+      </Paper>
 
       <Box sx={{ mb: 3, display: "flex", gap: 2, flexWrap: "wrap" }}>
         <Button variant="contained" onClick={() => router.push("/admin/users")}>

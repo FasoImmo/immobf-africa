@@ -80,6 +80,10 @@ export const Properties = {
   myListings: () => api.get("/my/listings").then((r) => r.data),
   deleteListing: (id) => api.delete(`/my/listings/${id}`).then((r) => r.data),
   renewListing: (id) => api.post(`/my/listings/${id}/renew`).then((r) => r.data),
+  // Blocage manuel de dates (annonceur, court séjour)
+  listBlockDates: (id) => api.get(`/my/listings/${id}/block-dates`).then((r) => r.data),
+  addBlockDate: (id, data) => api.post(`/my/listings/${id}/block-dates`, data).then((r) => r.data),
+  deleteBlockDate: (id, blockId) => api.delete(`/my/listings/${id}/block-dates/${blockId}`).then((r) => r.data),
 };
 
 export const Auth = {

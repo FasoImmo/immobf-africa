@@ -125,7 +125,7 @@ async function myStats(req, res) {
   const { rows } = await query(
     `SELECT
        p.id, p.title, p.city, p.status,
-       p.listing_expires_at,
+       p.listing_expires_at, p.price, p.currency, p.transaction_type,
        COUNT(pv.id) FILTER (WHERE pv.event_type = 'view') AS total_views,
        COUNT(pv.id) FILTER (WHERE pv.event_type = 'whatsapp_click') AS whatsapp_clicks,
        COUNT(pv.id) FILTER (WHERE pv.created_at > NOW() - INTERVAL '7 days'

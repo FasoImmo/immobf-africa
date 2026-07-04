@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   Box, Typography, Grid, Card, CardContent, CardMedia, CardActions,
   Button, Chip, Alert, CircularProgress, Divider, Paper, Stack, TextField,
+  Dialog, DialogTitle, DialogContent, DialogActions,
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
@@ -58,6 +59,15 @@ export default function AccountPage() {
   const [profileMsg, setProfileMsg] = useState(null);
 
   const [draftSaved, setDraftSaved] = useState(false);
+
+  // ── Gestion calendrier de blocage (annonces rent_short) ───────────────────
+  const [blockDialog, setBlockDialog] = useState(null); // listing | null
+  const [blocks, setBlocks] = useState([]);
+  const [blockLoading, setBlockLoading] = useState(false);
+  const [blockCheckIn, setBlockCheckIn] = useState("");
+  const [blockCheckOut, setBlockCheckOut] = useState("");
+  const [blockNote, setBlockNote] = useState("");
+  const [blockMsg, setBlockMsg] = useState(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("immobf_user");
@@ -165,6 +175,48 @@ export default function AccountPage() {
     } finally {
       setEmailSaving(false);
     }
+  }
+
+  async function openBlockDialog(listing) {
+    setBlockDialog(listing);
+    setBlockMsg(null);
+    setBlockCheckIn(""); setBlockCheckOut(""); setBlockNote("");
+    setBlockLoading(true);
+    try {
+      const { blocks: data } = await Properties.listBlockDates(listing.id);
+      setBlocks(data || []);
+    } catch { setBlocks([]); }
+    finally { setBlockLoading(false); }
+  }
+
+  async function addBlock() {
+    if (!blockCheckIn || !blockCheckOut) {
+      setBlockMsg({ type: "error", text: "Sélectionnez une date de début et de fin." });
+      return;
+    }
+    if (blockCheckOut <= blockCheckIn) {
+      setBlockMsg({ type: "error", text: "La date de fin doit être après la date de début." });
+      return;
+    }
+    setBlockLoading(true); setBlockMsg(null);
+    try {
+      await Properties.addBlockDate(blockDialog.id, { check_in: blockCheckIn, check_out: blockCheckOut, note: blockNote || undefined });
+      const { blocks: data } = await Properties.listBlockDates(blockDialog.id);
+      setBlocks(data || []);
+      setBlockCheckIn(""); setBlockCheckOut(""); setBlockNote("");
+      setBlockMsg({ type: "success", text: "Dates bloquées avec succès." });
+    } catch (e) {
+      setBlockMsg({ type: "error", text: e?.response?.data?.error?.message || "Erreur lors du blocage." });
+    } finally { setBlockLoading(false); }
+  }
+
+  async function removeBlock(blockId) {
+    setBlockLoading(true);
+    try {
+      await Properties.deleteBlockDate(blockDialog.id, blockId);
+      setBlocks((prev) => prev.filter((b) => b.id !== blockId));
+    } catch { setBlockMsg({ type: "error", text: "Erreur lors de la suppression." }); }
+    finally { setBlockLoading(false); }
   }
 
   const drafts = listings.filter((l) => l.status === "draft");
@@ -421,6 +473,11 @@ export default function AccountPage() {
                     <Button size="small" variant="outlined" onClick={() => editListing(p.id)}>
                       ✏️ {t("account.edit")}
                     </Button>
+                    {p.transaction_type === "rent_short" && (
+                      <Button size="small" variant="outlined" color="secondary" onClick={() => openBlockDialog(p)}>
+                        📅 Disponibilités
+                      </Button>
+                    )}
                     {(isExpiringSoon || isExpired) && (
                       <Button
                         size="small" variant="contained" color="warning"
@@ -442,6 +499,66 @@ export default function AccountPage() {
           );
         })}
       </Grid>
+      {/* ─── Dialogue blocage de dates (location court séjour) ────────────────── */}
+      <Dialog open={Boolean(blockDialog)} onClose={() => setBlockDialog(null)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ pb: 1 }}>
+          📅 Disponibilités — {blockDialog?.title}
+        </DialogTitle>
+        <DialogContent>
+          {blockMsg && <Alert severity={blockMsg.type} sx={{ mb: 2 }}>{blockMsg.text}</Alert>}
+
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Périodes bloquées</Typography>
+          {blockLoading && <CircularProgress size={20} sx={{ display: "block", mb: 1 }} />}
+          {!blockLoading && blocks.length === 0 && (
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Aucune période bloquée pour l'instant.
+            </Typography>
+          )}
+          {blocks.map((b) => (
+            <Box key={b.id} sx={{
+              display: "flex", alignItems: "center", gap: 1, mb: 1,
+              p: 1.2, bgcolor: "#fff3e0", borderRadius: 1,
+            }}>
+              <Typography variant="body2" sx={{ flex: 1 }}>
+                🔒 {new Date(b.check_in + "T00:00:00").toLocaleDateString("fr-FR")}
+                {" → "}
+                {new Date(b.check_out + "T00:00:00").toLocaleDateString("fr-FR")}
+                {b.note && <Typography component="span" variant="caption" color="text.secondary"> · {b.note}</Typography>}
+              </Typography>
+              <Button size="small" color="error" onClick={() => removeBlock(b.id)} disabled={blockLoading}>
+                ✕
+              </Button>
+            </Box>
+          ))}
+
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Bloquer une période</Typography>
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1 }}>
+            <TextField
+              size="small" type="date" label="Du (check-in)"
+              value={blockCheckIn} onChange={(e) => setBlockCheckIn(e.target.value)}
+              InputLabelProps={{ shrink: true }} sx={{ flex: 1, minWidth: 140 }}
+            />
+            <TextField
+              size="small" type="date" label="Au (check-out)"
+              value={blockCheckOut} onChange={(e) => setBlockCheckOut(e.target.value)}
+              InputLabelProps={{ shrink: true }} sx={{ flex: 1, minWidth: 140 }}
+            />
+          </Box>
+          <TextField
+            size="small" fullWidth label="Motif (optionnel)"
+            value={blockNote} onChange={(e) => setBlockNote(e.target.value)}
+            placeholder="Ex : déjà réservé hors plateforme, usage personnel, travaux…"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBlockDialog(null)}>Fermer</Button>
+          <Button variant="contained" disabled={blockLoading} onClick={addBlock}>
+            {blockLoading ? <CircularProgress size={16} color="inherit" /> : "Bloquer ces dates"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
     </Layout>
   );
 }

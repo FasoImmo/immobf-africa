@@ -91,8 +91,46 @@ router.get ("/properties/:id/similar",      publicLimiter, asyncHandler(analytic
 router.get ("/properties/:id/stats",        requireAuth,   asyncHandler(analytics.propertyStats));
 router.get ("/properties/:id/availability", publicLimiter, asyncHandler(async (req, res) => {
   const Booking = require("../models/Booking");
-  const booked = await Booking.listForProperty(req.params.id);
-  res.json({ booked });
+  const [booked, blocked] = await Promise.all([
+    Booking.listForProperty(req.params.id),
+    Booking.listBlocksForProperty(req.params.id),
+  ]);
+  res.json({ booked, blocked });
+}));
+
+// --- Blocage manuel de dates par l'annonceur ---
+router.get   ("/my/listings/:id/block-dates",          requireAuth, asyncHandler(async (req, res) => {
+  const Booking  = require("../models/Booking");
+  const Property = require("../models/Property");
+  const prop = await Property.findById(req.params.id);
+  const { NotFound } = require("../utils/errors");
+  if (!prop || prop.owner_id !== req.user.id) throw NotFound("Annonce introuvable");
+  const blocks = await Booking.listBlocksForProperty(req.params.id);
+  res.json({ blocks });
+}));
+
+router.post  ("/my/listings/:id/block-dates",          requireAuth, asyncHandler(async (req, res) => {
+  const Booking  = require("../models/Booking");
+  const Property = require("../models/Property");
+  const { BadRequest, NotFound } = require("../utils/errors");
+  const { check_in, check_out, note } = req.body || {};
+  if (!check_in || !check_out) throw BadRequest("check_in et check_out sont requis");
+  if (new Date(check_out) <= new Date(check_in)) throw BadRequest("check_out doit être après check_in");
+  const prop = await Property.findById(req.params.id);
+  if (!prop || prop.owner_id !== req.user.id) throw NotFound("Annonce introuvable");
+  const block = await Booking.addBlock(req.params.id, check_in, check_out, note);
+  res.status(201).json({ block });
+}));
+
+router.delete("/my/listings/:id/block-dates/:blockId", requireAuth, asyncHandler(async (req, res) => {
+  const Booking  = require("../models/Booking");
+  const Property = require("../models/Property");
+  const { NotFound } = require("../utils/errors");
+  const prop = await Property.findById(req.params.id);
+  if (!prop || prop.owner_id !== req.user.id) throw NotFound("Annonce introuvable");
+  const removed = await Booking.removeBlock(req.params.blockId, req.params.id);
+  if (!removed) throw NotFound("Bloc de dates introuvable");
+  res.json({ ok: true });
 }));
 router.get ("/my/stats",                requireAuth,      asyncHandler(analytics.myStats));
 router.get ("/suggestions",             asyncHandler(analytics.suggestions));

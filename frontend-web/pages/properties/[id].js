@@ -38,7 +38,7 @@ export default function PropertyDetail() {
   useEffect(() => {
     if (!id) return;
     try { setCommissionPaid(localStorage.getItem(`commission_paid_${id}`) === "1"); } catch {}
-    Properties.availability(id).then((d) => setBookedRanges(d.booked || [])).catch(() => {});
+    Properties.availability(id).then((d) => setBookedRanges([...(d.booked || []), ...(d.blocked || [])])).catch(() => {});
   }, [id]);
 
   function handleCommissionPaid() {

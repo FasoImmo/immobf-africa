@@ -61,4 +61,49 @@ async function cancelByTransaction(transactionId) {
   );
 }
 
-module.exports = { create, listForProperty, hasConflict, cancelByTransaction };
+/**
+ * Retourne les blocs manuels (saisis par l'annonceur) à venir pour une annonce.
+ * Utilisé par GET /properties/:id/availability (champ "blocked") et par
+ * GET /my/listings/:id/block-dates.
+ */
+async function listBlocksForProperty(propertyId) {
+  const { rows } = await query(
+    `SELECT id, check_in, check_out, note, created_at
+     FROM property_blocked_dates
+     WHERE property_id = $1
+       AND check_out > CURRENT_DATE
+     ORDER BY check_in ASC`,
+    [propertyId]
+  );
+  return rows;
+}
+
+/**
+ * Crée un bloc manuel pour une annonce.
+ * check_in / check_out : chaînes YYYY-MM-DD ou objets Date.
+ */
+async function addBlock(propertyId, checkIn, checkOut, note) {
+  const { rows } = await query(
+    `INSERT INTO property_blocked_dates (property_id, check_in, check_out, note)
+     VALUES ($1, $2::date, $3::date, $4)
+     RETURNING id, check_in, check_out, note, created_at`,
+    [propertyId, checkIn, checkOut, note || null]
+  );
+  return rows[0];
+}
+
+/**
+ * Supprime un bloc manuel.
+ * propertyId est requis pour vérifier l'appartenance (sécurité).
+ */
+async function removeBlock(blockId, propertyId) {
+  const { rows } = await query(
+    `DELETE FROM property_blocked_dates
+     WHERE id = $1 AND property_id = $2
+     RETURNING id`,
+    [blockId, propertyId]
+  );
+  return rows[0] || null;
+}
+
+module.exports = { create, listForProperty, hasConflict, cancelByTransaction, listBlocksForProperty, addBlock, removeBlock };
