@@ -125,6 +125,10 @@ const T = {
     dialCode: "Composez",
     toValidate: "pour valider.",
     waitPayment: "En attente de confirmation…",
+    // Superficie
+    area: "Superficie (facultatif)",
+    areaPh: "Ex: 250",
+    takePhoto: "Prendre une photo",
     // Photos
     addPhotos: "Ajouter des photos",
     photosHint: "Jusqu'à 10 photos (conseillé : au moins 3)",
@@ -176,6 +180,9 @@ const T = {
     dialCode: "Dial",
     toValidate: "to validate.",
     waitPayment: "Waiting for confirmation…",
+    area: "Surface area (optional)",
+    areaPh: "e.g. 250",
+    takePhoto: "Take a photo",
     addPhotos: "Add photos",
     photosHint: "Up to 10 photos (recommended: at least 3)",
     uploadBtn: "Upload photos",
@@ -253,7 +260,9 @@ export default function SellScreen({ navigation, route }) {
     currency: "XOF",
     country_code: "BF",
     city: "",
+    area_m2: "",
   });
+  const [areaUnit, setAreaUnit] = useState("m2"); // "m2" | "ha"
   const [showCountryModal, setShowCountryModal] = useState(false);
   const [formBusy, setFormBusy] = useState(false);
 
@@ -271,6 +280,7 @@ export default function SellScreen({ navigation, route }) {
         currency: initialData.currency || "XOF",
         country_code: initialData.country_code || "BF",
         city: initialData.city || "",
+        area_m2: initialData.area_m2 ? String(initialData.area_m2) : "",
       });
       setPropertyId(routeParams.propertyId);
     } else if (resumeId) {
@@ -286,6 +296,7 @@ export default function SellScreen({ navigation, route }) {
           currency: p.currency || "XOF",
           country_code: p.country_code || "BF",
           city: p.city || "",
+          area_m2: p.area_m2 ? String(p.area_m2) : "",
         });
         setPropertyId(resumeId);
         setStep(2);
@@ -306,6 +317,7 @@ export default function SellScreen({ navigation, route }) {
         ...form,
         price: Number(form.price),
         rent_period: isRent ? "monthly" : null,
+        ...(form.area_m2 ? { area_m2: areaUnit === "ha" ? Number(form.area_m2) * 10000 : Number(form.area_m2) } : { area_m2: null }),
       };
 
       if (isEditMode) {
@@ -342,6 +354,7 @@ export default function SellScreen({ navigation, route }) {
         ...form,
         price: Number(form.price),
         rent_period: isRent ? "monthly" : null,
+        ...(form.area_m2 ? { area_m2: areaUnit === "ha" ? Number(form.area_m2) * 10000 : Number(form.area_m2) } : { area_m2: null }),
       });
       Alert.alert(
         lang === "fr" ? "Brouillon enregistré" : "Draft saved",
@@ -459,6 +472,26 @@ export default function SellScreen({ navigation, route }) {
       selectionLimit: 10,
     });
     if (!result.canceled) {
+      setPhotos((prev) => [...prev, ...result.assets].slice(0, 10));
+    }
+  }
+
+  async function takePhoto() {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        lang === "fr" ? "Permission requise" : "Permission required",
+        lang === "fr"
+          ? "Autorisez l'accès à la caméra dans les paramètres."
+          : "Allow camera access in your device settings."
+      );
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets?.length) {
       setPhotos((prev) => [...prev, ...result.assets].slice(0, 10));
     }
   }
@@ -597,6 +630,31 @@ export default function SellScreen({ navigation, route }) {
                 >
                   <Text style={[s.currencyText, form.currency === cur && s.currencyTextActive]}>
                     {cur}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Superficie */}
+          <Text style={s.label}>{t.area}</Text>
+          <View style={s.priceRow}>
+            <TextInput
+              placeholder={t.areaPh}
+              value={form.area_m2}
+              onChangeText={(v) => setForm({ ...form, area_m2: v })}
+              style={[s.input, { flex: 1, marginTop: 0 }]}
+              keyboardType="numeric"
+            />
+            <View style={s.currencyBtns}>
+              {["m2", "ha"].map((u) => (
+                <TouchableOpacity
+                  key={u}
+                  style={[s.currencyChip, areaUnit === u && s.currencyChipActive]}
+                  onPress={() => setAreaUnit(u)}
+                >
+                  <Text style={[s.currencyText, areaUnit === u && s.currencyTextActive]}>
+                    {u === "m2" ? "m²" : "ha"}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -779,9 +837,14 @@ export default function SellScreen({ navigation, route }) {
         <View>
           <Text style={s.hint}>{t.photosHint}</Text>
 
-          <TouchableOpacity style={s.photoPickBtn} onPress={pickPhotos}>
-            <Text style={s.photoPickText}>📷 {t.addPhotos} ({photos.length}/10)</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
+            <TouchableOpacity style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]} onPress={pickPhotos}>
+              <Text style={s.photoPickText}>🖼️ {t.addPhotos} ({photos.length}/10)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]} onPress={takePhoto}>
+              <Text style={s.photoPickText}>📸 {t.takePhoto}</Text>
+            </TouchableOpacity>
+          </View>
 
           {photos.length > 0 && (
             <View style={s.photoGrid}>
