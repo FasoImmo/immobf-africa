@@ -128,6 +128,11 @@ export default function AdminDashboard() {
         </Box>
       )}
 
+      {/* ─── Layout 2 colonnes : panels à gauche, navigation à droite ───── */}
+      <Grid container spacing={3} alignItems="flex-start" sx={{ mb: 3 }}>
+        {/* Colonne gauche — KPIs + réglages */}
+        <Grid item xs={12} md={8}>
+
       <Typography variant="h6" sx={{ mb: 1, mt: 1 }}>Revenus ImmoBF</Typography>
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={6} sm={3}>
@@ -311,26 +316,37 @@ export default function AdminDashboard() {
         </Paper>
       )}
 
-      <Box sx={{ mb: 3, display: "flex", gap: 2, flexWrap: "wrap" }}>
-        <Button variant="contained" onClick={() => router.push("/admin/users")}>
-          Gerer les abonnes
-        </Button>
-        <Button variant="contained" onClick={() => router.push("/admin/properties")}>
-          Delais de publication
-        </Button>
-        <Button variant="contained" color="secondary" onClick={() => router.push("/admin/revenues")}>
-          Paiements &amp; Revenus
-        </Button>
-        <Button variant="contained" color="info" onClick={() => router.push("/admin/contacts")}>
-          📋 Base contacts / CRM
-        </Button>
-        <Button variant="outlined" color="success" onClick={() => router.push("/admin/newsletter")}>
-          📧 Newsletter
-        </Button>
-        <Button variant="outlined" onClick={() => router.push("/admin/profile")}>
-          ⚙️ Mon profil
-        </Button>
-      </Box>
+        </Grid>{/* fin colonne gauche */}
+
+        {/* Colonne droite — navigation */}
+        <Grid item xs={12} md={4}>
+          <Paper elevation={1} sx={{ p: 2, borderRadius: 2, position: "sticky", top: 80 }}>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5, color: "text.secondary" }}>
+              Navigation
+            </Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              <Button fullWidth variant="contained" onClick={() => router.push("/admin/users")}>
+                👥 Gérer les abonnés
+              </Button>
+              <Button fullWidth variant="contained" onClick={() => router.push("/admin/properties")}>
+                🏠 Délais de publication
+              </Button>
+              <Button fullWidth variant="contained" color="secondary" onClick={() => router.push("/admin/revenues")}>
+                💳 Paiements &amp; Revenus
+              </Button>
+              <Button fullWidth variant="contained" color="info" onClick={() => router.push("/admin/contacts")}>
+                📋 Base contacts / CRM
+              </Button>
+              <Button fullWidth variant="outlined" color="success" onClick={() => router.push("/admin/newsletter")}>
+                📧 Newsletter
+              </Button>
+              <Button fullWidth variant="outlined" onClick={() => router.push("/admin/profile")}>
+                ⚙️ Mon profil
+              </Button>
+            </Box>
+          </Paper>
+        </Grid>
+      </Grid>{/* fin layout 2 colonnes */}
 
       <Divider sx={{ my: 3 }} />
 

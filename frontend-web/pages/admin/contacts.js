@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import {
   Box, Typography, Paper, Table, TableHead, TableRow, TableCell,
   TableBody, TablePagination, Chip, TextField, MenuItem, Button,
@@ -6,6 +7,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import Layout from "../../components/Layout";
 import { Admin } from "../../lib/api";
 
@@ -24,6 +26,7 @@ const LANGUAGES = [
 ];
 
 export default function AdminContacts() {
+  const router = useRouter();
   const [contacts, setContacts] = useState([]);
   const [total, setTotal]       = useState(0);
   const [loading, setLoading]   = useState(false);
@@ -91,7 +94,12 @@ export default function AdminContacts() {
     <Layout>
       <Box sx={{ p: 3 }}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2, flexWrap: "wrap", gap: 1 }}>
-          <Typography variant="h5">📋 Base de contacts ({total.toLocaleString()})</Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Button size="small" variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => router.push("/admin")}>
+              Tableau de bord
+            </Button>
+            <Typography variant="h5">📋 Base de contacts ({total.toLocaleString()})</Typography>
+          </Box>
           <Button
             variant="contained" startIcon={<SendIcon />}
             onClick={() => { setNlOpen(true); setNlResult(null); setNlError(null); }}
