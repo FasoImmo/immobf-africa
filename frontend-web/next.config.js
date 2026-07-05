@@ -27,14 +27,18 @@ const nextConfig = {
     const csp = [
       "default-src 'self'",
       // Next.js requiert unsafe-inline pour les styles injectés et unsafe-eval pour HMR en dev
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      // unsafe-eval requis uniquement en développement (HMR Next.js)
+      process.env.NODE_ENV === "production"
+        ? "script-src 'self' 'unsafe-inline'"
+        : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
       // Images : self + data URIs + tout HTTPS (photos hébergées externement)
       "img-src 'self' data: blob: https:",
       // Tuiles de carte Leaflet/OSM
       "worker-src 'self' blob:",
       // Connexions API + WebSocket
-      `connect-src 'self' https://${apiHost} wss://${apiHost}`,
+      // Sentry ingest pour les erreurs navigateur
+      `connect-src 'self' https://${apiHost} wss://${apiHost} https://*.ingest.sentry.io https://*.sentry.io`,
       // Polices locales uniquement
       "font-src 'self'",
       // Aucune iframe autorisée depuis l'extérieur

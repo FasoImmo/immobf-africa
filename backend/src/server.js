@@ -20,7 +20,30 @@ const app = express();
 // et retourne 400 sur toutes les requêtes.
 app.set("trust proxy", 1);
 
-app.use(helmet());
+app.use(helmet({
+  // HSTS : forcer HTTPS pendant 2 ans sur tout le domaine + sous-domaines
+  hsts: {
+    maxAge: 63072000,          // 2 ans
+    includeSubDomains: true,
+    preload: true,
+  },
+  // Interdire l'embedding dans des iframes (protection clickjacking)
+  frameguard: { action: "deny" },
+  // Supprimer X-Powered-By : Express
+  hidePoweredBy: true,
+  // Politique de référent stricte
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  // CSP minimale pour une API pure (aucun HTML/JS servi)
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      formAction: ["'self'"],
+    },
+  },
+  // Désactiver crossOriginEmbedderPolicy pour compatibilité Railway health checks
+  crossOriginEmbedderPolicy: false,
+}));
 
 // CORS : whitelist explicite des domaines autorisés.
 // En production, CORS_ORIGINS doit être défini dans les variables d'env Railway.
