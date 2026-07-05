@@ -76,6 +76,7 @@ export const Properties = {
   create: (data) => api.post("/properties", data).then((r) => r.data),
   update: (id, data) => api.patch(`/properties/${id}`, data).then((r) => r.data),
   publish: (id) => api.post(`/properties/${id}/publish`).then((r) => r.data),
+  trackView: (id, payload = {}) => api.post(`/properties/${id}/view`, payload).then((r) => r.data),
   estimate: (data) => api.post("/properties/estimate", data).then((r) => r.data),
   myListings: () => api.get("/my/listings").then((r) => r.data),
   deleteListing: (id) => api.delete(`/my/listings/${id}`).then((r) => r.data),

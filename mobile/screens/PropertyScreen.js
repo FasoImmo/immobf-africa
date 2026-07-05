@@ -129,6 +129,8 @@ export default function PropertyScreen({ route, navigation }) {
       .then((d) => setProp(d.property || d))
       .catch(() => {})
       .finally(() => setLoading(false));
+    // Enregistrer la vue (fire-and-forget — ne bloque pas l'affichage)
+    Properties.trackView(initialProp.id, { event_type: "view" }).catch(() => {});
   }, [lang, initialProp?.id]);
 
   const today = new Date();

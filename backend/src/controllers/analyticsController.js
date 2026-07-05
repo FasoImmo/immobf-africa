@@ -53,6 +53,27 @@ async function trackView(req, res) {
     } catch (_) { /* noop */ }
   }
 
+  // Mise à jour préférences contact (utilisateur connecté uniquement — on a son email)
+  if (event_type === "view" && req.user?.email) {
+    try {
+      const Contact = require("../models/Contact");
+      const { rows: propRows } = await query(
+        `SELECT type, city, price FROM properties WHERE id = $1 LIMIT 1`,
+        [property_id]
+      );
+      if (propRows[0]) {
+        const { type, city, price } = propRows[0];
+        const prefs = {};
+        if (type) prefs.types = [type];
+        if (city) prefs.cities = [city];
+        if (price) prefs.budget_max = Number(price);
+        if (Object.keys(prefs).length) {
+          await Contact.mergePreferences(req.user.email, prefs);
+        }
+      }
+    } catch (_) { /* noop — ne bloque jamais la vue */ }
+  }
+
   res.json({ ok: true });
 }
 

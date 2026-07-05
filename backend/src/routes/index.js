@@ -13,6 +13,7 @@ const payCtl   = require("../controllers/paymentsController");
 const photoCtl = require("../controllers/photosController");
 const analytics = require("../controllers/analyticsController");
 const adminCtl = require("../controllers/adminController");
+const metaCtl  = require("../controllers/metaWebhookController");
 
 const router = express.Router();
 
@@ -68,6 +69,10 @@ router.post("/payments/:id/escrow/release", requireAuth, asyncHandler(payCtl.rel
 // Webhooks — raw body parser (HMAC verification)
 router.post("/payments/webhooks/:provider", rawBody, asyncHandler(payCtl.webhook));
 
+// Webhooks Meta Lead Ads (pas d'auth — Facebook appelle ces URLs directement)
+router.get ("/webhooks/meta", asyncHandler(metaCtl.verify));
+router.post("/webhooks/meta", rawBody,  asyncHandler(metaCtl.receive));
+
 // --- Admin : suivi des abonnés + délais de publication + blocage/déconnexion ---
 const requireAdmin = [requireAuth, requireRole("admin")];
 
@@ -104,7 +109,7 @@ router.get("/config/promo", publicLimiter, asyncHandler(async (req, res) => {
 
 // --- Analytics ---
 const analyticsLimiter = rateLimit({ windowMs: 10_000, max: 30 });
-router.post("/properties/:id/view",     analyticsLimiter, asyncHandler(analytics.trackView));
+router.post("/properties/:id/view",     analyticsLimiter, optionalAuth, asyncHandler(analytics.trackView));
 router.post("/events/search",           analyticsLimiter, asyncHandler(analytics.trackSearch));
 router.get ("/properties/:id/similar",      publicLimiter, asyncHandler(analytics.similar));
 router.get ("/properties/:id/stats",        requireAuth,   asyncHandler(analytics.propertyStats));
