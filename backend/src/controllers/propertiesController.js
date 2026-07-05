@@ -55,7 +55,10 @@ async function get(req, res) {
 }
 
 async function publish(req, res) {
-  const p = await Property.publish(req.params.id, req.user.id);
+  // Vérifier si la promo gratuite est active → skip du contrôle de paiement
+  const PS = require("../models/PlatformSetting");
+  const promo = await PS.getPromo().catch(() => ({ active: false }));
+  const p = await Property.publish(req.params.id, req.user.id, { skipFeeCheck: Boolean(promo.active) });
   if (!p) throw Forbidden("Non autorisé ou annonce introuvable");
   res.json({ property: p });
 }
