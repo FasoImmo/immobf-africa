@@ -26,7 +26,10 @@ const loginLimiter = rateLimit({
 const publicLimiter = rateLimit({ windowMs: 60_000, max: 60 });
 
 // Health
-router.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
+router.get("/health", (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.json({ ok: true, ts: Date.now() });
+});
 
 // --- Auth ---
 router.post("/auth/register",   authLimiter, asyncHandler(authCtl.register));
@@ -84,6 +87,9 @@ router.patch("/admin/profile",              requireAdmin, asyncHandler(adminCtl.
 router.post ("/admin/test-email",           requireAdmin, asyncHandler(adminCtl.testEmail));
 router.get  ("/admin/promo",               requireAdmin, asyncHandler(adminCtl.getPromo));
 router.post ("/admin/promo",               requireAdmin, asyncHandler(adminCtl.setPromo));
+router.post ("/admin/properties/:id/extend",  requireAdmin, asyncHandler(adminCtl.extendListing));
+router.post ("/admin/properties/:id/suspend", requireAdmin, asyncHandler(adminCtl.suspendListing));
+router.post ("/admin/properties/:id/restore", requireAdmin, asyncHandler(adminCtl.restoreListing));
 
 // --- Config publique (promo, etc.) ---
 router.get("/config/promo", publicLimiter, asyncHandler(async (req, res) => {

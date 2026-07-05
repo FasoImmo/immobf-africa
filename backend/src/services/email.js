@@ -226,6 +226,87 @@ async function sendNewsletterConfirmation(email) {
     text: "Bienvenue sur ImmoBF Africa ! Retrouvez toutes les annonces sur immoafrica.online" });
 }
 
+/**
+ * Email automatique à l'annonceur quand l'admin prolonge son annonce.
+ */
+async function sendListingExtended(email, { propertyTitle, propertyId, newExpiryDate, addedDays }) {
+  const dateStr = new Date(newExpiryDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+  return send({
+    to: email,
+    subject: `✅ Votre annonce a été prolongée — ImmoBF Africa`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:#0E7C66;padding:24px;text-align:center;border-radius:8px 8px 0 0">
+          <h1 style="color:white;margin:0;font-size:22px">🏠 ImmoBF Africa</h1>
+        </div>
+        <div style="padding:24px;background:#f9f9f9">
+          <h2 style="color:#0E7C66">Bonne nouvelle : votre annonce a été prolongée !</h2>
+          <p>L'équipe ImmoBF Africa a prolongé votre annonce de <strong>${addedDays} jour(s)</strong> :</p>
+          <div style="background:#e8f5e9;border-left:4px solid #0E7C66;padding:12px 16px;border-radius:4px;margin:16px 0">
+            <strong>${propertyTitle}</strong><br/>
+            <span style="color:#555">Nouvelle date d'expiration : <strong>${dateStr}</strong></span>
+          </div>
+          <p>Votre annonce reste visible sur la plateforme jusqu'à cette date.</p>
+          <div style="text-align:center;margin:24px 0">
+            <a href="https://immoafrica.online/properties/${propertyId}" style="background:#0E7C66;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold">Voir mon annonce</a>
+          </div>
+          <hr style="border:none;border-top:1px solid #eee;margin:20px 0"/>
+          <p style="color:#888;font-size:12px;text-align:center">© 2026 ImmoBF Africa — <a href="https://immoafrica.online">immoafrica.online</a></p>
+        </div>
+      </div>`,
+  });
+}
+
+/**
+ * Email automatique à l'annonceur quand l'admin suspend son annonce.
+ */
+async function sendListingSuspended(email, { propertyTitle, propertyId, reason }) {
+  return send({
+    to: email,
+    subject: `⚠️ Votre annonce a été suspendue — ImmoBF Africa`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:#0E7C66;padding:24px;text-align:center;border-radius:8px 8px 0 0">
+          <h1 style="color:white;margin:0;font-size:22px">🏠 ImmoBF Africa</h1>
+        </div>
+        <div style="padding:24px;background:#f9f9f9">
+          <h2 style="color:#c62828">⚠️ Annonce temporairement suspendue</h2>
+          <p>Votre annonce <strong>${propertyTitle}</strong> a été temporairement suspendue par notre équipe de modération.</p>
+          ${reason ? `<div style="background:#fff3e0;border-left:4px solid #f57c00;padding:12px 16px;border-radius:4px;margin:16px 0"><strong>Motif :</strong> ${reason}</div>` : ""}
+          <p>Pour toute question, répondez à cet email ou contactez-nous à <a href="mailto:contact@immoafrica.online">contact@immoafrica.online</a>.</p>
+          <p>Une fois les éventuelles corrections apportées, notre équipe réactivera votre annonce.</p>
+          <hr style="border:none;border-top:1px solid #eee;margin:20px 0"/>
+          <p style="color:#888;font-size:12px;text-align:center">© 2026 ImmoBF Africa — <a href="https://immoafrica.online">immoafrica.online</a></p>
+        </div>
+      </div>`,
+  });
+}
+
+/**
+ * Email automatique à l'annonceur quand l'admin réactive son annonce.
+ */
+async function sendListingRestored(email, { propertyTitle, propertyId }) {
+  return send({
+    to: email,
+    subject: `✅ Votre annonce est de nouveau en ligne — ImmoBF Africa`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:#0E7C66;padding:24px;text-align:center;border-radius:8px 8px 0 0">
+          <h1 style="color:white;margin:0;font-size:22px">🏠 ImmoBF Africa</h1>
+        </div>
+        <div style="padding:24px;background:#f9f9f9">
+          <h2 style="color:#0E7C66">✅ Votre annonce est de nouveau visible !</h2>
+          <p>Bonne nouvelle : votre annonce <strong>${propertyTitle}</strong> a été réactivée et est de nouveau visible par les visiteurs.</p>
+          <div style="text-align:center;margin:24px 0">
+            <a href="https://immoafrica.online/properties/${propertyId}" style="background:#0E7C66;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold">Voir mon annonce</a>
+          </div>
+          <hr style="border:none;border-top:1px solid #eee;margin:20px 0"/>
+          <p style="color:#888;font-size:12px;text-align:center">© 2026 ImmoBF Africa — <a href="https://immoafrica.online">immoafrica.online</a></p>
+        </div>
+      </div>`,
+  });
+}
+
 module.exports = {
   send,
   sendOtpEmail,
@@ -234,4 +315,7 @@ module.exports = {
   sendExpiryAlert,
   sendWhatsAppNotification,
   sendNewsletterConfirmation,
+  sendListingExtended,
+  sendListingSuspended,
+  sendListingRestored,
 };

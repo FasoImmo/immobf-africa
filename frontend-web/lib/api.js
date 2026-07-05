@@ -159,6 +159,9 @@ export const Admin = {
   sendNewsletter: (data) => api.post("/admin/newsletter", data).then((r) => r.data),
   getPromo: () => api.get("/admin/promo").then((r) => r.data),
   setPromo: (data) => api.post("/admin/promo", data).then((r) => r.data),
+  extendListing: (id, days, note) => api.post(`/admin/properties/${id}/extend`, { days, note }).then((r) => r.data),
+  suspendListing: (id, note) => api.post(`/admin/properties/${id}/suspend`, { note }).then((r) => r.data),
+  restoreListing: (id) => api.post(`/admin/properties/${id}/restore`).then((r) => r.data),
 };
 
 export const Config = {

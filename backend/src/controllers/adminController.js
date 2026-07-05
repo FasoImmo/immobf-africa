@@ -274,9 +274,99 @@ async function setPromo(req, res) {
   res.json({ ok: true, promo });
 }
 
+const extendSchema = Joi.object({
+  days: Joi.number().integer().min(1).max(365).default(30),
+  note: Joi.string().max(500).allow("", null).default(null),
+});
+
+/**
+ * POST /admin/properties/:id/extend
+ * Prolonge la durée de publication d'une annonce.
+ * Body: { days: number, note?: string }
+ */
+async function extendListing(req, res) {
+  const { value, error } = extendSchema.validate(req.body || {});
+  if (error) throw BadRequest(error.message);
+
+  const property = await Property.extendListing(req.params.id, value.days);
+  if (!property) throw NotFound("Annonce introuvable ou non publiée");
+
+  // Notifier l'annonceur par email
+  try {
+    const owner = await User.findById(property.owner_id);
+    if (owner && owner.email) {
+      const { sendListingExtended } = require("../services/email");
+      await sendListingExtended(owner.email, {
+        propertyTitle: property.title,
+        propertyId: property.id,
+        newExpiryDate: property.listing_expires_at,
+        addedDays: value.days,
+      });
+    }
+  } catch (emailErr) {
+    const logger = require("../utils/logger");
+    logger.warn({ err: emailErr }, "extendListing: email annonceur non envoyé");
+  }
+
+  res.json({ ok: true, property });
+}
+
+/**
+ * POST /admin/properties/:id/suspend
+ * Suspend une annonce (published → suspended).
+ * Body: { note?: string }
+ */
+async function suspendListing(req, res) {
+  const { note } = req.body || {};
+  const property = await Property.suspendListing(req.params.id);
+  if (!property) throw NotFound("Annonce introuvable ou déjà suspendue");
+
+  try {
+    const owner = await User.findById(property.owner_id);
+    if (owner && owner.email) {
+      const { sendListingSuspended } = require("../services/email");
+      await sendListingSuspended(owner.email, {
+        propertyTitle: property.title,
+        propertyId: property.id,
+        reason: note || null,
+      });
+    }
+  } catch (emailErr) {
+    const logger = require("../utils/logger");
+    logger.warn({ err: emailErr }, "suspendListing: email annonceur non envoyé");
+  }
+
+  res.json({ ok: true, property });
+}
+
+/**
+ * POST /admin/properties/:id/restore
+ * Réactive une annonce suspendue (suspended → published).
+ */
+async function restoreListing(req, res) {
+  const property = await Property.restoreListing(req.params.id);
+  if (!property) throw NotFound("Annonce introuvable ou non suspendue");
+
+  try {
+    const owner = await User.findById(property.owner_id);
+    if (owner && owner.email) {
+      const { sendListingRestored } = require("../services/email");
+      await sendListingRestored(owner.email, {
+        propertyTitle: property.title,
+        propertyId: property.id,
+      });
+    }
+  } catch (emailErr) {
+    const logger = require("../utils/logger");
+    logger.warn({ err: emailErr }, "restoreListing: email annonceur non envoyé");
+  }
+
+  res.json({ ok: true, property });
+}
+
 module.exports = {
   listUsers, setUserBlocked, logoutUser, deleteUser,
   listProperties, deleteProperty, listRevenues,
   paymentStats, userStats, sendNewsletter, updateAdminProfile, testEmail,
-  getPromo, setPromo,
+  getPromo, setPromo, extendListing, suspendListing, restoreListing,
 };

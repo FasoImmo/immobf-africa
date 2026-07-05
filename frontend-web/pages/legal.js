@@ -8,7 +8,7 @@ import PrivacyTipIcon from "@mui/icons-material/PrivacyTip";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import Layout from "../components/Layout";
 
-const EMAIL = "legal@immobf.africa";
+const EMAIL = "legal@immoafrica.online";
 
 function Section({ title, children }) {
   return (

@@ -408,8 +408,55 @@ async function deletePhoto(photoId, propertyId, ownerId) {
   return rows.length > 0;
 }
 
+/**
+ * Prolonger une annonce publiée (admin) — ajoute N jours à partir d'aujourd'hui
+ * ou de l'expiration actuelle si elle est dans le futur.
+ */
+async function extendListing(id, days) {
+  const { rows } = await query(
+    `UPDATE properties
+     SET listing_expires_at = GREATEST(COALESCE(listing_expires_at, NOW()), NOW()) + ($2 || ' days')::interval,
+         updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, title, listing_expires_at, status`,
+    [id, String(days || 30)]
+  );
+  return rows[0] || null;
+}
+
+/**
+ * Suspendre une annonce (admin) — masque des résultats de recherche.
+ * Le statut passe à 'suspended', conservant listing_expires_at intact
+ * pour que la reprise soit possible sans perte d'abonnement restant.
+ */
+async function suspendListing(id) {
+  const { rows } = await query(
+    `UPDATE properties
+     SET status = 'suspended', updated_at = NOW()
+     WHERE id = $1 AND status IN ('published', 'pending')
+     RETURNING id, title, status, owner_id`,
+    [id]
+  );
+  return rows[0] || null;
+}
+
+/**
+ * Réactiver une annonce suspendue (admin) — repasse à 'published'.
+ */
+async function restoreListing(id) {
+  const { rows } = await query(
+    `UPDATE properties
+     SET status = 'published', updated_at = NOW()
+     WHERE id = $1 AND status = 'suspended'
+     RETURNING id, title, status, owner_id`,
+    [id]
+  );
+  return rows[0] || null;
+}
+
 module.exports = {
   create, findById, search, publish, markListingFeePaid, updateStatus, boost,
   addPhoto, photosFor, setExpiry, listForOwner, listAllForAdmin, withTransaction,
   update, deletePhoto, deleteForOwner, deleteForAdmin,
+  extendListing, suspendListing, restoreListing,
 };
