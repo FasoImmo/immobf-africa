@@ -196,12 +196,18 @@ export default function PaymentScreen({ route }) {
   const [phoneLocal, setPhoneLocal] = useState(""); // numéro sans indicatif
   const [guestEmail, setGuestEmail] = useState("");
   const [isGuest, setIsGuest] = useState(false);
+  const [loggedUserEmail, setLoggedUserEmail] = useState(""); // email du compte connecté
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
 
-  // Détecter si l'utilisateur est invité (pas de token)
+  // Détecter si l'utilisateur est invité (pas de token) + récupérer son email
   useEffect(() => {
-    AsyncStorage.getItem("immobf_token").then((tok) => setIsGuest(!tok));
+    AsyncStorage.multiGet(["immobf_token", "immobf_user"]).then(([[, tok], [, userJson]]) => {
+      setIsGuest(!tok);
+      if (tok && userJson) {
+        try { setLoggedUserEmail(JSON.parse(userJson).email || ""); } catch { /* noop */ }
+      }
+    });
   }, []);
 
   // Persiste le paiement commission pour débloquer WhatsApp sur PropertyScreen
@@ -248,7 +254,11 @@ export default function PaymentScreen({ route }) {
         customer_phone: fullPhone,
         buyer_country: buyerCountry.code,
       };
+      // Inclure l'email pour recevoir le reçu :
+      // - Invité : email saisi manuellement
+      // - Connecté : email du compte (fallback backend en cas d'absence)
       if (isGuest && guestEmail) payload.customer_email = guestEmail.trim();
+      else if (!isGuest && loggedUserEmail) payload.customer_email = loggedUserEmail;
       if (provider === "pawapay") {
         payload.preferred_operator = pawapayOperator;
         if (needsOtp) payload.pawapay_otp = pawapayOtp;

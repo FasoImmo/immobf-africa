@@ -92,7 +92,8 @@ async function sendPaymentReceipt(email, { amount, currency = "XOF", reference, 
   const subject = "Reçu de paiement — ImmoBF Africa";
   const purposeLabel = purpose === "listing_fee"
     ? `Abonnement annonce (${months || 1} mois)`
-    : purpose === "deposit" ? "Acompte immobilier"
+    : purpose === "deposit"    ? "Acompte immobilier"
+    : purpose === "commission" ? "Commission de réservation (5%)"
     : "Paiement ImmoBF Africa";
 
   const html = baseTemplate(`

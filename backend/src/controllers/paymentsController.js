@@ -191,6 +191,29 @@ async function initiate(req, res) {
         logger.info({ transaction_id: tx.id, purpose: value.purpose }, "stub: pas d'email reçu (mobile commission ou email absent)");
       }
 
+      // Copie reçu annonceur (commission) — stub path
+      if (value.purpose === "commission" && property?.owner_id) {
+        try {
+          const owner = await User.findById(property.owner_id);
+          if (owner?.email) {
+            const { sendOwnerCommissionReceipt } = require("../services/email");
+            const PERIOD_LABEL = { monthly: "mois", weekly: "semaine(s)", nightly: "nuit(s)" };
+            await sendOwnerCommissionReceipt(owner.email, {
+              amount: tx.amount,
+              currency: tx.currency,
+              reference: tx.reference,
+              propertyTitle: property.title,
+              buyerPhone: value.customer_phone || req.user?.phone,
+              units: value.booking_units,
+              periodLabel: PERIOD_LABEL[property.rent_period] || "",
+              totalAmount: value.booking_units ? property.price * value.booking_units : null,
+            });
+          }
+        } catch (e) {
+          logger.warn({ err: e.message }, "stub: owner commission receipt failed");
+        }
+      }
+
       // Créer la réservation calendrier pour les courts séjours (stub)
       if (value.purpose === "commission" && value.property_id && value.check_in && value.booking_units) {
         try {
