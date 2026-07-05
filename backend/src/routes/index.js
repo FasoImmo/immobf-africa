@@ -99,6 +99,7 @@ router.patch("/admin/pricing",             requireAdmin, asyncHandler(adminCtl.s
 router.post ("/admin/properties/:id/extend",  requireAdmin, asyncHandler(adminCtl.extendListing));
 router.post ("/admin/properties/:id/suspend", requireAdmin, asyncHandler(adminCtl.suspendListing));
 router.post ("/admin/properties/:id/restore", requireAdmin, asyncHandler(adminCtl.restoreListing));
+router.get  ("/admin/transactions",           requireAdmin, asyncHandler(adminCtl.listTransactions));
 router.get  ("/admin/contacts",               requireAdmin, asyncHandler(adminCtl.listContacts));
 router.post ("/admin/contacts/newsletter",    requireAdmin, asyncHandler(adminCtl.sendContactNewsletter));
 

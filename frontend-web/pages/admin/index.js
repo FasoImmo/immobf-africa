@@ -334,6 +334,9 @@ export default function AdminDashboard() {
               <Button fullWidth variant="contained" color="secondary" onClick={() => router.push("/admin/revenues")}>
                 💳 Paiements &amp; Revenus
               </Button>
+              <Button fullWidth variant="contained" color="secondary" onClick={() => router.push("/admin/transactions")}>
+                🔍 Toutes les transactions
+              </Button>
               <Button fullWidth variant="contained" color="info" onClick={() => router.push("/admin/contacts")}>
                 📋 Base contacts / CRM
               </Button>

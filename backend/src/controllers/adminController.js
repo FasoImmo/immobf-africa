@@ -414,6 +414,34 @@ async function setPricingAdmin(req, res) {
   res.json({ pricing });
 }
 
+/**
+ * GET /admin/transactions
+ * Liste filtrée + paginée de toutes les transactions.
+ */
+async function listTransactions(req, res) {
+  const {
+    date_from, date_to, search, country, purpose,
+    provider, status, min_amount, max_amount,
+    limit = 100, offset = 0,
+  } = req.query;
+
+  const result = await Transaction.listFiltered({
+    date_from: date_from || undefined,
+    date_to:   date_to   || undefined,
+    search:    search    || undefined,
+    country:   country   || undefined,
+    purpose:   purpose   || undefined,
+    provider:  provider  || undefined,
+    status:    status    || undefined,
+    min_amount: min_amount ? Number(min_amount) : undefined,
+    max_amount: max_amount ? Number(max_amount) : undefined,
+    limit:  Math.min(Number(limit)  || 100, 500),
+    offset: Number(offset) || 0,
+  });
+
+  res.json(result);
+}
+
 module.exports = {
   listUsers, setUserBlocked, logoutUser, deleteUser,
   listProperties, deleteProperty, listRevenues,
@@ -421,4 +449,5 @@ module.exports = {
   getPromo, setPromo, extendListing, suspendListing, restoreListing,
   listContacts, sendContactNewsletter,
   getPricingAdmin, setPricingAdmin,
+  listTransactions,
 };

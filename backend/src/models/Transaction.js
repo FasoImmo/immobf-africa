@@ -247,9 +247,76 @@ async function interactionStatsByUser(userId) {
   return rows;
 }
 
+/**
+ * Liste filtrée des transactions pour l'onglet admin dédié.
+ * Tous les paramètres sont optionnels.
+ */
+async function listFiltered({
+  date_from, date_to,
+  search,          // full_name, email, phone, customer_email
+  country,         // country_code de la propriété
+  purpose,         // listing_fee | commission | ...
+  provider,
+  status,
+  min_amount, max_amount,
+  limit = 100, offset = 0,
+} = {}) {
+  const params = [];
+  const where  = [];
+
+  if (date_from) { params.push(date_from); where.push(`t.created_at >= $${params.length}`); }
+  if (date_to)   { params.push(date_to);   where.push(`t.created_at <  $${params.length}::date + INTERVAL '1 day'`); }
+  if (search) {
+    params.push(`%${search}%`);
+    const n = params.length;
+    where.push(`(u.full_name ILIKE $${n} OR u.email ILIKE $${n} OR u.phone ILIKE $${n} OR t.customer_email ILIKE $${n})`);
+  }
+  if (country)    { params.push(country);    where.push(`p.country_code = $${params.length}`); }
+  if (purpose)    { params.push(purpose);    where.push(`t.purpose = $${params.length}`); }
+  if (provider)   { params.push(provider);   where.push(`t.provider = $${params.length}`); }
+  if (status)     { params.push(status);     where.push(`t.status = $${params.length}`); }
+  if (min_amount) { params.push(min_amount); where.push(`t.amount >= $${params.length}`); }
+  if (max_amount) { params.push(max_amount); where.push(`t.amount <= $${params.length}`); }
+
+  const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  // total count for pagination
+  const { rows: countRows } = await query(
+    `SELECT COUNT(*) AS total
+     FROM transactions t
+     LEFT JOIN users      u ON u.id = t.buyer_id
+     LEFT JOIN properties p ON p.id = t.property_id
+     ${whereClause}`,
+    params
+  );
+  const total = parseInt(countRows[0].total, 10);
+
+  params.push(limit);
+  params.push(offset);
+
+  const { rows } = await query(
+    `SELECT t.id, t.created_at, t.purpose, t.provider, t.amount, t.currency,
+            t.status, t.reference, t.customer_email,
+            u.full_name  AS buyer_name,
+            u.phone      AS buyer_phone,
+            u.email      AS buyer_email,
+            p.title      AS property_title,
+            p.country_code AS property_country
+     FROM transactions t
+     LEFT JOIN users      u ON u.id = t.buyer_id
+     LEFT JOIN properties p ON p.id = t.property_id
+     ${whereClause}
+     ORDER BY t.created_at DESC
+     LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    params
+  );
+  return { rows, total };
+}
+
 module.exports = {
   create, findByReference, findByExternalId, findById, updateStatus,
   logEvent, findLatestEvent, listForUser,
   listAllForAdmin, revenuesByUser, globalRevenueStats,
   statsByPeriod, statsByProvider, listForUserAdmin, interactionStatsByUser,
+  listFiltered,
 };
