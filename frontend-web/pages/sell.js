@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
-import { Properties, Photos, Payments } from "../lib/api";
+import { Properties, Photos, Payments, Config } from "../lib/api";
 
 // Les 55 États membres de l'Union africaine — utilisé pour le sélecteur pays
 // et l'indicatif mobile money. Tri alphabétique (nom français).
@@ -223,6 +223,13 @@ export default function SellPage() {
   const [polling, setPolling] = useState(false);
   const pollRef = useRef(null);
 
+  // ─── Promo gratuite ───────────────────────────────────────────────────────
+  const [promo, setPromo] = useState(null); // null = pas encore chargé
+
+  useEffect(() => {
+    Config.promo().then(setPromo).catch(() => setPromo({ active: false }));
+  }, []);
+
   // ─── Étape 3 : photos ─────────────────────────────────────────────────────
   const [files, setFiles] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(null);
@@ -376,8 +383,15 @@ export default function SellPage() {
         rent_period: isRent ? form.rent_period : null,
       });
       var res = await Properties.create(payload);
-      setPropertyId(res.property.id);
-      setStep(2);
+      var pid = res.property.id;
+      setPropertyId(pid);
+      // Si promo gratuite active → auto-publier, sauter l'étape paiement
+      if (promo && promo.active) {
+        await Properties.publish(pid);
+        setStep(3);
+      } else {
+        setStep(2);
+      }
     } catch (err) {
       setFormErr(err && err.response && err.response.data && err.response.data.error
         ? err.response.data.error.message : err.message);
@@ -506,6 +520,18 @@ export default function SellPage() {
           );
         })}
       </Stack>
+
+      {/* ─── Bannière promo gratuite ──────────────────────────────────────── */}
+      {promo && promo.active && (
+        <Alert
+          severity="success"
+          icon="🎉"
+          sx={{ mb: 2, fontSize: "1rem", fontWeight: 600, borderRadius: 2,
+                bgcolor: "#e8f5e9", border: "1.5px solid #66bb6a" }}
+        >
+          {promo.message_fr || "Publication gratuite ! Publiez votre annonce sans frais pendant cette période limitée."}
+        </Alert>
+      )}
 
       {/* ─── ÉTAPE 1 : Formulaire ─────────────────────────────────────────── */}
       {step === 1 && (

@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import Layout from "../../components/Layout";
 import PaymentDialog from "../../components/PaymentDialog";
 import PropertyCard from "../../components/PropertyCard";
+import BookingCalendar from "../../components/BookingCalendar";
 import { Properties, Analytics } from "../../lib/api";
 import { formatFCFA, formatArea } from "../../lib/format";
 
@@ -188,14 +189,18 @@ export default function PropertyDetail() {
                     onChange={(e) => setBookingUnits(e.target.value)}
                     sx={{ width: 110 }}
                   />
-                  <TextField
-                    label={t("property.check_in")} type="date" size="small"
-                    InputLabelProps={{ shrink: true }}
-                    value={checkIn}
-                    onChange={(e) => setCheckIn(e.target.value)}
-                    sx={{ flex: 1 }}
-                  />
                 </Box>
+                <Typography variant="body2" sx={{ mt: 1.5, mb: 0.5 }}>
+                  {t("property.check_in")}
+                </Typography>
+                {/* Calendrier avec coloration des dates déjà réservées/bloquées
+                    (remplace l'ancien input type="date" natif, qui ne permet
+                    aucune personnalisation visuelle par jour) */}
+                <BookingCalendar
+                  value={checkIn}
+                  onChange={setCheckIn}
+                  bookedRanges={bookedRanges}
+                />
                 <Typography variant="body2" sx={{ mt: 1 }}>
                   {t("property.total_amount")} : <b>{formatFCFA(totalBookingAmount, p.currency)}</b>
                 </Typography>
@@ -203,13 +208,6 @@ export default function PropertyDetail() {
                   <Alert severity="error" sx={{ mt: 1 }}>
                     ⛔ Ces dates sont déjà réservées. Choisissez d&apos;autres dates.
                   </Alert>
-                )}
-                {bookedRanges.length > 0 && (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-                    📅 Occupé : {bookedRanges.map((b) =>
-                      `${new Date(b.check_in).toLocaleDateString("fr-FR")} → ${new Date(b.check_out).toLocaleDateString("fr-FR")}`
-                    ).join(" · ")}
-                  </Typography>
                 )}
                 <Button
                   fullWidth variant="contained" color="primary" size="large"

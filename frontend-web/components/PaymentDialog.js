@@ -68,6 +68,15 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  // Email réellement utilisé lors de la soumission du paiement (capturé au
+  // moment de l'appel, pas relu depuis `email` après coup). Sert à ne plus
+  // afficher "un reçu vous a été envoyé par email" quand aucun email n'a en
+  // réalité été fourni — voir CORRECTIF ci-dessous (bug reçu de paiement
+  // jamais reçu alors que les alertes d'expiration, elles, arrivent bien :
+  // ces dernières ne sont envoyées qu'aux comptes ayant déjà un email en
+  // base, donc l'absence d'email y est invisible, contrairement au paiement
+  // où le message de succès affirmait à tort qu'un email avait été envoyé).
+  const [submittedEmail, setSubmittedEmail] = useState("");
   // Statut réel de la transaction, obtenu en interrogeant le backend après
   // l'initiation — sans ça, le dialog affichait "Commission réglée" dès que
   // l'appel d'initiation répondait (souvent un simple push USSD en attente),
@@ -161,6 +170,10 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
   async function handleSubmit() {
     setLoading(true); setError(null); setResult(null); setStatus(null);
     stopPolling();
+    // Fige la valeur au moment de l'envoi : c'est cette valeur (et non
+    // `email`, qui pourrait continuer à changer) qui détermine si un reçu
+    // pourra effectivement être envoyé.
+    setSubmittedEmail(email || "");
     try {
       const res = await Payments.initiate({
         provider,
@@ -356,8 +369,22 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
               {purpose === "commission"
                 ? "✓ Commission ImmoBF réglée. Contactez maintenant l'annonceur pour finaliser votre réservation."
                 : "✓ Paiement confirmé."
-              } Un reçu vous a été envoyé par email.
+              }
+              {/* CORRECTIF : n'affirmer l'envoi d'un reçu que si un email a
+                  réellement été fourni au moment du paiement — avant ce
+                  correctif, ce message s'affichait toujours, même quand le
+                  champ email était vide et qu'aucun email n'existait sur le
+                  compte, ce qui faisait croire à tort qu'un reçu avait été
+                  envoyé (voir services/email.js et paymentsController.js). */}
+              {submittedEmail ? ` Un reçu a été envoyé à ${submittedEmail}.` : ""}
             </Alert>
+            {!submittedEmail && (
+              <Alert severity="warning" sx={{ mt: 1 }}>
+                Aucun email renseigné : aucun reçu n'a pu être envoyé. Ajoutez un
+                email dans « Mon compte » ou saisissez-le au moment du paiement
+                pour recevoir vos justificatifs par email.
+              </Alert>
+            )}
             {/* Bouton WhatsApp vers l'annonceur */}
             {(() => {
               const wa = property?.owner_whatsapp || property?.owner_phone;

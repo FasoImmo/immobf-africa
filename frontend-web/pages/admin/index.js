@@ -6,6 +6,7 @@ import {
 } from "@mui/material";
 import Layout from "../../components/Layout";
 import { Admin } from "../../lib/api";
+import { Switch, FormControlLabel } from "@mui/material";
 import { formatFCFA } from "../../lib/format";
 
 function KpiCard({ label, value, color }) {
@@ -50,11 +51,15 @@ export default function AdminDashboard() {
   const [testEmailTo, setTestEmailTo] = useState("");
   const [testEmailBusy, setTestEmailBusy] = useState(false);
   const [testEmailResult, setTestEmailResult] = useState(null);
+  const [promo, setPromo] = useState(null);
+  const [promoSaving, setPromoSaving] = useState(false);
+  const [promoMsg, setPromoMsg] = useState(null);
 
   useEffect(() => { accessGuard(router, setAuthorized); }, []); // eslint-disable-line
 
   useEffect(() => {
     if (authorized !== true) return;
+    Admin.getPromo().then(setPromo).catch(() => {});
     setLoading(true);
     Promise.all([Admin.revenues(), Admin.properties({ limit: 200 })])
       .then(([rev, props]) => {
@@ -182,6 +187,66 @@ export default function AdminDashboard() {
           </Alert>
         )}
       </Paper>
+
+      {/* ─── Promo publication gratuite ─────────────────────────────────────── */}
+      {promo !== null && (
+        <Paper elevation={0} sx={{ p: 2, mb: 3, bgcolor: "#f0fdf4", borderRadius: 2, border: "1px solid #86efac" }}>
+          <Typography variant="subtitle2" sx={{ mb: 1.5 }}>🎉 Publication gratuite — offre temporaire</Typography>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={promo.configured || false}
+                onChange={async (e) => {
+                  setPromoSaving(true); setPromoMsg(null);
+                  try {
+                    const r = await Admin.setPromo({ active: e.target.checked });
+                    setPromo(r.promo);
+                    setPromoMsg({ ok: true, text: e.target.checked ? "Promo activée ✅" : "Promo désactivée" });
+                  } catch { setPromoMsg({ ok: false, text: "Erreur lors de la mise à jour." }); }
+                  finally { setPromoSaving(false); }
+                }}
+                color="success"
+              />
+            }
+            label={promo.configured ? "Promo activée" : "Promo désactivée"}
+          />
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1 }}>
+            <TextField size="small" type="date" label="Début" value={promo.start || ""}
+              onChange={(e) => setPromo((p) => ({ ...p, start: e.target.value }))}
+              InputLabelProps={{ shrink: true }} sx={{ minWidth: 150 }} />
+            <TextField size="small" type="date" label="Fin" value={promo.end || ""}
+              onChange={(e) => setPromo((p) => ({ ...p, end: e.target.value }))}
+              InputLabelProps={{ shrink: true }} sx={{ minWidth: 150 }} />
+          </Box>
+          <TextField size="small" fullWidth label="Message FR" value={promo.message_fr || ""}
+            onChange={(e) => setPromo((p) => ({ ...p, message_fr: e.target.value }))}
+            sx={{ mt: 1 }} placeholder="🎉 Publication gratuite jusqu'au 31 juillet ! Publiez sans frais." />
+          <TextField size="small" fullWidth label="Message EN" value={promo.message_en || ""}
+            onChange={(e) => setPromo((p) => ({ ...p, message_en: e.target.value }))}
+            sx={{ mt: 1 }} placeholder="🎉 Free listing until July 31! Publish at no cost." />
+          <Box sx={{ mt: 1.5, display: "flex", gap: 1, alignItems: "center" }}>
+            <Button size="small" variant="contained" color="success" disabled={promoSaving}
+              onClick={async () => {
+                setPromoSaving(true); setPromoMsg(null);
+                try {
+                  const r = await Admin.setPromo({
+                    active: promo.configured,
+                    start: promo.start || null,
+                    end: promo.end || null,
+                    message_fr: promo.message_fr || null,
+                    message_en: promo.message_en || null,
+                  });
+                  setPromo(r.promo);
+                  setPromoMsg({ ok: true, text: "Paramètres sauvegardés ✅" });
+                } catch { setPromoMsg({ ok: false, text: "Erreur lors de la sauvegarde." }); }
+                finally { setPromoSaving(false); }
+              }}>
+              {promoSaving ? <CircularProgress size={16} color="inherit" /> : "Enregistrer"}
+            </Button>
+            {promoMsg && <Typography variant="caption" color={promoMsg.ok ? "success.main" : "error"}>{promoMsg.text}</Typography>}
+          </Box>
+        </Paper>
+      )}
 
       <Box sx={{ mb: 3, display: "flex", gap: 2, flexWrap: "wrap" }}>
         <Button variant="contained" onClick={() => router.push("/admin/users")}>

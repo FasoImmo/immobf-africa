@@ -82,6 +82,15 @@ router.post ("/admin/newsletter",           requireAdmin, asyncHandler(adminCtl.
 router.get  ("/admin/payment-stats",        requireAdmin, asyncHandler(adminCtl.paymentStats));
 router.patch("/admin/profile",              requireAdmin, asyncHandler(adminCtl.updateAdminProfile));
 router.post ("/admin/test-email",           requireAdmin, asyncHandler(adminCtl.testEmail));
+router.get  ("/admin/promo",               requireAdmin, asyncHandler(adminCtl.getPromo));
+router.post ("/admin/promo",               requireAdmin, asyncHandler(adminCtl.setPromo));
+
+// --- Config publique (promo, etc.) ---
+router.get("/config/promo", publicLimiter, asyncHandler(async (req, res) => {
+  const PS = require("../models/PlatformSetting");
+  const promo = await PS.getPromo();
+  res.json(promo);
+}));
 
 // --- Analytics ---
 const analyticsLimiter = rateLimit({ windowMs: 10_000, max: 30 });

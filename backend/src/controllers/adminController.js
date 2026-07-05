@@ -256,8 +256,27 @@ async function testEmail(req, res) {
   res.json({ ok: !result?.error, from: FROM, resend: result });
 }
 
+async function getPromo(req, res) {
+  const PS = require("../models/PlatformSetting");
+  const promo = await PS.getPromo();
+  res.json(promo);
+}
+
+async function setPromo(req, res) {
+  const PS = require("../models/PlatformSetting");
+  const { active, start, end, message_fr, message_en } = req.body;
+  if (active !== undefined) await PS.set("promo_active", active ? "true" : "false");
+  if (start !== undefined)  await PS.set("promo_start",  start  || null);
+  if (end   !== undefined)  await PS.set("promo_end",    end    || null);
+  if (message_fr !== undefined) await PS.set("promo_message_fr", message_fr || null);
+  if (message_en !== undefined) await PS.set("promo_message_en", message_en || null);
+  const promo = await PS.getPromo();
+  res.json({ ok: true, promo });
+}
+
 module.exports = {
   listUsers, setUserBlocked, logoutUser, deleteUser,
   listProperties, deleteProperty, listRevenues,
   paymentStats, userStats, sendNewsletter, updateAdminProfile, testEmail,
+  getPromo, setPromo,
 };
