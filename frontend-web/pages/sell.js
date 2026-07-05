@@ -256,6 +256,16 @@ export default function SellPage() {
     }
   }, [router.isReady, router.query.tx]); // eslint-disable-line
 
+  // ─── Bypass promo si brouillon repris (resume/renew) arrive sur step 2 ──────
+  useEffect(function() {
+    if (step !== 2 || !propertyId || promo === null) return; // attendre chargement promo
+    if (!promo.active) return;
+    // Publier directement et sauter le paiement
+    Properties.publish(propertyId)
+      .then(function() { setStep(3); })
+      .catch(function() {}); // garder step 2 si l'annonce est déjà publiée ou erreur
+  }, [step, propertyId, promo]); // eslint-disable-line
+
   // ─── Reprise d'un brouillon via ?resume=propertyId ───────────────────────
   useEffect(function() {
     if (!router.isReady) return;
@@ -529,7 +539,7 @@ export default function SellPage() {
           sx={{ mb: 2, fontSize: "1rem", fontWeight: 600, borderRadius: 2,
                 bgcolor: "#e8f5e9", border: "1.5px solid #66bb6a" }}
         >
-          {promo.message_fr || "Publication gratuite ! Publiez votre annonce sans frais pendant cette période limitée."}
+          {(router.locale === "en" ? promo.message_en : promo.message_fr) || (router.locale === "en" ? "Free listing! Publish your property at no cost during this limited period." : "Publication gratuite ! Publiez votre annonce sans frais pendant cette période limitée.")}
         </Alert>
       )}
 
