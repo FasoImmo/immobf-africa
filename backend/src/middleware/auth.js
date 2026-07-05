@@ -62,6 +62,30 @@ async function requireAuth(req, _res, next) {
   }
 }
 
+/**
+ * Like requireAuth but non-blocking: if no token (or invalid token) is
+ * present, req.user stays undefined and the request continues.
+ * Used for routes that work for both authenticated users and guests.
+ */
+async function optionalAuth(req, _res, next) {
+  const header = req.headers.authorization || "";
+  const m = /^Bearer\s+(.+)$/i.exec(header);
+  if (!m) return next();
+  try {
+    const payload = verify(m[1]);
+    if (payload.kind === "refresh") return next();
+    const { rows } = await query(
+      "SELECT role, agency_id, is_blocked, token_version FROM users WHERE id = $1",
+      [payload.sub]
+    );
+    const dbUser = rows[0];
+    if (!dbUser || dbUser.is_blocked) return next();
+    if ((payload.tv || 0) !== (dbUser.token_version || 0)) return next();
+    req.user = { id: payload.sub, role: dbUser.role, agency_id: dbUser.agency_id };
+  } catch (_e) { /* invalid token — treat as guest */ }
+  next();
+}
+
 function requireRole(...roles) {
   return (req, _res, next) => {
     if (!req.user) return next(Unauthorized());
@@ -70,4 +94,4 @@ function requireRole(...roles) {
   };
 }
 
-module.exports = { signAccess, signRefresh, verify, requireAuth, requireRole };
+module.exports = { signAccess, signRefresh, verify, requireAuth, optionalAuth, requireRole };

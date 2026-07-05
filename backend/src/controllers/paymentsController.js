@@ -44,6 +44,11 @@ async function initiate(req, res) {
   const { value, error } = initiateSchema.validate(req.body);
   if (error) throw BadRequest(error.message);
 
+  // Guest (non-authentifié) : email obligatoire pour envoyer le reçu
+  if (!req.user && !value.customer_email) {
+    throw BadRequest("Votre email est requis pour recevoir le reçu de paiement.");
+  }
+
   // Frais de publication : montant doit correspondre à un plan valide
   if (value.purpose === "listing_fee") {
     const validAmounts = Object.values(config.commissions.listingPlans);
@@ -72,7 +77,7 @@ async function initiate(req, res) {
   const provider = registry.get(value.provider);
 
   const tx = await Transaction.create({
-    buyer_id: req.user.id,
+    buyer_id: req.user?.id || null,
     property_id: value.property_id,
     provider: provider.name,
     purpose: value.purpose,
@@ -83,6 +88,17 @@ async function initiate(req, res) {
     // le client préfère recevoir le reçu à une autre adresse.
     customer_email: value.customer_email || null,
   });
+
+  // Upsert CRM contact (invité ou connecté) — non-bloquant
+  if (value.customer_email) {
+    const Contact = require("../models/Contact");
+    Contact.upsert({
+      user_id:  req.user?.id || null,
+      email:    value.customer_email,
+      phone:    value.customer_phone || null,
+      country:  property?.country_code || null,
+    }).catch((e) => logger.warn({ err: e.message }, "contact upsert failed"));
+  }
 
   // Trace la durée/montant total du séjour demandée (hors colonnes dédiées —
   // évite une migration de schéma) pour pouvoir la restituer dans la copie de
@@ -349,7 +365,14 @@ async function webhook(req, res) {
 async function get(req, res) {
   const tx = await Transaction.findById(req.params.id);
   if (!tx) throw NotFound();
-  if (tx.buyer_id !== req.user.id && req.user.role !== "admin") throw Forbidden();
+  // Authenticated user: must own the transaction (or be admin)
+  if (req.user) {
+    if (tx.buyer_id !== req.user.id && req.user.role !== "admin") throw Forbidden();
+  } else {
+    // Guest: only allowed to poll guest transactions (buyer_id = null)
+    // Transaction ID is a UUID — guessing is infeasible in practice
+    if (tx.buyer_id !== null) throw Forbidden();
+  }
   res.json({ transaction: tx });
 }
 

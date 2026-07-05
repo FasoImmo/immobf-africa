@@ -189,7 +189,7 @@ export default function SellPage() {
   // ─── Étape 1 : formulaire ─────────────────────────────────────────────────
   const [form, setForm] = useState({
     transaction_type: "sale",
-    type: "house", title: "", description: "",
+    type: "house", title: "", description: "", title_en: "", description_en: "",
     price: "", currency: "XOF", area_m2: "", bedrooms: "", bathrooms: "",
     country_code: "BF", city: "", address: "", neighborhood: "",
     is_furnished: false, rent_period: "monthly",
@@ -599,6 +599,21 @@ export default function SellPage() {
               </Grid>
               <Grid item xs={12}>
                 <TextField fullWidth multiline minRows={3} label={t("sell.description")} value={form.description} onChange={change("description")} />
+              </Grid>
+
+              {/* ─── Version anglaise optionnelle ─────────────────────── */}
+              <Grid item xs={12}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                  🌍 Version anglaise (optionnel — pour les visiteurs anglophones)
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={8}>
+                <TextField fullWidth label="Title in English (optional)" value={form.title_en} onChange={change("title_en")}
+                  placeholder="e.g. Furnished apartment, quiet neighborhood" />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField fullWidth multiline minRows={2} label="Description in English (optional)" value={form.description_en} onChange={change("description_en")}
+                  placeholder="Describe your property in English for international visitors…" />
               </Grid>
 
               <Grid item xs={12} sm={4}>

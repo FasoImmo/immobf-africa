@@ -2,8 +2,7 @@ import { useMemo, useState } from "react";
 import { Box, IconButton, Typography, Tooltip } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-
-const WEEKDAYS = ["Lu", "Ma", "Me", "Je", "Ve", "Sa", "Di"];
+import { useTranslation } from "react-i18next";
 
 function toDateOnly(d) {
   const x = new Date(d);
@@ -37,6 +36,17 @@ function isoDay(d) {
  * - minDate : première date sélectionnable (par défaut aujourd'hui)
  */
 export default function BookingCalendar({ value, onChange, bookedRanges = [], minDate }) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === "en" ? "en-US" : "fr-FR";
+
+  // Locale-aware short weekday names starting Monday
+  const WEEKDAYS = useMemo(() => {
+    return [...Array(7)].map((_, i) => {
+      const d = new Date(2021, 0, 4 + i); // Jan 4 2021 = Monday
+      return d.toLocaleDateString(locale, { weekday: "short" }).replace(".", "");
+    });
+  }, [locale]);
+
   const today = useMemo(() => toDateOnly(new Date()), []);
   const min = minDate ? toDateOnly(minDate) : today;
   const initialMonth = value ? toDateOnly(value) : min;
@@ -69,7 +79,7 @@ export default function BookingCalendar({ value, onChange, bookedRanges = [], mi
   for (let i = 0; i < startOffset; i++) cells.push(null);
   for (let day = 1; day <= daysInMonth; day++) cells.push(new Date(year, month, day));
 
-  const monthLabel = viewDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  const monthLabel = viewDate.toLocaleDateString(locale, { month: "long", year: "numeric" });
   const selected = value ? toDateOnly(value) : null;
 
   return (
@@ -119,7 +129,7 @@ export default function BookingCalendar({ value, onChange, bookedRanges = [], mi
           return (
             <Tooltip
               key={isoDay(d)}
-              title={occupied ? "Déjà réservé" : past ? "" : "Disponible"}
+              title={occupied ? t("property.cal_booked") : past ? "" : t("property.cal_available")}
               arrow
             >
               <span>
@@ -162,9 +172,9 @@ export default function BookingCalendar({ value, onChange, bookedRanges = [], mi
       </Box>
 
       <Box sx={{ display: "flex", gap: 2, mt: 1.5, flexWrap: "wrap" }}>
-        <Legend color="#e8f5e9" label="Disponible" />
-        <Legend color="#ffcdd2" label="Déjà réservé" />
-        <Legend color="primary.main" label="Sélectionné" />
+        <Legend color="#e8f5e9" label={t("property.cal_available")} />
+        <Legend color="#ffcdd2" label={t("property.cal_booked")} />
+        <Legend color="primary.main" label={t("property.cal_selected")} />
       </Box>
     </Box>
   );

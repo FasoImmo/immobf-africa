@@ -258,6 +258,9 @@ export default function AdminDashboard() {
         <Button variant="contained" color="secondary" onClick={() => router.push("/admin/revenues")}>
           Paiements &amp; Revenus
         </Button>
+        <Button variant="contained" color="info" onClick={() => router.push("/admin/contacts")}>
+          📋 Base contacts / CRM
+        </Button>
         <Button variant="outlined" color="success" onClick={() => router.push("/admin/newsletter")}>
           📧 Newsletter
         </Button>

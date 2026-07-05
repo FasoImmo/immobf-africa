@@ -157,7 +157,13 @@
     "unit_weeks": "Semaines",
     "unit_months": "Mois",
     "check_in": "Date d'arrivée",
-    "total_amount": "Montant total du loyer/séjour"
+    "total_amount": "Montant total du loyer/séjour",
+    "cal_available": "Disponible",
+    "cal_booked": "Déjà réservé",
+    "cal_selected": "Sélectionné",
+    "dates_conflict": "Ces dates sont déjà réservées. Choisissez d'autres dates.",
+    "whatsapp_locked": "Réglez la commission ci-dessus pour débloquer le contact WhatsApp de l'annonceur.",
+    "similar": "Annonces similaires"
   },
   "payment": {
     "choose_provider": "Choisir un moyen de paiement",

@@ -42,7 +42,15 @@ function hydrate(row) {
 async function withTranslation(prop, lang) {
   if (!prop) return null;
   const { title_translations, description_translations, ...clean } = prop;
-  if (!lang || lang === "fr") return clean;
+
+  // Toujours exposer les traductions manuelles EN pour la page d'édition
+  const titleEn = title_translations && title_translations.en;
+  const descEn  = description_translations && description_translations.en;
+  const extras  = {};
+  if (titleEn) extras.title_translations = { en: titleEn };
+  if (descEn)  extras.description_translations = { en: descEn };
+
+  if (!lang || lang === "fr") return { ...clean, ...extras };
 
   const cachedTitle = title_translations && title_translations[lang];
   const cachedDesc  = description_translations && description_translations[lang];
@@ -76,6 +84,7 @@ async function create(data) {
     owner_id, agency_id = null,
     transaction_type = "sale", type,
     title, description = null,
+    title_en = null, description_en = null,
     price, currency = "XOF",
     area_m2 = null, bedrooms = null, bathrooms = null,
     country_code = "BF", city, neighborhood = null, address = null,
@@ -89,18 +98,25 @@ async function create(data) {
   // comportent comme deux villes différentes lors d'une recherche filtrée.
   const cleanCity = typeof city === "string" ? city.trim() : city;
 
+  // Traductions manuelles saisies par l'annonceur (stockées dans le cache JSONB).
+  const titleTr = title_en ? JSON.stringify({ en: title_en.trim() }) : "{}";
+  const descTr  = description_en ? JSON.stringify({ en: description_en.trim() }) : "{}";
+
   const { rows } = await query(
     `INSERT INTO properties
       (owner_id, agency_id, transaction_type, type, title, description, price, currency,
        area_m2, bedrooms, bathrooms, country_code, city, neighborhood, address,
-       lat, lng, deposit_pct, is_furnished, rent_period, features)
+       lat, lng, deposit_pct, is_furnished, rent_period, features,
+       title_translations, description_translations)
      VALUES
-      ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21::jsonb)
+      ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21::jsonb,
+       $22::jsonb,$23::jsonb)
      RETURNING ${RETURNING_COLS}`,
     [
       owner_id, agency_id, transaction_type, type, title, description, price, currency,
       area_m2, bedrooms, bathrooms, country_code, cleanCity, neighborhood, address,
       lat, lng, deposit_pct, is_furnished, rent_period, JSON.stringify(features),
+      titleTr, descTr,
     ]
   );
   return hydrate(rows[0]);
@@ -360,14 +376,32 @@ async function update(id, ownerId, data) {
     sets.push(expr);
   }
 
+  // Traductions manuelles EN saisies par l'annonceur.
+  // title_en / description_en : mise à jour directe du cache JSONB (pas de reset).
+  // Si title ou description change sans title_en fourni : reset du cache auto
+  // (l'ancienne traduction ne correspondrait plus au nouveau texte).
+  if (data.title_en !== undefined) {
+    const v = data.title_en ? data.title_en.trim() : "";
+    values.push(JSON.stringify({ en: v }));
+    sets.push(`title_translations = title_translations || $${values.length}::jsonb`);
+  } else if (data.title !== undefined) {
+    sets.push(`title_translations = '{}'::jsonb`);
+  }
+
+  if (data.description_en !== undefined) {
+    const v = data.description_en ? data.description_en.trim() : "";
+    values.push(JSON.stringify({ en: v }));
+    sets.push(`description_translations = description_translations || $${values.length}::jsonb`);
+  } else if (data.description !== undefined) {
+    sets.push(`description_translations = '{}'::jsonb`);
+  }
+
   if (sets.length === 0) return findById(id);
 
   values.push(id, ownerId);
   const { rows } = await query(
     `UPDATE properties
-     SET ${sets.join(", ")}, updated_at = NOW(),
-         title_translations = '{}'::jsonb,
-         description_translations = '{}'::jsonb
+     SET ${sets.join(", ")}, updated_at = NOW()
      WHERE id = $${values.length - 1} AND owner_id = $${values.length}
      RETURNING ${RETURNING_COLS}`,
     values

@@ -157,7 +157,13 @@
     "unit_weeks": "Weeks",
     "unit_months": "Months",
     "check_in": "Check-in date",
-    "total_amount": "Total rent/stay amount"
+    "total_amount": "Total rent/stay amount",
+    "cal_available": "Available",
+    "cal_booked": "Already booked",
+    "cal_selected": "Selected",
+    "dates_conflict": "These dates are already booked. Please choose different dates.",
+    "whatsapp_locked": "Pay the commission above to unlock the owner's WhatsApp contact.",
+    "similar": "Similar listings"
   },
   "payment": {
     "choose_provider": "Choose a payment method",

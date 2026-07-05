@@ -99,6 +99,8 @@ export default function EditPropertyPage() {
         type: p.type || "house",
         title: p.title || "",
         description: p.description || "",
+        title_en: (p.title_translations && p.title_translations.en) || "",
+        description_en: (p.description_translations && p.description_translations.en) || "",
         price: p.price || "",
         currency: p.currency || "XOF",
         area_m2: p.area_m2 || "",
@@ -301,6 +303,19 @@ export default function EditPropertyPage() {
             </Grid>
             <Grid item xs={12}>
               <TextField fullWidth multiline minRows={3} label={t("sell.description")} value={form.description} onChange={change("description")} />
+            </Grid>
+
+            {/* ─── Version anglaise optionnelle ──────────────────────── */}
+            <Grid item xs={12}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                🌍 Version anglaise (optionnel)
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={8}>
+              <TextField fullWidth label="Title in English (optional)" value={form.title_en || ""} onChange={change("title_en")} />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField fullWidth multiline minRows={2} label="Description in English (optional)" value={form.description_en || ""} onChange={change("description_en")} />
             </Grid>
 
             <Grid item xs={12} sm={4}>

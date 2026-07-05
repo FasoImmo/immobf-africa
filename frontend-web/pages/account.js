@@ -520,9 +520,9 @@ export default function AccountPage() {
               p: 1.2, bgcolor: "#fff3e0", borderRadius: 1,
             }}>
               <Typography variant="body2" sx={{ flex: 1 }}>
-                🔒 {new Date(b.check_in + "T00:00:00").toLocaleDateString("fr-FR")}
+                🔒 {new Date(String(b.check_in).slice(0, 10)).toLocaleDateString("fr-FR")}
                 {" → "}
-                {new Date(b.check_out + "T00:00:00").toLocaleDateString("fr-FR")}
+                {new Date(String(b.check_out).slice(0, 10)).toLocaleDateString("fr-FR")}
                 {b.note && <Typography component="span" variant="caption" color="text.secondary"> · {b.note}</Typography>}
               </Typography>
               <Button size="small" color="error" onClick={() => removeBlock(b.id)} disabled={blockLoading}>

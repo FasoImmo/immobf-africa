@@ -68,6 +68,8 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  // Vrai si l'utilisateur n'est pas connecté (paiement invité)
+  const [isGuest, setIsGuest] = useState(false);
   // Email réellement utilisé lors de la soumission du paiement (capturé au
   // moment de l'appel, pas relu depuis `email` après coup). Sert à ne plus
   // afficher "un reçu vous a été envoyé par email" quand aucun email n'a en
@@ -141,11 +143,13 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
   useEffect(() => {
     if (!open) return;
     setBuyerCountry(property?.country_code || "BF");
-    // Rafraîchit l'email depuis le compte au moment où le dialog s'ouvre.
+    // Rafraîchit l'email et détecte si l'utilisateur est invité.
     try {
+      const token = localStorage.getItem("immobf_token");
       const u = JSON.parse(localStorage.getItem("immobf_user") || "{}");
+      setIsGuest(!token || !u.id);
       if (u.email && !email) setEmail(u.email);
-    } catch { /* ignore */ }
+    } catch { setIsGuest(true); }
   }, [open, property]); // eslint-disable-line
 
   useEffect(() => {
@@ -168,6 +172,11 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
   }, [open, buyerCountry]);
 
   async function handleSubmit() {
+    // Email obligatoire pour les invités
+    if (isGuest && !email?.includes("@")) {
+      setError("Veuillez saisir votre email pour recevoir le reçu de paiement.");
+      return;
+    }
     setLoading(true); setError(null); setResult(null); setStatus(null);
     stopPolling();
     // Fige la valeur au moment de l'envoi : c'est cette valeur (et non
@@ -235,6 +244,13 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
         <Typography variant="body2" sx={{ mb: 2 }}>
           {property?.title} — <b>{formatFCFA(amount)}</b>
         </Typography>
+
+        {isGuest && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            🔓 <strong>Paiement sans compte</strong> — aucune inscription requise.
+            Saisissez votre email ci-dessous pour recevoir votre reçu.
+          </Alert>
+        )}
 
         <TextField
           select fullWidth label="Votre pays (pour les moyens de paiement disponibles)" sx={{ mb: 2 }}
@@ -324,8 +340,12 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
 
             {showEmail && (
               <TextField
-                fullWidth label="Email (recommandé pour le reçu)"
+                fullWidth
+                label={isGuest ? "Email (requis pour votre reçu)" : "Email (recommandé pour le reçu)"}
                 type="email"
+                required={isGuest}
+                error={isGuest && !email}
+                helperText={isGuest && !email ? "Requis pour les paiements sans compte" : ""}
                 value={email} onChange={(e) => setEmail(e.target.value)} sx={{ mb: 2 }}
               />
             )}

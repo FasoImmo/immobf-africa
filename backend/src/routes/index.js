@@ -4,7 +4,7 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 
 const asyncHandler = require("../utils/asyncHandler");
-const { requireAuth, requireRole } = require("../middleware/auth");
+const { requireAuth, optionalAuth, requireRole } = require("../middleware/auth");
 const rawBody = require("../middleware/rawBody");
 
 const authCtl  = require("../controllers/authController");
@@ -58,9 +58,11 @@ router.post  ("/my/listings/:id/renew",             requireAuth, asyncHandler(pr
 
 // --- Payments ---
 router.get ("/payments/providers",       asyncHandler(payCtl.listProviders));
-router.post("/payments/initiate",        requireAuth, asyncHandler(payCtl.initiate));
-router.get ("/payments",                 requireAuth, asyncHandler(payCtl.listMine));
-router.get ("/payments/:id",             requireAuth, asyncHandler(payCtl.get));
+// initiate et get utilisent optionalAuth : fonctionnent pour les invités
+// (sans compte) ET pour les utilisateurs connectés.
+router.post("/payments/initiate",        optionalAuth, asyncHandler(payCtl.initiate));
+router.get ("/payments",                 requireAuth,  asyncHandler(payCtl.listMine));
+router.get ("/payments/:id",             optionalAuth, asyncHandler(payCtl.get));
 router.post("/payments/:id/escrow/release", requireAuth, asyncHandler(payCtl.releaseEscrow));
 
 // Webhooks — raw body parser (HMAC verification)
@@ -90,6 +92,8 @@ router.post ("/admin/promo",               requireAdmin, asyncHandler(adminCtl.s
 router.post ("/admin/properties/:id/extend",  requireAdmin, asyncHandler(adminCtl.extendListing));
 router.post ("/admin/properties/:id/suspend", requireAdmin, asyncHandler(adminCtl.suspendListing));
 router.post ("/admin/properties/:id/restore", requireAdmin, asyncHandler(adminCtl.restoreListing));
+router.get  ("/admin/contacts",               requireAdmin, asyncHandler(adminCtl.listContacts));
+router.post ("/admin/contacts/newsletter",    requireAdmin, asyncHandler(adminCtl.sendContactNewsletter));
 
 // --- Config publique (promo, etc.) ---
 router.get("/config/promo", publicLimiter, asyncHandler(async (req, res) => {

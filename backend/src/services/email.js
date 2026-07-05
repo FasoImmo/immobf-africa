@@ -307,6 +307,27 @@ async function sendListingRestored(email, { propertyTitle, propertyId }) {
   });
 }
 
+/**
+ * Newsletter ciblée pour un contact CRM.
+ * subject et html fournis directement par l'admin.
+ */
+async function sendBulkNewsletter(email, { subject, html, recipientName }) {
+  const greeting = recipientName ? `Bonjour ${recipientName},` : "Bonjour,";
+  return send({
+    to: email,
+    subject,
+    html: `<div style="font-family:sans-serif;max-width:600px;margin:auto">
+      <p>${greeting}</p>
+      ${html}
+      <hr style="margin:32px 0;border:none;border-top:1px solid #eee"/>
+      <p style="font-size:12px;color:#999">
+        Vous recevez cet email car vous avez interagi avec ImmoBF Africa.<br/>
+        <a href="https://immoafrica.online">immoafrica.online</a>
+      </p>
+    </div>`,
+  });
+}
+
 module.exports = {
   send,
   sendOtpEmail,
@@ -315,6 +336,7 @@ module.exports = {
   sendExpiryAlert,
   sendWhatsAppNotification,
   sendNewsletterConfirmation,
+  sendBulkNewsletter,
   sendListingExtended,
   sendListingSuspended,
   sendListingRestored,

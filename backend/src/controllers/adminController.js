@@ -364,9 +364,40 @@ async function restoreListing(req, res) {
   res.json({ ok: true, property });
 }
 
+// ─── CRM contacts ────────────────────────────────────────────────────────────
+
+async function listContacts(req, res) {
+  const Contact = require("../models/Contact");
+  const { country, language, limit = 200, offset = 0 } = req.query;
+  const contacts = await Contact.list({ country, language, limit: Number(limit), offset: Number(offset) });
+  const total    = await Contact.count({ country, language });
+  res.json({ contacts, total });
+}
+
+async function sendContactNewsletter(req, res) {
+  const { subject, html, country, language } = req.body || {};
+  if (!subject || !html) throw BadRequest("subject et html sont requis");
+  const Contact = require("../models/Contact");
+  const { sendBulkNewsletter } = require("../services/email");
+  const contacts = await Contact.list({ country, language, limit: 5000, offset: 0 });
+  if (!contacts.length) return res.json({ sent: 0 });
+  const logger = require("../utils/logger");
+  let sent = 0;
+  for (const c of contacts) {
+    try {
+      await sendBulkNewsletter(c.email, { subject, html, recipientName: c.name });
+      sent++;
+    } catch (e) {
+      logger.warn({ err: e.message, email: c.email }, "contact newsletter send failed");
+    }
+  }
+  res.json({ sent });
+}
+
 module.exports = {
   listUsers, setUserBlocked, logoutUser, deleteUser,
   listProperties, deleteProperty, listRevenues,
   paymentStats, userStats, sendNewsletter, updateAdminProfile, testEmail,
   getPromo, setPromo, extendListing, suspendListing, restoreListing,
+  listContacts, sendContactNewsletter,
 };

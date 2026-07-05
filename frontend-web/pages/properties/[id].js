@@ -206,7 +206,7 @@ export default function PropertyDetail() {
                 </Typography>
                 {conflict && (
                   <Alert severity="error" sx={{ mt: 1 }}>
-                    ⛔ Ces dates sont déjà réservées. Choisissez d&apos;autres dates.
+                    ⛔ {t("property.dates_conflict")}
                   </Alert>
                 )}
                 <Button
@@ -239,7 +239,7 @@ export default function PropertyDetail() {
             )}
             {p.owner_whatsapp && isRent && !commissionPaid && (
               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, textAlign: "center" }}>
-                🔒 Réglez la commission ci-dessus pour débloquer le contact WhatsApp de l&apos;annonceur.
+                🔒 {t("property.whatsapp_locked")}
               </Typography>
             )}
           </Paper>
@@ -249,7 +249,7 @@ export default function PropertyDetail() {
       {/* ─── Annonces similaires ─────────────────────────────────────────── */}
       {similar.length > 0 && (
         <Box sx={{ mt: 5 }}>
-          <Typography variant="h5" gutterBottom>Annonces similaires</Typography>
+          <Typography variant="h5" gutterBottom>{t("property.similar")}</Typography>
           <Grid container spacing={2}>
             {similar.map((s) => (
               <Grid item xs={12} sm={6} md={3} key={s.id}>
