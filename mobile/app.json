@@ -3,7 +3,7 @@
     "name": "ImmoBF Africa",
     "slug": "immobilier-en-afrique",
     "owner": "immobfs-team",
-    "version": "1.0.0",
+    "version": "1.4.0",
     "orientation": "portrait",
     "scheme": "immobf",
     "primaryColor": "#0E7C66",
@@ -18,11 +18,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "africa.immobf.app",
-      "buildNumber": "1"
+      "buildNumber": "4"
     },
     "android": {
       "package": "africa.immobf.app",
-      "versionCode": 1,
+      "versionCode": 4,
       "permissions": []
     },
     "web": { "favicon": "./assets/favicon.png" },

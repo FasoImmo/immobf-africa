@@ -52,8 +52,13 @@ export const Properties = {
   availability: (id) => api.get(`/properties/${id}/availability`).then((r) => r.data),
   create: (data) => api.post("/properties", data).then((r) => r.data),
   update: (id, data) => api.patch(`/properties/${id}`, data).then((r) => r.data),
+  publish: (id) => api.post(`/properties/${id}/publish`).then((r) => r.data),
   myListings: () => api.get("/my/listings").then((r) => r.data),
   deleteListing: (id) => api.delete(`/my/listings/${id}`).then((r) => r.data),
+};
+
+export const Admin = {
+  getPromo: () => api.get("/admin/promo").then((r) => r.data),
 };
 
 export const Photos = {

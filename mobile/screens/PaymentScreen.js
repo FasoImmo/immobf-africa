@@ -104,6 +104,9 @@ const T = {
     errOtp: "Entrez le code OTP reçu",
     loginRequired: "Connexion requise",
     loginRequiredMsg: "Veuillez vous connecter avant d'effectuer un paiement.",
+    guestEmailLabel: "Votre email (requis pour recevoir le reçu)",
+    guestEmailPlaceholder: "exemple@email.com",
+    errEmail: "Entrez une adresse email valide pour recevoir votre reçu.",
     confirmed: "✓ Paiement confirmé",
     contactNow: "Contactez maintenant l'annonceur pour finaliser votre réservation.",
     whatsappOwner: "Contacter l'annonceur sur WhatsApp",
@@ -128,6 +131,9 @@ const T = {
     errOtp: "Enter the OTP code received",
     loginRequired: "Login required",
     loginRequiredMsg: "Please log in before making a payment.",
+    guestEmailLabel: "Your email (required to receive the receipt)",
+    guestEmailPlaceholder: "example@email.com",
+    errEmail: "Enter a valid email address to receive your receipt.",
     confirmed: "✓ Payment confirmed",
     contactNow: "Contact the advertiser now to finalize your booking.",
     whatsappOwner: "Contact advertiser on WhatsApp",
@@ -188,8 +194,15 @@ export default function PaymentScreen({ route }) {
   const [pawapayOperator, setPawapayOperator] = useState(ops[0]?.value || "moov");
   const [pawapayOtp, setPawapayOtp] = useState("");
   const [phoneLocal, setPhoneLocal] = useState(""); // numéro sans indicatif
+  const [guestEmail, setGuestEmail] = useState("");
+  const [isGuest, setIsGuest] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
+
+  // Détecter si l'utilisateur est invité (pas de token)
+  useEffect(() => {
+    AsyncStorage.getItem("immobf_token").then((tok) => setIsGuest(!tok));
+  }, []);
 
   // Persiste le paiement commission pour débloquer WhatsApp sur PropertyScreen
   useEffect(() => {
@@ -215,15 +228,12 @@ export default function PaymentScreen({ route }) {
   const canPay = phoneLocal.length >= 6 && provider && !(needsOtp && !pawapayOtp);
 
   async function pay() {
-    // Vérification token avant tout appel réseau — évite "Missing bearer token"
-    // si la session a expiré entre l'ouverture de l'annonce et le paiement.
-    const token = await AsyncStorage.getItem("immobf_token");
-    if (!token) {
-      Alert.alert(t.loginRequired, t.loginRequiredMsg);
-      return;
-    }
     if (!canPay) {
       Alert.alert("Champs requis", needsOtp ? t.errOtp : t.errPhone);
+      return;
+    }
+    if (isGuest && !guestEmail.includes("@")) {
+      Alert.alert("Email requis", t.errEmail);
       return;
     }
     setBusy(true);
@@ -238,6 +248,7 @@ export default function PaymentScreen({ route }) {
         customer_phone: fullPhone,
         buyer_country: buyerCountry.code,
       };
+      if (isGuest && guestEmail) payload.customer_email = guestEmail.trim();
       if (provider === "pawapay") {
         payload.preferred_operator = pawapayOperator;
         if (needsOtp) payload.pawapay_otp = pawapayOtp;
@@ -327,6 +338,24 @@ export default function PaymentScreen({ route }) {
         </>
       )}
 
+      {/* Email invité */}
+      {isGuest && (
+        <>
+          <View style={s.guestBanner}>
+            <Text style={s.guestBannerText}>🔓 Paiement sans compte — saisissez votre email pour recevoir le reçu.</Text>
+          </View>
+          <Text style={s.label}>{t.guestEmailLabel}</Text>
+          <TextInput
+            value={guestEmail}
+            onChangeText={setGuestEmail}
+            style={s.input}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            placeholder={t.guestEmailPlaceholder}
+          />
+        </>
+      )}
+
       {/* Numéro de téléphone */}
       <Text style={s.label}>{t.phoneLabel}</Text>
       <View style={s.phoneRow}>
@@ -401,6 +430,8 @@ export default function PaymentScreen({ route }) {
 const s = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: "white" },
   h1: { fontSize: 18, fontWeight: "600", marginTop: 8 },
+  guestBanner: { backgroundColor: "#e8f4fd", borderRadius: 8, padding: 12, marginTop: 12, borderWidth: 1, borderColor: "#b8d4ea" },
+  guestBannerText: { color: "#1a5276", fontSize: 13, lineHeight: 18 },
   amount: { fontSize: 28, fontWeight: "700", color: "#0E7C66", marginTop: 4 },
   label: { marginTop: 16, color: "#555", fontWeight: "500" },
   hint: { fontSize: 12, color: "#888", marginTop: 2 },

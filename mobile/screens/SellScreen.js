@@ -6,7 +6,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
-import { Properties, Photos, Payments } from "../lib/api";
+import { Properties, Photos, Payments, Admin } from "../lib/api";
 import { useLang } from "../lib/lang";
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
@@ -139,6 +139,8 @@ const T = {
     notLogged: "Vous devez être connecté pour publier.",
     loginBtn: "Se connecter",
     chooseCountry: "Choisir le pays",
+    promoActive: "🎉 Publication gratuite — offre temporaire !",
+    promoDefault: "Publiez votre annonce sans frais pendant cette période limitée.",
   },
   en: {
     title: "Publish a listing",
@@ -185,6 +187,8 @@ const T = {
     notLogged: "You must be logged in to publish.",
     loginBtn: "Log in",
     chooseCountry: "Choose country",
+    promoActive: "🎉 Free listing — limited time offer!",
+    promoDefault: "Publish your listing at no cost during this limited period.",
   },
 };
 
@@ -228,9 +232,11 @@ export default function SellScreen({ navigation, route }) {
   const routeParams = route?.params || {};
 
   const [loggedIn, setLoggedIn] = useState(null); // null=loading
+  const [promo, setPromo] = useState(null); // null=loading
 
   useEffect(() => {
     AsyncStorage.getItem("immobf_token").then((tok) => setLoggedIn(Boolean(tok)));
+    Admin.getPromo().then(setPromo).catch(() => setPromo({ active: false }));
   }, []);
 
   // ─── Étape courante ───────────────────────────────────────────────────────
@@ -310,8 +316,15 @@ export default function SellScreen({ navigation, route }) {
       }
 
       const res = await Properties.create(payload);
-      setPropertyId(res.property.id);
-      setStep(2);
+      const pid = res.property.id;
+      setPropertyId(pid);
+      // Promo active → publication gratuite directe, skip paiement
+      if (promo && promo.active) {
+        await Properties.publish(pid);
+        setStep(3);
+      } else {
+        setStep(2);
+      }
     } catch (e) {
       Alert.alert("Erreur", e?.response?.data?.error?.message || e.message);
     } finally { setFormBusy(false); }
@@ -498,6 +511,16 @@ export default function SellScreen({ navigation, route }) {
       {/* ─── ÉTAPE 1 : Formulaire ──────────────────────────────────────────── */}
       {step === 1 && (
         <View>
+          {/* Bannière promo gratuite */}
+          {promo && promo.active && (
+            <View style={s.promoBanner}>
+              <Text style={s.promoBannerTitle}>{t.promoActive}</Text>
+              <Text style={s.promoBannerText}>
+                {(lang === "fr" ? promo.message_fr : promo.message_en) || t.promoDefault}
+              </Text>
+            </View>
+          )}
+
           {/* Type de transaction */}
           <Text style={s.label}>{t.txType}</Text>
           <View style={s.chipRow}>
@@ -861,6 +884,9 @@ const s = StyleSheet.create({
   planPrice: { fontSize: 11, color: "#555", marginTop: 2 },
   planSaving: { fontSize: 10, color: "#0E7C66", marginTop: 1 },
   noProvider: { color: "#888", fontStyle: "italic", fontSize: 14, marginTop: 6 },
+  promoBanner: { backgroundColor: "#d4edda", borderRadius: 10, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: "#a3d9a5" },
+  promoBannerTitle: { color: "#155724", fontWeight: "700", fontSize: 15, marginBottom: 4 },
+  promoBannerText: { color: "#155724", fontSize: 13, lineHeight: 18 },
   infoBox: { backgroundColor: "#e8f5e9", borderRadius: 8, padding: 10, marginTop: 8 },
   infoText: { color: "#2e7d32", fontSize: 13, lineHeight: 18 },
   phoneRow: { flexDirection: "row", gap: 8, marginTop: 4, alignItems: "center" },
