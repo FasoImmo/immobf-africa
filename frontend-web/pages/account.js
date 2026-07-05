@@ -358,11 +358,16 @@ export default function AccountPage() {
         ))}
       </Grid>
 
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
         <Typography variant="h5">{t("account.my_listings")}</Typography>
-        <Button variant="contained" component={Link} href="/sell">
-          {t("account.new_listing")}
-        </Button>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          <Button variant="outlined" component={Link} href="/plans" size="small">
+            🏷️ {t("account.view_plans")}
+          </Button>
+          <Button variant="contained" component={Link} href="/sell">
+            📢 {t("account.new_listing")}
+          </Button>
+        </Box>
       </Box>
 
       {err && <Alert severity="error" sx={{ mb: 2 }}>{err}</Alert>}
@@ -479,15 +484,20 @@ export default function AccountPage() {
                       </Button>
                     )}
                     {(isExpiringSoon || isExpired) && (
-                      <Button
-                        size="small" variant="contained" color="warning"
-                        onClick={() => renew(p.id)}
-                      >
-                        {t("account.renew")} — {LISTING_FEE.toLocaleString("fr-FR")} FCFA
-                        <Typography component="span" variant="caption" sx={{ ml: 0.5, opacity: 0.8 }}>
-                          (≈ {(LISTING_FEE / EUR_RATE).toFixed(2)}€)
-                        </Typography>
-                      </Button>
+                      <>
+                        <Button
+                          size="small" variant="contained" color="warning"
+                          onClick={() => renew(p.id)}
+                        >
+                          {t("account.renew")} — {LISTING_FEE.toLocaleString("fr-FR")} FCFA
+                          <Typography component="span" variant="caption" sx={{ ml: 0.5, opacity: 0.8 }}>
+                            (≈ {(LISTING_FEE / EUR_RATE).toFixed(2)}€)
+                          </Typography>
+                        </Button>
+                        <Button size="small" variant="text" component={Link} href="/plans">
+                          🏷️ {t("account.view_plans")}
+                        </Button>
+                      </>
                     )}
                   </Box>
                   <Button size="small" color="error" onClick={() => deleteListingHandler(p.id, p.title)}>

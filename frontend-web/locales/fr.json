@@ -14,7 +14,8 @@
     "register": "S'inscrire",
     "logout": "Déconnexion",
     "my_account": "Mon compte",
-    "my_listings": "Mes annonces"
+    "my_listings": "Mes annonces",
+    "plans": "Offres d'abonnement"
   },
   "browse": {
     "all": "Vente & Location",
@@ -43,7 +44,8 @@
     "expiring": "Expirent bientôt",
     "expired": "Expirées",
     "my_listings": "Mes annonces",
-    "new_listing": "+ Nouvelle annonce",
+    "new_listing": "📢 Nouvelle annonce",
+    "view_plans": "Voir les offres",
     "no_listings": "Vous n'avez pas encore d'annonce.",
     "post_first": "Publiez votre première annonce",
     "view": "Voir",
@@ -126,7 +128,9 @@
     "period_nightly": "Par nuit",
     "pay_failed": "Le paiement a échoué. Veuillez réessayer.",
     "ussd_hint": "Générez ce code via le service USSD Orange Money avant de payer.",
-    "save_draft": "Enregistrer comme brouillon"
+    "save_draft": "Enregistrer comme brouillon",
+    "subscription_required": "Un abonnement est requis pour publier. Consultez nos offres ci-dessous.",
+    "see_plans": "Voir les offres"
   },
   "types": {
     "land": "Terrain / Parcelle",

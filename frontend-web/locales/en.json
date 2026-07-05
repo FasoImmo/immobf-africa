@@ -14,7 +14,8 @@
     "register": "Sign up",
     "logout": "Log out",
     "my_account": "My account",
-    "my_listings": "My listings"
+    "my_listings": "My listings",
+    "plans": "Subscription plans"
   },
   "browse": {
     "all": "Sale & Rental",
@@ -43,7 +44,8 @@
     "expiring": "Expiring soon",
     "expired": "Expired",
     "my_listings": "My listings",
-    "new_listing": "+ New listing",
+    "new_listing": "📢 New listing",
+    "view_plans": "View plans",
     "no_listings": "You don't have any listings yet.",
     "post_first": "Post your first listing",
     "view": "View",
@@ -126,7 +128,9 @@
     "period_nightly": "Per night",
     "pay_failed": "Payment failed. Please try again.",
     "ussd_hint": "Generate this code via the USSD Orange Money service before paying.",
-    "save_draft": "Save as draft"
+    "save_draft": "Save as draft",
+    "subscription_required": "A subscription is required to publish. Check our plans below.",
+    "see_plans": "View plans"
   },
   "types": {
     "land": "Land / Plot",

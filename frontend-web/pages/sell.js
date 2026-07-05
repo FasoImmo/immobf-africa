@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import {
   Box, Paper, TextField, Button, Typography, MenuItem,
   Alert, Grid, LinearProgress, Chip, Stack,
@@ -567,6 +568,19 @@ export default function SellPage() {
       )}
 
       {/* ─── ÉTAPE 1 : Formulaire ─────────────────────────────────────────── */}
+      {step === 1 && !promo?.active && (
+        <Alert
+          severity="info"
+          sx={{ mb: 2, borderRadius: 2 }}
+          action={
+            <Button color="inherit" size="small" component={Link} href="/plans">
+              {t("sell.see_plans")}
+            </Button>
+          }
+        >
+          {t("sell.subscription_required")}
+        </Alert>
+      )}
       {step === 1 && (
         <Paper sx={{ p: 3 }} elevation={1}>
           <form onSubmit={submitProperty}>

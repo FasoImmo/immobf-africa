@@ -117,6 +117,11 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
             <ListItemText primary={`📝 ${t("nav.publish")}`} />
           </ListItemButton>
         </ListItem>
+        <ListItem disablePadding>
+          <ListItemButton sx={{ color: "white", pl: 4 }} onClick={() => navigate("/plans")}>
+            <ListItemText primary={`🏷️ ${t("nav.plans")}`} />
+          </ListItemButton>
+        </ListItem>
 
         <Divider sx={{ borderColor: "rgba(255,255,255,0.2)", my: 1 }} />
 
