@@ -242,10 +242,11 @@ async function publish(id, ownerId, opts) {
 async function markListingFeePaid(propertyId) {
   const { rows } = await query(
     `UPDATE properties
-     SET listing_fee_paid_at = NOW(),
-         status = 'published',
-         published_at = COALESCE(published_at, NOW()),
-         updated_at = NOW()
+     SET listing_fee_paid_at  = NOW(),
+         status               = 'published',
+         published_at         = COALESCE(published_at, NOW()),
+         listing_expires_at   = NULL,
+         updated_at           = NOW()
      WHERE id = $1
      RETURNING ${RETURNING_COLS}`,
     [propertyId]
