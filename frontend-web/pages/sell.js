@@ -194,6 +194,7 @@ export default function SellPage() {
     country_code: "BF", city: "", address: "", neighborhood: "",
     is_furnished: false, rent_period: "monthly",
   });
+  const [areaUnit, setAreaUnit] = useState("m2"); // "m2" | "ha"
   const [formErr, setFormErr] = useState(null);
   const [formBusy, setFormBusy] = useState(false);
 
@@ -408,7 +409,7 @@ export default function SellPage() {
     try {
       var payload = Object.assign({}, form, {
         price: Number(form.price),
-        area_m2: form.area_m2 ? Number(form.area_m2) : null,
+        area_m2: form.area_m2 ? (areaUnit === "ha" ? Number(form.area_m2) * 10000 : Number(form.area_m2)) : null,
         bedrooms: form.bedrooms ? Number(form.bedrooms) : null,
         bathrooms: form.bathrooms ? Number(form.bathrooms) : null,
         is_furnished: Boolean(form.is_furnished),
@@ -436,7 +437,7 @@ export default function SellPage() {
     try {
       var payload = Object.assign({}, form, {
         price: Number(form.price) || 0,
-        area_m2: form.area_m2 ? Number(form.area_m2) : null,
+        area_m2: form.area_m2 ? (areaUnit === "ha" ? Number(form.area_m2) * 10000 : Number(form.area_m2)) : null,
         bedrooms: form.bedrooms ? Number(form.bedrooms) : null,
         bathrooms: form.bathrooms ? Number(form.bathrooms) : null,
         is_furnished: Boolean(form.is_furnished),
@@ -661,8 +662,27 @@ export default function SellPage() {
                   helperText={form.price ? `${Number(form.price).toLocaleString("fr-FR")} FCFA` : " "} />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <TextField fullWidth type="number" label={t("sell.area")} value={form.area_m2} onChange={change("area_m2")}
-                  helperText={form.area_m2 ? `${Number(form.area_m2).toLocaleString("fr-FR")} m²` : " "} />
+                <Box>
+                  <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                    <TextField
+                      fullWidth type="number" label={t("sell.area")} value={form.area_m2}
+                      onChange={change("area_m2")}
+                      helperText={form.area_m2
+                        ? areaUnit === "ha"
+                          ? `= ${(Number(form.area_m2) * 10000).toLocaleString("fr-FR")} m²`
+                          : `${Number(form.area_m2).toLocaleString("fr-FR")} m²`
+                        : " "}
+                    />
+                    <ToggleButtonGroup
+                      value={areaUnit} exclusive size="small"
+                      onChange={(_, v) => { if (v) setAreaUnit(v); }}
+                      sx={{ mt: "4px", flexShrink: 0 }}
+                    >
+                      <ToggleButton value="m2" sx={{ px: 1.5, fontWeight: 600 }}>m²</ToggleButton>
+                      <ToggleButton value="ha" sx={{ px: 1.5, fontWeight: 600 }}>ha</ToggleButton>
+                    </ToggleButtonGroup>
+                  </Box>
+                </Box>
               </Grid>
 
               <Grid item xs={12} sm={6}>
