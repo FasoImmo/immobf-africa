@@ -54,12 +54,16 @@ export default function AdminDashboard() {
   const [promo, setPromo] = useState(null);
   const [promoSaving, setPromoSaving] = useState(false);
   const [promoMsg, setPromoMsg] = useState(null);
+  const [pricing, setPricing] = useState(null);
+  const [pricingSaving, setPricingSaving] = useState(false);
+  const [pricingMsg, setPricingMsg] = useState(null);
 
   useEffect(() => { accessGuard(router, setAuthorized); }, []); // eslint-disable-line
 
   useEffect(() => {
     if (authorized !== true) return;
     Admin.getPromo().then(setPromo).catch(() => {});
+    Admin.getPricing().then(setPricing).catch(() => {});
     setLoading(true);
     Promise.all([Admin.revenues(), Admin.properties({ limit: 200 })])
       .then(([rev, props]) => {
@@ -187,6 +191,65 @@ export default function AdminDashboard() {
           </Alert>
         )}
       </Paper>
+
+      {/* ─── Tarifs annonces + commission ──────────────────────────────────── */}
+      {pricing !== null && (
+        <Paper sx={{ p: 3, mb: 3 }}>
+          <Typography variant="h6" fontWeight={700} gutterBottom>
+            💰 Tarifs annonces &amp; commission
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {[
+              { key: "listing_1m",  label: "1 mois (FCFA)" },
+              { key: "listing_3m",  label: "3 mois (FCFA)" },
+              { key: "listing_6m",  label: "6 mois (FCFA)" },
+              { key: "listing_12m", label: "12 mois (FCFA)" },
+            ].map(({ key, label }) => (
+              <Grid item xs={6} sm={3} key={key}>
+                <TextField
+                  size="small" label={label} type="number"
+                  value={pricing[key] ?? ""}
+                  onChange={(e) => setPricing((p) => ({ ...p, [key]: Number(e.target.value) }))}
+                  inputProps={{ min: 0 }}
+                  fullWidth
+                />
+              </Grid>
+            ))}
+            <Grid item xs={6} sm={3}>
+              <TextField
+                size="small" label="Commission %" type="number"
+                value={pricing.commission_pct ?? ""}
+                onChange={(e) => setPricing((p) => ({ ...p, commission_pct: Number(e.target.value) }))}
+                inputProps={{ min: 0, max: 100, step: 0.5 }}
+                fullWidth
+              />
+            </Grid>
+          </Grid>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Button
+              size="small" variant="contained" color="primary" disabled={pricingSaving}
+              onClick={async () => {
+                setPricingSaving(true); setPricingMsg(null);
+                try {
+                  const r = await Admin.setPricing({
+                    listing_1m:  pricing.listing_1m,
+                    listing_3m:  pricing.listing_3m,
+                    listing_6m:  pricing.listing_6m,
+                    listing_12m: pricing.listing_12m,
+                    commission_pct: pricing.commission_pct,
+                  });
+                  setPricing(r.pricing);
+                  setPricingMsg({ ok: true, text: "Tarifs enregistrés ✅" });
+                } catch { setPricingMsg({ ok: false, text: "Erreur lors de la sauvegarde." }); }
+                finally { setPricingSaving(false); }
+              }}
+            >
+              {pricingSaving ? <CircularProgress size={16} color="inherit" /> : "Enregistrer"}
+            </Button>
+            {pricingMsg && <Typography variant="caption" color={pricingMsg.ok ? "success.main" : "error"}>{pricingMsg.text}</Typography>}
+          </Box>
+        </Paper>
+      )}
 
       {/* ─── Promo publication gratuite ─────────────────────────────────────── */}
       {promo !== null && (

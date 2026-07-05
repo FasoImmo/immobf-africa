@@ -49,9 +49,11 @@ async function initiate(req, res) {
     throw BadRequest("Votre email est requis pour recevoir le reçu de paiement.");
   }
 
-  // Frais de publication : montant doit correspondre à un plan valide
+  // Frais de publication : montant doit correspondre à un plan valide (prix depuis DB)
   if (value.purpose === "listing_fee") {
-    const validAmounts = Object.values(config.commissions.listingPlans);
+    const PS = require("../models/PlatformSetting");
+    const pricing = await PS.getPricing();
+    const validAmounts = Object.values(pricing.listingPlans);
     if (!validAmounts.includes(value.amount)) {
       throw BadRequest(`Montant invalide. Plans disponibles (FCFA) : ${validAmounts.join(", ")}`);
     }
@@ -70,7 +72,9 @@ async function initiate(req, res) {
     property = await Property.findById(value.property_id);
     if (!property) throw BadRequest("Annonce introuvable");
     totalBookingAmount = property.price * value.booking_units;
-    value.amount = Math.max(100, Math.round(totalBookingAmount * config.commissions.appPct / 100));
+    const PS2 = require("../models/PlatformSetting");
+    const pricing2 = await PS2.getPricing();
+    value.amount = Math.max(100, Math.round(totalBookingAmount * pricing2.commission_pct / 100));
     value.currency = property.currency || value.currency;
   }
 

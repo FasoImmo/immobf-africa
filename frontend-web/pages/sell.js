@@ -230,6 +230,28 @@ export default function SellPage() {
     Config.promo().then(setPromo).catch(() => setPromo({ active: false }));
   }, []);
 
+  // ─── Tarifs configurables ─────────────────────────────────────────────────
+  const [pricingCfg, setPricingCfg] = useState(null);
+  useEffect(() => {
+    Config.pricing().then(setPricingCfg).catch(() => {});
+  }, []);
+  const activePlans = pricingCfg
+    ? [
+        { months: 1,  price: pricingCfg.listing_1m,  label: "1 mois",  saving: null },
+        { months: 3,  price: pricingCfg.listing_3m,  label: "3 mois",  saving: "−8%" },
+        { months: 6,  price: pricingCfg.listing_6m,  label: "6 mois",  saving: "−17%" },
+        { months: 12, price: pricingCfg.listing_12m, label: "12 mois", saving: "−25%" },
+      ]
+    : LISTING_PLANS;
+  // Sync selectedPlan when pricing loads (keeps months choice, updates price)
+  useEffect(() => {
+    if (!pricingCfg) return;
+    setSelectedPlan((prev) => {
+      const updated = activePlans.find((p) => p.months === prev.months);
+      return updated || activePlans[0];
+    });
+  }, [pricingCfg]); // eslint-disable-line
+
   // ─── Étape 3 : photos ─────────────────────────────────────────────────────
   const [files, setFiles] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(null);
@@ -695,7 +717,7 @@ export default function SellPage() {
             {t("sell.choose_duration")}
           </Typography>
           <Grid container spacing={1} sx={{ mb: 3 }}>
-            {LISTING_PLANS.map((plan) => {
+            {activePlans.map((plan) => {
               const selected = selectedPlan.months === plan.months;
               const eur = (plan.price / EUR_RATE).toFixed(2);
               return (

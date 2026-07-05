@@ -394,10 +394,31 @@ async function sendContactNewsletter(req, res) {
   res.json({ sent });
 }
 
+
+// ─── Tarifs & commissions ────────────────────────────────────────────────────
+
+async function getPricingAdmin(req, res) {
+  const PS = require("../models/PlatformSetting");
+  const pricing = await PS.getPricing();
+  res.json({ pricing });
+}
+
+async function setPricingAdmin(req, res) {
+  const { listing_1m, listing_3m, listing_6m, listing_12m, commission_pct } = req.body || {};
+  if ([listing_1m, listing_3m, listing_6m, listing_12m, commission_pct].some(
+    (v) => v != null && (isNaN(Number(v)) || Number(v) < 0)
+  )) throw BadRequest("Valeurs invalides — doivent être des nombres positifs");
+  const PS = require("../models/PlatformSetting");
+  await PS.setPricing({ listing_1m, listing_3m, listing_6m, listing_12m, commission_pct });
+  const pricing = await PS.getPricing();
+  res.json({ pricing });
+}
+
 module.exports = {
   listUsers, setUserBlocked, logoutUser, deleteUser,
   listProperties, deleteProperty, listRevenues,
   paymentStats, userStats, sendNewsletter, updateAdminProfile, testEmail,
   getPromo, setPromo, extendListing, suspendListing, restoreListing,
   listContacts, sendContactNewsletter,
+  getPricingAdmin, setPricingAdmin,
 };

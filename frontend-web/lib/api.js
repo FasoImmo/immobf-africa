@@ -165,8 +165,11 @@ export const Admin = {
   restoreListing: (id) => api.post(`/admin/properties/${id}/restore`).then((r) => r.data),
   contacts: (params) => api.get("/admin/contacts", { params }).then((r) => r.data),
   sendContactNewsletter: (data) => api.post("/admin/contacts/newsletter", data).then((r) => r.data),
+  getPricing: () => api.get("/admin/pricing").then((r) => r.data),
+  setPricing: (data) => api.patch("/admin/pricing", data).then((r) => r.data),
 };
 
 export const Config = {
   promo: () => api.get("/config/promo").then((r) => r.data),
+  pricing: () => api.get("/config/pricing").then((r) => r.data),
 };

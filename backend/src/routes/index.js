@@ -94,6 +94,8 @@ router.patch("/admin/profile",              requireAdmin, asyncHandler(adminCtl.
 router.post ("/admin/test-email",           requireAdmin, asyncHandler(adminCtl.testEmail));
 router.get  ("/admin/promo",               requireAdmin, asyncHandler(adminCtl.getPromo));
 router.post ("/admin/promo",               requireAdmin, asyncHandler(adminCtl.setPromo));
+router.get  ("/admin/pricing",             requireAdmin, asyncHandler(adminCtl.getPricingAdmin));
+router.patch("/admin/pricing",             requireAdmin, asyncHandler(adminCtl.setPricingAdmin));
 router.post ("/admin/properties/:id/extend",  requireAdmin, asyncHandler(adminCtl.extendListing));
 router.post ("/admin/properties/:id/suspend", requireAdmin, asyncHandler(adminCtl.suspendListing));
 router.post ("/admin/properties/:id/restore", requireAdmin, asyncHandler(adminCtl.restoreListing));
@@ -105,6 +107,13 @@ router.get("/config/promo", publicLimiter, asyncHandler(async (req, res) => {
   const PS = require("../models/PlatformSetting");
   const promo = await PS.getPromo();
   res.json(promo);
+}));
+
+// Public pricing endpoint
+router.get("/config/pricing", publicLimiter, asyncHandler(async (req, res) => {
+  const PS = require("../models/PlatformSetting");
+  const pricing = await PS.getPricing();
+  res.json(pricing);
 }));
 
 // --- Analytics ---
