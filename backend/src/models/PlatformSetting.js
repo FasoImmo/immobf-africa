@@ -1,5 +1,5 @@
 "use strict";
-const { query } = require("../db");
+const { query } = require("../config/db");
 
 async function get(key) {
   const { rows } = await query("SELECT value FROM platform_settings WHERE key = $1", [key]);
