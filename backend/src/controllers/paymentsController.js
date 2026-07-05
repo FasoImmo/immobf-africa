@@ -21,11 +21,16 @@ const initiateSchema = Joi.object({
   customer_phone: Joi.string().required(),
   customer_email: Joi.string().email().allow(null, ""),
   customer_name: Joi.string().max(120).allow(null, ""),
-  preferred_operator: Joi.string().valid("orange", "moov", "mtn", "wave", "card").allow(null),
-  // Code OTP que le client génère lui-même via le service USSD Orange Money
-  // (avec son code secret) avant l'appel — requis uniquement quand
-  // provider = "pawapay" ET preferred_operator = "orange" (flux PREAUTH,
-  // voir PawaPayProvider.js).
+  preferred_operator: Joi.string()
+    .valid("orange", "moov", "mtn", "wave", "card", "airtel", "vodacom", "vodafone",
+           "tigo", "mpesa", "free", "togocel", "ecocash", "mvola", "tnm",
+           "halotel", "airtel_tigo")
+    .allow(null),
+  // Pays de l'acheteur (ISO 3166-1 alpha-2) — transmis au provider pour
+  // normalisation du téléphone et sélection de l'opérateur (PawaPay multi-pays).
+  country_code: Joi.string().length(2).uppercase().default("BF"),
+  // Code OTP que le client génère lui-même via le service USSD (flux PREAUTH).
+  // Requis uniquement pour les opérateurs en mode PREAUTH (ex. ORANGE_BFA).
   pawapay_otp: Joi.string().alphanum().max(36).allow(null, ""),
   description: Joi.string().max(255).allow(null, ""),
   // Durée souhaitée par le client pour une réservation (nuits/semaines/mois
@@ -130,8 +135,11 @@ async function initiate(req, res) {
       metadata: {
         transaction_id: tx.id,
         purpose: value.purpose,
-        // operator/preAuthorisationCode : utilisés par PawaPayProvider pour
-        // choisir MOOV_BFA/ORANGE_BFA et transmettre le code OTP Orange.
+        // country_code + operator + preAuthorisationCode : utilisés par
+        // PawaPayProvider pour choisir le bon code opérateur (ex. MOOV_BFA,
+        // MTN_MOMO_GHA…), normaliser le téléphone avec le bon indicatif pays,
+        // et transmettre le code OTP quand nécessaire (flux PREAUTH).
+        country_code: value.country_code || "BF",
         operator: value.preferred_operator,
         preAuthorisationCode: value.pawapay_otp || undefined,
       },

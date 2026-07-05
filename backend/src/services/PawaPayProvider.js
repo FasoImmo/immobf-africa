@@ -5,33 +5,153 @@ const PaymentProvider = require("./PaymentProvider");
 const config = require("../config");
 
 /**
- * PawaPay — agrégateur mobile money pan-africain (20 pays), utilisé par
- * Canal Box. Couvre le Burkina Faso via Moov Money (`MOOV_BFA`) et Orange
- * Money (`ORANGE_BFA`).
+ * PawaPay — agrégateur mobile money pan-africain (30+ pays africains).
+ * Inscription self-service, pas de barrière pays pour les marchands.
  *
- * Différence importante avec CinetPay/FedaPay : un seul token Bearer
- * (pas de site_id/secret séparés), et `ORANGE_BFA` utilise le type
- * d'autorisation PREAUTH (confirmé dans la doc officielle PawaPay,
- * 30/06/2026 : table des providers, section Burkina Faso) — le client doit
- * d'abord composer un code USSD Orange Money pour générer lui-même un code
- * OTP (avec son code secret Orange Money), puis ce code est transmis tel
- * quel dans `preAuthorisationCode`. `MOOV_BFA` reste en PROVIDER_AUTH
- * (push simple, pas de code à saisir).
+ * Auth types :
+ *  - PROVIDER_AUTH : le client reçoit une notification push sur son téléphone
+ *    et valide (flux simple, rien à saisir côté client).
+ *  - PREAUTH       : le client doit d'abord composer un code USSD chez son
+ *    opérateur pour générer un OTP (avec son code secret), puis saisir cet
+ *    OTP dans le formulaire de paiement. Rare — uniquement ORANGE_BFA à ce
+ *    jour dans notre marché principal.
  *
- * Pas de paiement carte (mobile money uniquement).
- *
- * Docs: https://docs.pawapay.io/v2/docs/welcome
- * API base sandbox: https://api.sandbox.pawapay.io
- * API base prod: https://api.pawapay.io
+ * Docs : https://docs.pawapay.io/v2/docs/welcome
+ * API base sandbox : https://api.sandbox.pawapay.io
+ * API base prod    : https://api.pawapay.io
  */
+
+// ─── Carte pays → opérateurs PawaPay ─────────────────────────────────────────
+// Chaque entrée : { name (clé UI), code (code PawaPay), label (affiché), auth }
+// Source : docs.pawapay.io/v2/docs/country-availability
+const COUNTRY_OPERATORS = {
+  // ── UEMOA ──────────────────────────────────────────────────────────────────
+  BF: [
+    { name: "moov",   code: "MOOV_BFA",    label: "Moov Money",          auth: "PROVIDER_AUTH" },
+    { name: "orange", code: "ORANGE_BFA",  label: "Orange Money (OTP)",  auth: "PREAUTH" },
+  ],
+  CI: [
+    { name: "mtn",    code: "MTN_MOMO_CIV", label: "MTN MoMo",          auth: "PROVIDER_AUTH" },
+    { name: "moov",   code: "MOOV_CIV",    label: "Moov Money",          auth: "PROVIDER_AUTH" },
+    { name: "orange", code: "ORANGE_CIV",  label: "Orange Money",        auth: "PROVIDER_AUTH" },
+  ],
+  SN: [
+    { name: "orange", code: "ORANGE_SEN",  label: "Orange Money",        auth: "PROVIDER_AUTH" },
+    { name: "free",   code: "FREE_SEN",    label: "Free Money",          auth: "PROVIDER_AUTH" },
+    { name: "wave",   code: "WAVE_SEN",    label: "Wave",                auth: "PROVIDER_AUTH" },
+  ],
+  ML: [
+    { name: "orange", code: "ORANGE_MLI",  label: "Orange Money",        auth: "PROVIDER_AUTH" },
+    { name: "moov",   code: "MOOV_MLI",    label: "Moov Money",          auth: "PROVIDER_AUTH" },
+  ],
+  TG: [
+    { name: "moov",   code: "MOOV_TGO",    label: "Moov Money",          auth: "PROVIDER_AUTH" },
+    { name: "togocel",code: "TOGOCEL_TGO", label: "T-Money (Togocel)",   auth: "PROVIDER_AUTH" },
+  ],
+  BJ: [
+    { name: "mtn",    code: "MTN_MOMO_BEN", label: "MTN MoMo",          auth: "PROVIDER_AUTH" },
+    { name: "moov",   code: "MOOV_BEN",    label: "Moov Money",          auth: "PROVIDER_AUTH" },
+  ],
+  GN: [
+    { name: "orange", code: "ORANGE_GIN",  label: "Orange Money",        auth: "PROVIDER_AUTH" },
+    { name: "mtn",    code: "MTN_MOMO_GIN", label: "MTN MoMo",          auth: "PROVIDER_AUTH" },
+  ],
+  NE: [
+    { name: "airtel", code: "AIRTEL_NER",  label: "Airtel Money",        auth: "PROVIDER_AUTH" },
+  ],
+  // ── CEMAC ──────────────────────────────────────────────────────────────────
+  CM: [
+    { name: "orange", code: "ORANGE_CMR",  label: "Orange Money",        auth: "PROVIDER_AUTH" },
+    { name: "mtn",    code: "MTN_MOMO_CMR", label: "MTN MoMo",          auth: "PROVIDER_AUTH" },
+  ],
+  TD: [
+    { name: "airtel", code: "AIRTEL_TCD",  label: "Airtel Money",        auth: "PROVIDER_AUTH" },
+    { name: "moov",   code: "MOOV_TCD",    label: "Moov Money",          auth: "PROVIDER_AUTH" },
+  ],
+  CG: [
+    { name: "airtel", code: "AIRTEL_COG",  label: "Airtel Money",        auth: "PROVIDER_AUTH" },
+    { name: "mtn",    code: "MTN_MOMO_COG", label: "MTN MoMo",          auth: "PROVIDER_AUTH" },
+  ],
+  CD: [
+    { name: "airtel", code: "AIRTEL_COD",  label: "Airtel Money",        auth: "PROVIDER_AUTH" },
+    { name: "orange", code: "ORANGE_COD",  label: "Orange Money",        auth: "PROVIDER_AUTH" },
+    { name: "mpesa",  code: "MPESA_COD",   label: "M-Pesa",              auth: "PROVIDER_AUTH" },
+  ],
+  GA: [
+    { name: "airtel", code: "AIRTEL_GAB",  label: "Airtel Money",        auth: "PROVIDER_AUTH" },
+    { name: "moov",   code: "MOOV_GAB",    label: "Moov Money",          auth: "PROVIDER_AUTH" },
+  ],
+  // ── Afrique de l'Ouest anglophone ──────────────────────────────────────────
+  GH: [
+    { name: "mtn",    code: "MTN_MOMO_GHA", label: "MTN MoMo",          auth: "PROVIDER_AUTH" },
+    { name: "vodafone", code: "VODAFONE_GHA", label: "Vodafone Cash",   auth: "PROVIDER_AUTH" },
+    { name: "airtel", code: "AIRTEL_TIGO_GHA", label: "AirtelTigo",     auth: "PROVIDER_AUTH" },
+  ],
+  SL: [
+    { name: "orange", code: "ORANGE_SLE",  label: "Orange Money",        auth: "PROVIDER_AUTH" },
+  ],
+  LR: [
+    { name: "orange", code: "ORANGE_LBR",  label: "Orange Money",        auth: "PROVIDER_AUTH" },
+  ],
+  // ── Afrique de l'Est ───────────────────────────────────────────────────────
+  TZ: [
+    { name: "vodacom", code: "VODACOM_TZA", label: "M-Pesa (Vodacom)",  auth: "PROVIDER_AUTH" },
+    { name: "airtel", code: "AIRTEL_TZA",  label: "Airtel Money",        auth: "PROVIDER_AUTH" },
+    { name: "tigo",   code: "TIGO_TZA",    label: "Tigo Pesa",           auth: "PROVIDER_AUTH" },
+    { name: "halotel", code: "HALOTEL_TZA", label: "HaloPesa",           auth: "PROVIDER_AUTH" },
+  ],
+  UG: [
+    { name: "mtn",    code: "MTN_MOMO_UGA", label: "MTN MoMo",          auth: "PROVIDER_AUTH" },
+    { name: "airtel", code: "AIRTEL_UGA",   label: "Airtel Money",       auth: "PROVIDER_AUTH" },
+  ],
+  RW: [
+    { name: "mtn",    code: "MTN_MOMO_RWA", label: "MTN MoMo",          auth: "PROVIDER_AUTH" },
+    { name: "airtel", code: "AIRTEL_RWA",   label: "Airtel Money",       auth: "PROVIDER_AUTH" },
+  ],
+  MG: [
+    { name: "mvola",  code: "MVOLA_MDG",    label: "MVola (Telma)",       auth: "PROVIDER_AUTH" },
+    { name: "airtel", code: "AIRTEL_MDG",   label: "Airtel Money",        auth: "PROVIDER_AUTH" },
+  ],
+  // ── Afrique Australe ───────────────────────────────────────────────────────
+  ZM: [
+    { name: "mtn",    code: "MTN_MOMO_ZMB", label: "MTN MoMo",          auth: "PROVIDER_AUTH" },
+    { name: "airtel", code: "AIRTEL_ZMB",   label: "Airtel Money",       auth: "PROVIDER_AUTH" },
+  ],
+  MZ: [
+    { name: "mpesa",  code: "MPESA_MOZ",    label: "M-Pesa",              auth: "PROVIDER_AUTH" },
+    { name: "vodacom", code: "VODACOM_MOZ", label: "Vodacom M-Pesa",     auth: "PROVIDER_AUTH" },
+  ],
+  MW: [
+    { name: "airtel", code: "AIRTEL_MWI",   label: "Airtel Money",        auth: "PROVIDER_AUTH" },
+    { name: "tnm",    code: "TNM_MWI",      label: "TNM Mpamba",          auth: "PROVIDER_AUTH" },
+  ],
+  ZW: [
+    { name: "ecocash", code: "ECOCASH_ZWE", label: "EcoCash",             auth: "PROVIDER_AUTH" },
+  ],
+};
+
+// ─── Indicatifs internationaux (pour normalisation numéro de téléphone) ───────
+const COUNTRY_DIAL = {
+  BF: "226", CI: "225", SN: "221", ML: "223", TG: "228",
+  BJ: "229", GN: "224", NE: "227", GW: "245", MR: "222",
+  CM: "237", TD: "235", CG: "242", CD: "243", GA: "241",
+  GH: "233", SL: "232", LR: "231",
+  TZ: "255", UG: "256", RW: "250", KE: "254", MG: "261",
+  ZM: "260", MZ: "258", MW: "265", ZW: "263",
+};
+
 class PawaPayProvider extends PaymentProvider {
   get name() { return "pawapay"; }
-  get countries() { return ["BF"]; }
-  get currencies() { return ["XOF"]; }
+
+  /** Liste de tous les pays couverts, dérivée dynamiquement de la carte. */
+  get countries() { return Object.keys(COUNTRY_OPERATORS); }
+
+  get currencies() {
+    return ["XOF", "GHS", "TZS", "UGX", "RWF", "ZMW", "MZN", "MWK", "ZWL", "CDF", "XAF"];
+  }
 
   isConfigured() {
-    const { apiToken } = config.providers.pawapay;
-    return Boolean(apiToken);
+    return Boolean(config.providers.pawapay.apiToken);
   }
 
   _baseUrl() {
@@ -41,65 +161,77 @@ class PawaPayProvider extends PaymentProvider {
   }
 
   /**
-   * Détermine le code provider PawaPay (`MOOV_BFA` / `ORANGE_BFA`) à partir
-   * d'un opérateur logique passé par l'appelant (`metadata.operator`).
-   * Par défaut Moov (flux simple, pas d'OTP requis).
+   * Retourne la liste des opérateurs disponibles pour un pays, formatée pour
+   * l'affichage dans l'UI (PaymentDialog / PaymentScreen).
    */
-  _resolveOperator(metadata) {
-    const op = (metadata?.operator || "moov").toLowerCase();
-    if (op.includes("orange")) return "ORANGE_BFA";
-    return "MOOV_BFA";
+  operators(countryCode) {
+    return (COUNTRY_OPERATORS[countryCode] || []).map((op) => ({
+      value:       op.name,
+      label:       op.label,
+      requiresOtp: op.auth === "PREAUTH",
+    }));
   }
 
   /**
-   * CORRECTIF (29/06/2026) : PawaPay exige un MSISDN complet avec
-   * indicatif pays (ex. "22670123456"), sans "+". Le formulaire de
-   * checkout ne fait saisir que le numéro local (8 chiffres, ex.
-   * "70123456" ou "070123456"), d'où l'erreur "The MSISDN is too short".
-   * On retire un éventuel zéro initial puis on préfixe par "226" (BF)
-   * si l'indicatif n'est pas déjà présent.
+   * Résout le code opérateur PawaPay (ex. "MOOV_BFA") à partir du nom
+   * logique (ex. "moov") et du code pays (ex. "BF").
+   * Retourne l'entrée complète (avec auth type).
    */
-  _normalizePhone(customerPhone) {
+  _resolveOperatorEntry(operatorName, countryCode) {
+    const ops = COUNTRY_OPERATORS[countryCode] || [];
+    const found = ops.find((o) => o.name === (operatorName || "").toLowerCase());
+    // Fallback : premier opérateur du pays (PROVIDER_AUTH de préférence)
+    return found || ops.find((o) => o.auth === "PROVIDER_AUTH") || ops[0];
+  }
+
+  /**
+   * Normalise le numéro de téléphone en format MSISDN international (sans "+").
+   * Ex : "70123456" (BF) → "22670123456"
+   *      "+22670123456" → "22670123456"
+   */
+  _normalizePhone(customerPhone, countryCode = "BF") {
     let digits = String(customerPhone || "").replace(/\D/g, "");
+    // Supprimer le zéro de tête (format local)
     digits = digits.replace(/^0+/, "");
-    if (!digits.startsWith("226")) {
-      digits = `226${digits}`;
+    const dialCode = COUNTRY_DIAL[countryCode] || COUNTRY_DIAL.BF;
+    if (!digits.startsWith(dialCode)) {
+      digits = `${dialCode}${digits}`;
     }
     return digits;
   }
 
   async initiate({ amount, currency = "XOF", reference, customerPhone, metadata }) {
     const { apiToken } = config.providers.pawapay;
-    const provider = this._resolveOperator(metadata);
+    const countryCode = metadata?.country_code || "BF";
+    const operatorEntry = this._resolveOperatorEntry(metadata?.operator, countryCode);
 
-    // ORANGE_BFA est en authentification PREAUTH : le client doit avoir
-    // généré un code OTP via le service USSD Orange Money (avec son code
-    // secret) AVANT l'appel — ce code est obligatoire dans la requête, sans
-    // lui PawaPay rejette le dépôt avec MISSING_PARAMETER.
-    const preAuthorisationCode = metadata?.preAuthorisationCode;
-    if (provider === "ORANGE_BFA" && !preAuthorisationCode) {
+    if (!operatorEntry) {
       throw Object.assign(
-        new Error("Orange Money via PawaPay nécessite le code OTP généré par le client via le service USSD Orange Money (PREAUTH)."),
-        { status: 400, code: "pawapay_orange_preauth_code_required" }
+        new Error(`PawaPay : aucun opérateur disponible pour le pays ${countryCode}`),
+        { status: 400, code: "pawapay_no_operator" }
       );
     }
 
-    // Pour le MVP / dev sans secrets : on simule la réponse, jamais en prod.
+    // PREAUTH (ex. ORANGE_BFA) : code OTP obligatoire
+    const preAuthorisationCode = metadata?.preAuthorisationCode;
+    if (operatorEntry.auth === "PREAUTH" && !preAuthorisationCode) {
+      throw Object.assign(
+        new Error(`${operatorEntry.label} nécessite un code OTP généré par le client via le service USSD (flux PREAUTH).`),
+        { status: 400, code: "pawapay_preauth_code_required" }
+      );
+    }
+
+    // Mode dev sans token — stub (jamais en production)
     if (!apiToken) {
       if (process.env.NODE_ENV === "production") {
         throw Object.assign(
-          new Error("PawaPay non configuré (token manquant) — paiement refusé en production."),
+          new Error("PawaPay non configuré (PAWAPAY_API_TOKEN manquant) — paiement refusé en production."),
           { status: 500, code: "pawapay_not_configured" }
         );
       }
       const logger = require("../utils/logger");
       logger.warn({ reference }, "PawaPay stub mode (dev) — paiement auto-validé sans appel réel");
-      return {
-        external_id: `pp_stub_${reference}`,
-        status: "succeeded",
-        payment_url: null,
-        raw: { stub: true },
-      };
+      return { external_id: `pp_stub_${reference}`, status: "succeeded", payment_url: null, raw: { stub: true } };
     }
 
     const depositId = crypto.randomUUID();
@@ -108,8 +240,8 @@ class PawaPayProvider extends PaymentProvider {
       payer: {
         type: "MMO",
         accountDetails: {
-          phoneNumber: this._normalizePhone(customerPhone),
-          provider,
+          phoneNumber: this._normalizePhone(customerPhone, countryCode),
+          provider: operatorEntry.code,
         },
       },
       clientReferenceId: reference,
@@ -121,12 +253,6 @@ class PawaPayProvider extends PaymentProvider {
       payload.preAuthorisationCode = preAuthorisationCode;
     }
 
-    // CORRECTIF (29/06/2026) : l'API Merchant est versionnée — l'ancien
-    // chemin "/deposits" tape sur un endpoint qui renvoie un format d'erreur
-    // générique {errorId, errorCode, errorMessage} ne correspondant PAS au
-    // schéma documenté ({status, failureReason: {failureCode, ...}}), signe
-    // qu'on ne touchait pas le bon endpoint. Le bon chemin documenté est
-    // "/v2/deposits" (voir docs.pawapay.io/v2/api-reference/deposits/initiate-deposit).
     const res = await fetch(`${this._baseUrl()}/v2/deposits`, {
       method: "POST",
       headers: {
@@ -137,50 +263,35 @@ class PawaPayProvider extends PaymentProvider {
     });
     const body = await res.json();
 
-    // ACCEPTED = pris en charge mais PAS encore terminé : le statut final
-    // (COMPLETED/FAILED) arrive par callback ou via Check Deposit Status.
     if (body.status !== "ACCEPTED") {
-      // DIAGNOSTIC TEMPORAIRE (29/06/2026) : le message d'erreur affichait
-      // "undefined" côté UI car ni failureReason.failureMessage ni body.status
-      // n'étaient présents — on logue tout pour voir la vraie forme de la
-      // réponse PawaPay (ex. erreur de validation 400, token invalide, etc.).
       const logger = require("../utils/logger");
       logger.error({
         pawapay_http_status: res.status,
         pawapay_response_body: body,
-        pawapay_base_url: this._baseUrl(),
         pawapay_request_payload: payload,
       }, "PawaPay deposit initiation failed");
-      const err = new Error(`PawaPay initiate failed: ${body?.failureReason?.failureMessage || body?.status || body?.message || JSON.stringify(body)}`);
+      const err = new Error(
+        `PawaPay initiate failed: ${body?.failureReason?.failureMessage || body?.status || body?.message || JSON.stringify(body)}`
+      );
       err.raw = body;
       throw err;
     }
-    return {
-      external_id: body.depositId,
-      status: "pending",
-      payment_url: null,
-      raw: body,
-    };
+
+    return { external_id: body.depositId, status: "pending", payment_url: null, raw: body };
   }
 
-  /**
-   * Callbacks PawaPay ne sont PAS signés par défaut (signature RFC-9421
-   * optionnelle, à activer dans le dashboard si besoin — implémentation plus
-   * lourde qu'un simple HMAC, voir docs/PAWAPAY_INTEGRATION.md section 3).
-   * Pour le MVP, on accepte tout callback (à durcir plus tard si activé).
-   */
-  verifyWebhookSignature(_headers, _rawBody) {
-    return true;
-  }
+  /** Les callbacks PawaPay ne sont pas signés par défaut (signature RFC-9421
+   *  optionnelle — à activer dans le dashboard si besoin). */
+  verifyWebhookSignature(_headers, _rawBody) { return true; }
 
   parseWebhook(body) {
     return {
       external_id: body?.depositId,
-      reference: body?.metadata?.[0]?.orderId || body?.clientReferenceId,
-      status: body?.status === "COMPLETED" ? "succeeded" : "failed",
-      amount: body?.amount ? Number(body.amount) : null,
-      currency: body?.currency || "XOF",
-      raw: body,
+      reference:   body?.metadata?.[0]?.orderId || body?.clientReferenceId,
+      status:      body?.status === "COMPLETED" ? "succeeded" : "failed",
+      amount:      body?.amount ? Number(body.amount) : null,
+      currency:    body?.currency || "XOF",
+      raw:         body,
     };
   }
 }

@@ -63,7 +63,14 @@ function listForCountry(countryCode) {
     // configurés (clés API présentes) — sinon le choix est trompeur :
     // il mène systématiquement à "non configuré, paiement refusé".
     .filter((p) => p.isConfigured())
-    .map((p) => ({ name: p.name, countries: p.countries, currencies: p.currencies }));
+    .map((p) => ({
+      name: p.name,
+      countries: p.countries,
+      currencies: p.currencies,
+      // Opérateurs disponibles pour ce pays (ex. PawaPay → Moov + Orange)
+      // undefined si le provider ne supporte pas la sélection d'opérateur.
+      ...(typeof p.operators === "function" ? { operators: p.operators(countryCode) } : {}),
+    }));
 }
 
 function all() {

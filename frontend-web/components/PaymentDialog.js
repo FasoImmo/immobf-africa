@@ -20,17 +20,8 @@ const PROVIDER_LABELS = {
   flutterwave: { label: "Flutterwave (carte, Orange Money, Mobicash)" },
   fedapay: { label: "FedaPay (tous opérateurs)" },
   moov_money_bf: { label: "Moov Money (*555*6#)" },
-  pawapay: { label: "PawaPay (Moov Money, Orange Money)" },
+  pawapay: { label: "PawaPay (Mobile Money)" },
 };
-
-// PawaPay : choix de l'opérateur mobile money. Moov = push simple (juste le
-// numéro). Orange = flux PREAUTH — le client doit d'abord générer un code
-// OTP via le service USSD Orange Money (avec son code secret) et le saisir
-// dans le formulaire (voir PawaPayProvider.js, 30/06/2026).
-const PAWAPAY_OPERATORS = [
-  { value: "moov", label: "Moov Money" },
-  { value: "orange", label: "Orange Money (code OTP requis)" },
-];
 
 // Pour FedaPay : choix d'opérateur préféré (affiché dans la modal de FedaPay,
 // ou utilisé pour pré-sélectionner le bon code USSD).
@@ -54,7 +45,10 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
   const [buyerCountry, setBuyerCountry] = useState(property?.country_code || "BF");
   const [provider, setProvider] = useState("");
   const [preferredOperator, setPreferredOperator] = useState("");
-  const [pawapayOperator, setPawapayOperator] = useState("moov");
+  // PawaPay : opérateurs disponibles (fournis par le backend selon le pays)
+  // et opérateur sélectionné + OTP si PREAUTH requis.
+  const [pawapayOperators, setPawapayOperators] = useState([]);
+  const [pawapayOperator, setPawapayOperator] = useState("");
   const [pawapayOtp, setPawapayOtp] = useState("");
   const [phone, setPhone] = useState("");
   // Pré-rempli depuis le compte connecté — l'utilisateur peut modifier.
@@ -154,20 +148,30 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
 
   useEffect(() => {
     if (!open || !buyerCountry) return;
-    setPawapayOperator("moov");
     setPawapayOtp("");
     Payments.providers(buyerCountry).then((d) => {
       setProviders(d.providers);
       // Sélectionne CinetPay par défaut s'il est dispo, sinon Orange Money BF,
-      // sinon Wave, sinon Flutterwave, sinon FedaPay, sinon premier provider listé.
-      const cp = d.providers.find((p) => p.name === "cinetpay");
-      const om = d.providers.find((p) => p.name === "orange_money_bf");
-      const wv = d.providers.find((p) => p.name === "wave");
+      // sinon PawaPay, sinon Wave, sinon Flutterwave, sinon FedaPay, sinon premier provider.
+      const cp  = d.providers.find((p) => p.name === "cinetpay");
+      const om  = d.providers.find((p) => p.name === "orange_money_bf");
+      const pp  = d.providers.find((p) => p.name === "pawapay");
+      const wv  = d.providers.find((p) => p.name === "wave");
       const flw = d.providers.find((p) => p.name === "flutterwave");
-      const fp = d.providers.find((p) => p.name === "fedapay");
+      const fp  = d.providers.find((p) => p.name === "fedapay");
       setProvider(
-        cp ? "cinetpay" : om ? "orange_money_bf" : wv ? "wave" : flw ? "flutterwave" : fp ? "fedapay" : d.providers[0]?.name || ""
+        cp ? "cinetpay" : om ? "orange_money_bf" : pp ? "pawapay" : wv ? "wave" : flw ? "flutterwave" : fp ? "fedapay" : d.providers[0]?.name || ""
       );
+      // Pré-charger les opérateurs PawaPay pour ce pays
+      if (pp?.operators?.length) {
+        setPawapayOperators(pp.operators);
+        // Sélectionner le premier opérateur PROVIDER_AUTH par défaut (pas PREAUTH)
+        const defaultOp = pp.operators.find((o) => !o.requiresOtp) || pp.operators[0];
+        setPawapayOperator(defaultOp?.value || "");
+      } else {
+        setPawapayOperators([]);
+        setPawapayOperator("");
+      }
     });
   }, [open, buyerCountry]);
 
@@ -192,11 +196,15 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
         purpose,
         customer_phone: phone,
         customer_email: email || undefined,
+        country_code: buyerCountry || "BF",
         preferred_operator:
           provider === "fedapay" ? preferredOperator || undefined :
           provider === "pawapay" ? pawapayOperator || undefined :
           undefined,
-        pawapay_otp: provider === "pawapay" && pawapayOperator === "orange" ? pawapayOtp || undefined : undefined,
+        // OTP requis si l'opérateur sélectionné est en mode PREAUTH
+        pawapay_otp: provider === "pawapay" && pawapayOperators.find((o) => o.value === pawapayOperator)?.requiresOtp
+          ? pawapayOtp || undefined
+          : undefined,
         booking_units: purpose === "commission" ? bookingUnits || 1 : undefined,
         check_in: purpose === "commission" ? checkIn || undefined : undefined,
         description:
@@ -227,7 +235,8 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
 
   const isFedapay = provider === "fedapay";
   const isPawapay = provider === "pawapay";
-  const otpMissing = isPawapay && pawapayOperator === "orange" && !pawapayOtp;
+  const selectedPpOp = pawapayOperators.find((o) => o.value === pawapayOperator);
+  const otpMissing = isPawapay && selectedPpOp?.requiresOtp && !pawapayOtp;
   // Email recommandé pour le reçu, quel que soit le fournisseur.
   const showEmail = true;
   // CORRECTIF (30/06/2026) : le champ affichait "+226…" en dur, ce qui
@@ -306,26 +315,25 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
               </TextField>
             )}
 
-            {isPawapay && (
+            {isPawapay && pawapayOperators.length > 0 && (
               <TextField
                 select fullWidth label="Opérateur mobile money" sx={{ mb: 2 }}
-                value={pawapayOperator} onChange={(e) => setPawapayOperator(e.target.value)}
+                value={pawapayOperator} onChange={(e) => { setPawapayOperator(e.target.value); setPawapayOtp(""); }}
               >
-                {PAWAPAY_OPERATORS.map((op) => (
+                {pawapayOperators.map((op) => (
                   <MenuItem key={op.value} value={op.value}>{op.label}</MenuItem>
                 ))}
               </TextField>
             )}
 
-            {isPawapay && pawapayOperator === "orange" && (
+            {isPawapay && selectedPpOp?.requiresOtp && (
               <>
                 <Alert severity="info" sx={{ mb: 2 }}>
-                  Composez <strong>*144*4*6#</strong> sur votre téléphone Orange Money,
-                  entrez votre code secret pour recevoir un code OTP temporaire,
-                  puis saisissez ce code ci-dessous avant de cliquer sur « Payer ».
+                  Composez le code USSD de votre opérateur, entrez votre code secret
+                  pour générer un code OTP temporaire, puis saisissez-le ci-dessous.
                 </Alert>
                 <TextField
-                  fullWidth label="Code OTP Orange Money" sx={{ mb: 2 }}
+                  fullWidth label="Code OTP" sx={{ mb: 2 }}
                   value={pawapayOtp} onChange={(e) => setPawapayOtp(e.target.value)}
                 />
               </>
