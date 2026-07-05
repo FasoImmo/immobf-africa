@@ -635,17 +635,25 @@ export default function SellPage() {
 
               {/* ─── Version anglaise optionnelle ─────────────────────── */}
               <Grid item xs={12}>
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
-                  🌍 Version anglaise (optionnel — pour les visiteurs anglophones)
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={8}>
-                <TextField fullWidth label="Title in English (optional)" value={form.title_en} onChange={change("title_en")}
-                  placeholder="e.g. Furnished apartment, quiet neighborhood" />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField fullWidth multiline minRows={2} label="Description in English (optional)" value={form.description_en} onChange={change("description_en")}
-                  placeholder="Describe your property in English for international visitors…" />
+                <Box sx={{
+                  bgcolor: "#f0faf5",
+                  border: "1px solid #a8d5bc",
+                  borderRadius: 2,
+                  p: 2,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                }}>
+                  <Typography variant="caption" sx={{ color: "#2e7d5e", fontWeight: 600, display: "block" }}>
+                    🌍 Version anglaise (optionnel — pour les visiteurs anglophones)
+                  </Typography>
+                  <TextField fullWidth label="Title in English (optional)" value={form.title_en} onChange={change("title_en")}
+                    placeholder="e.g. Furnished apartment, quiet neighborhood"
+                    sx={{ bgcolor: "#fff", borderRadius: 1 }} />
+                  <TextField fullWidth multiline minRows={2} label="Description in English (optional)" value={form.description_en} onChange={change("description_en")}
+                    placeholder="Describe your property in English for international visitors…"
+                    sx={{ bgcolor: "#fff", borderRadius: 1 }} />
+                </Box>
               </Grid>
 
               <Grid item xs={12} sm={4}>
