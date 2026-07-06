@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
-import { Grid, TextField, MenuItem, Typography, Box, Button, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import {
+  Grid, TextField, MenuItem, Typography, Box, Button,
+  ToggleButton, ToggleButtonGroup,
+  Dialog, DialogTitle, DialogContent, DialogActions, Alert as MuiAlert,
+} from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../../components/Layout";
 import PropertyCard from "../../components/PropertyCard";
@@ -36,6 +40,10 @@ export default function BrowsePage() {
   const [loading, setLoading] = useState(false);
   const [ready, setReady]     = useState(false);
   const [viewMode, setViewMode] = useState("list"); // "list" | "map"
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertEmail, setAlertEmail] = useState("");
+  const [alertStatus, setAlertStatus] = useState(null); // null | "success" | "error"
+  const [alertLoading, setAlertLoading] = useState(false);
 
   // Utilise window.location.search (toujours à jour) + router.asPath comme
   // dépendance pour relancer la recherche à chaque changement d'URL.
@@ -74,26 +82,58 @@ export default function BrowsePage() {
   const set = (key) => (e) => setFilters((f) => ({ ...f, [key]: e.target.value }));
   const pageTitle = TX_TITLES[filters.transaction_type] || t("browse.title_all");
 
+  async function handleSaveAlert() {
+    if (!alertEmail || !alertEmail.includes("@")) return;
+    setAlertLoading(true);
+    setAlertStatus(null);
+    try {
+      const res = await fetch("/api/v1/searches/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: alertEmail, filters }),
+      });
+      if (!res.ok) throw new Error("Erreur serveur");
+      setAlertStatus("success");
+    } catch (_) {
+      setAlertStatus("error");
+    } finally {
+      setAlertLoading(false);
+    }
+  }
+
   // Nombre d'annonces géolocalisées (pour afficher l'info dans le toggle)
   const geoCount = items.filter((p) => p.location?.lat && p.location?.lng).length;
 
   return (
     <Layout title={pageTitle + " — ImmoBF"}>
+      {router.query.unsubscribed === "1" && (
+        <MuiAlert severity="info" sx={{ mb: 2 }}>
+          Vous avez été désabonné des alertes pour ces critères.
+        </MuiAlert>
+      )}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 1 }}>
         <Typography variant="h4">{pageTitle}</Typography>
-        <ToggleButtonGroup
-          value={viewMode}
-          exclusive
-          onChange={(_, v) => { if (v) setViewMode(v); }}
-          size="small"
-        >
-          <ToggleButton value="list" aria-label="Vue liste">
-            📋 Liste
-          </ToggleButton>
-          <ToggleButton value="map" aria-label="Vue carte">
-            🗺️ Carte{geoCount > 0 ? ` (${geoCount})` : ""}
-          </ToggleButton>
-        </ToggleButtonGroup>
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+          <Button
+            size="small" variant="outlined" color="primary"
+            onClick={() => { setAlertOpen(true); setAlertStatus(null); }}
+          >
+            🔔 Être alerté
+          </Button>
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={(_, v) => { if (v) setViewMode(v); }}
+            size="small"
+          >
+            <ToggleButton value="list" aria-label="Vue liste">
+              📋 Liste
+            </ToggleButton>
+            <ToggleButton value="map" aria-label="Vue carte">
+              🗺️ Carte{geoCount > 0 ? ` (${geoCount})` : ""}
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
       </Box>
 
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 3 }}>
@@ -156,6 +196,45 @@ export default function BrowsePage() {
           )}
         </Grid>
       )}
+      {/* ─── Dialog alerte email ─────────────────────────────────────────── */}
+      <Dialog open={alertOpen} onClose={() => setAlertOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>🔔 Recevoir des alertes</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Entrez votre email pour être notifié dès qu&apos;une nouvelle annonce
+            correspond à vos critères actuels.
+          </Typography>
+          <TextField
+            label="Votre email" type="email" fullWidth size="small"
+            value={alertEmail}
+            onChange={(e) => setAlertEmail(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSaveAlert()}
+            disabled={alertStatus === "success"}
+          />
+          {alertStatus === "success" && (
+            <MuiAlert severity="success" sx={{ mt: 2 }}>
+              ✅ Inscription enregistrée ! Vous recevrez un email dès qu'une annonce correspond.
+            </MuiAlert>
+          )}
+          {alertStatus === "error" && (
+            <MuiAlert severity="error" sx={{ mt: 2 }}>
+              ❌ Une erreur est survenue, veuillez réessayer.
+            </MuiAlert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAlertOpen(false)}>Fermer</Button>
+          {alertStatus !== "success" && (
+            <Button
+              variant="contained"
+              onClick={handleSaveAlert}
+              disabled={alertLoading || !alertEmail.includes("@")}
+            >
+              {alertLoading ? "…" : "M'alerter"}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
     </Layout>
   );
 }

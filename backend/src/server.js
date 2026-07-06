@@ -108,6 +108,9 @@ if (require.main === module) {
     // Démarrer la réconciliation des paiements pending (cron horaire)
     const { startReconciliationCron } = require("./services/reconciliation");
     startReconciliationCron();
+    // Démarrer les alertes email de nouvelles annonces (cron quotidien 09h00)
+    const { startEmailAlertsCron } = require("./services/emailAlerts");
+    startEmailAlertsCron();
   });
 }
 

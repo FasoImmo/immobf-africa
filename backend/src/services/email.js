@@ -329,6 +329,55 @@ async function sendBulkNewsletter(email, { subject, html, recipientName }) {
   });
 }
 
+// ─── Alerte email nouvelles annonces (saved_searches) ────────────────────────
+async function sendSearchAlert(email, { properties, filters, unsubscribeUrl }) {
+  const filtersDesc = [
+    filters.q      ? `"${filters.q}"` : null,
+    filters.city   ? filters.city   : null,
+    filters.country ? filters.country : null,
+    filters.type   ? filters.type   : null,
+  ].filter(Boolean).join(" · ") || "toutes catégories";
+
+  const propertyCards = properties.map((p) => {
+    const img = (p.photos && p.photos[0]) ? p.photos[0].url : `https://picsum.photos/seed/${p.id}/600/300`;
+    const price = p.price ? new Intl.NumberFormat("fr-FR").format(p.price) + " " + (p.currency || "XOF") : "Prix à définir";
+    return `
+      <div style="border:1px solid #e0e0e0; border-radius:8px; overflow:hidden; margin-bottom:16px;">
+        <img src="${img}" alt="${p.title}" style="width:100%; height:160px; object-fit:cover;" />
+        <div style="padding:12px;">
+          <div style="font-weight:700; font-size:15px; margin-bottom:4px;">${p.title}</div>
+          <div style="color:#0E7C66; font-weight:600;">${price}</div>
+          <div style="color:#666; font-size:13px;">${p.city || ""}, ${p.country_code || ""}</div>
+          <a href="https://www.immoafrica.online/properties/${p.id}"
+             style="display:inline-block; margin-top:10px; background:#0E7C66; color:white;
+                    padding:8px 16px; border-radius:6px; text-decoration:none; font-size:13px;">
+            Voir l'annonce →
+          </a>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  const subject = `🏠 ${properties.length} nouvelle${properties.length > 1 ? "s" : ""} annonce${properties.length > 1 ? "s" : ""} — ${filtersDesc}`;
+
+  const html = baseTemplate(`
+    <h2>Nouvelles annonces pour vous</h2>
+    <p>Critères : <strong>${filtersDesc}</strong></p>
+    <p>${properties.length} annonce${properties.length > 1 ? "s" : ""} publiée${properties.length > 1 ? "s" : ""} depuis votre dernière alerte :</p>
+    ${propertyCards}
+    <a href="https://www.immoafrica.online/properties?${new URLSearchParams(filters).toString()}" class="btn">
+      Voir toutes les annonces →
+    </a>
+    <p style="color:#999; font-size:12px; margin-top:24px;">
+      Pour arrêter ces alertes :
+      <a href="${unsubscribeUrl}" style="color:#999;">se désabonner</a>
+    </p>
+  `);
+
+  await send({ to: email, subject, html,
+    text: `${properties.length} nouvelle(s) annonce(s) sur ImmoBF Africa pour : ${filtersDesc}. Voir sur immoafrica.online` });
+}
+
 module.exports = {
   send,
   sendOtpEmail,
@@ -341,4 +390,5 @@ module.exports = {
   sendListingExtended,
   sendListingSuspended,
   sendListingRestored,
+  sendSearchAlert,
 };

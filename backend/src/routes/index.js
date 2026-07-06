@@ -169,6 +169,35 @@ router.delete("/my/listings/:id/block-dates/:blockId", requireAuth, asyncHandler
 router.get ("/my/stats",                requireAuth,      asyncHandler(analytics.myStats));
 router.get ("/suggestions",             asyncHandler(analytics.suggestions));
 
+// ─── Recherches sauvegardées / alertes email ─────────────────────────────────
+const searchesLimiter = rateLimit({ windowMs: 60_000, max: 5 });
+
+// POST /searches/save  — s'inscrire à des alertes
+router.post("/searches/save", searchesLimiter, asyncHandler(async (req, res) => {
+  const { BadRequest } = require("../utils/errors");
+  const SavedSearch = require("../models/SavedSearch");
+  const { email, filters } = req.body || {};
+  if (!email || !email.includes("@")) throw BadRequest("Email invalide");
+  const record = await SavedSearch.create(email, filters || {});
+  res.status(201).json({ ok: true, id: record?.id || null });
+}));
+
+// DELETE /searches/:id  — se désabonner (API)
+router.delete("/searches/:id", asyncHandler(async (req, res) => {
+  const SavedSearch = require("../models/SavedSearch");
+  await SavedSearch.remove(req.params.id);
+  res.json({ ok: true });
+}));
+
+// GET /searches/:id/unsubscribe  — lien one-click depuis l'email (GET)
+router.get("/searches/:id/unsubscribe", asyncHandler(async (req, res) => {
+  const SavedSearch = require("../models/SavedSearch");
+  await SavedSearch.remove(req.params.id);
+  const frontendUrl = process.env.FRONTEND_URL || "https://www.immoafrica.online";
+  // Redirige vers une page de confirmation lisible
+  res.redirect(302, `${frontendUrl}/properties?unsubscribed=1`);
+}));
+
 // Newsletter
 router.post("/newsletter/subscribe", publicLimiter, asyncHandler(async (req, res) => {
   const { email, name } = req.body || {};
