@@ -1,4 +1,7 @@
 import "../styles/globals.css";
+import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
 import { useEffect } from "react";
 import "../lib/i18n";
