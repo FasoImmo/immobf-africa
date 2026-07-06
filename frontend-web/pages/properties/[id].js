@@ -262,6 +262,17 @@ export default function PropertyDetail() {
               {p.bathrooms ? " · " + p.bathrooms + " sdb" : ""}
             </Typography>
 
+            {p.owner_id && (
+              <Box sx={{ mt: 1 }}>
+                <Link
+                  href={`/sellers/${p.owner_id}`}
+                  style={{ fontSize: "0.85rem", color: "inherit", textDecoration: "underline", opacity: 0.7 }}
+                >
+                  👤 {p.owner_name || "Voir le profil de l'annonceur"}
+                </Link>
+              </Box>
+            )}
+
             <Divider sx={{ my: 2 }} />
 
             {isRent && (

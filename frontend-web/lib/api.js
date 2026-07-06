@@ -87,6 +87,10 @@ export const Properties = {
   deleteBlockDate: (id, blockId) => api.delete(`/my/listings/${id}/block-dates/${blockId}`).then((r) => r.data),
 };
 
+export const Sellers = {
+  get: (id) => api.get(`/sellers/${id}`).then((r) => r.data),
+};
+
 export const Auth = {
   register: (data) => api.post("/auth/register", data).then((r) => r.data),
   login: (data) => api.post("/auth/login", data).then((r) => r.data),

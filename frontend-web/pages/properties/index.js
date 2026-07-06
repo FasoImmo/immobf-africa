@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 import {
   Grid, TextField, MenuItem, Typography, Box, Button,
-  ToggleButton, ToggleButtonGroup,
+  ToggleButton, ToggleButtonGroup, Pagination,
   Dialog, DialogTitle, DialogContent, DialogActions, Alert as MuiAlert,
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
@@ -34,9 +34,13 @@ export default function BrowsePage() {
   };
 
   const [filters, setFilters] = useState({
-    q: "", country: "", city: "", type: "", transaction_type: "", min_price: "", max_price: "",
+    q: "", country: "", city: "", type: "", transaction_type: "",
+    min_price: "", max_price: "", max_area: "",
   });
   const [items, setItems]     = useState([]);
+  const [total, setTotal]     = useState(0);
+  const [page, setPage]       = useState(1);
+  const LIMIT = 12;
   const [loading, setLoading] = useState(false);
   const [ready, setReady]     = useState(false);
   const [viewMode, setViewMode] = useState("list"); // "list" | "map"
@@ -60,20 +64,24 @@ export default function BrowsePage() {
       transaction_type: params.get("transaction_type")  || "",
       min_price:        params.get("min_price")         || "",
       max_price:        params.get("max_price")         || "",
+      max_area:         params.get("max_area")          || "",
     };
     setFilters(f);
+    setPage(1);
     setReady(true);
-    runSearch(f);
+    runSearch(f, 1);
   }, [router.isReady, router.asPath]); // eslint-disable-line
 
-  async function runSearch(f) {
+  async function runSearch(f, p) {
     const current = f || filters;
+    const currentPage = p !== undefined ? p : page;
     setLoading(true);
-    const params = {};
+    const params = { limit: LIMIT, page: currentPage };
     Object.entries(current).forEach(([k, v]) => { if (v) params[k] = v; });
     try {
       const d = await Properties.search(params);
       setItems(d.items || []);
+      setTotal(d.total || 0);
       // Tracker la recherche pour personnalisation
       Analytics.trackSearch(params, (d.items || []).length);
     } finally { setLoading(false); }
@@ -81,6 +89,13 @@ export default function BrowsePage() {
 
   const set = (key) => (e) => setFilters((f) => ({ ...f, [key]: e.target.value }));
   const pageTitle = TX_TITLES[filters.transaction_type] || t("browse.title_all");
+  const totalPages = Math.ceil(total / LIMIT);
+
+  function goPage(p) {
+    setPage(p);
+    runSearch(null, p);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   async function handleSaveAlert() {
     if (!alertEmail || !alertEmail.includes("@")) return;
@@ -168,7 +183,10 @@ export default function BrowsePage() {
           value={filters.min_price} onChange={set("min_price")} />
         <TextField label={t("search.price_max")} type="number" size="small"
           value={filters.max_price} onChange={set("max_price")} />
-        <Button variant="contained" onClick={() => runSearch()}>{t("search.filters")}</Button>
+        <TextField label="Superficie max (m²)" type="number" size="small"
+          value={filters.max_area} onChange={set("max_area")}
+          sx={{ width: 160 }} />
+        <Button variant="contained" onClick={() => { setPage(1); runSearch(null, 1); }}>{t("search.filters")}</Button>
       </Box>
 
       {/* ─── Vue carte ──────────────────────────────────────────────────────── */}
@@ -183,18 +201,36 @@ export default function BrowsePage() {
 
       {/* ─── Vue liste ──────────────────────────────────────────────────────── */}
       {viewMode === "list" && (
-        <Grid container spacing={2}>
-          {items.map((p) => (
-            <Grid item xs={12} sm={6} md={4} key={p.id}>
-              <PropertyCard property={p} />
-            </Grid>
-          ))}
-          {!loading && ready && items.length === 0 && (
-            <Grid item xs={12}>
-              <Typography color="text.secondary">{t("search.no_results") || "Aucun résultat pour ces filtres."}</Typography>
-            </Grid>
+        <>
+          {ready && total > 0 && (
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              {total} annonce{total > 1 ? "s" : ""} trouvée{total > 1 ? "s" : ""}
+            </Typography>
           )}
-        </Grid>
+          <Grid container spacing={2}>
+            {items.map((p) => (
+              <Grid item xs={12} sm={6} md={4} key={p.id}>
+                <PropertyCard property={p} />
+              </Grid>
+            ))}
+            {!loading && ready && items.length === 0 && (
+              <Grid item xs={12}>
+                <Typography color="text.secondary">{t("search.no_results") || "Aucun résultat pour ces filtres."}</Typography>
+              </Grid>
+            )}
+          </Grid>
+          {totalPages > 1 && (
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_, p) => goPage(p)}
+                color="primary"
+                siblingCount={1}
+              />
+            </Box>
+          )}
+        </>
       )}
       {/* ─── Dialog alerte email ─────────────────────────────────────────── */}
       <Dialog open={alertOpen} onClose={() => setAlertOpen(false)} maxWidth="xs" fullWidth>

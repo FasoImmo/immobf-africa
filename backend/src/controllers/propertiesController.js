@@ -74,19 +74,21 @@ async function search(req, res) {
     min_price: Joi.number(),
     max_price: Joi.number(),
     min_area: Joi.number(),
+    max_area: Joi.number(),
     bedrooms: Joi.number().integer(),
     lat: Joi.number(),
     lng: Joi.number(),
     radius_km: Joi.number().min(0).max(500),
-    limit: Joi.number().integer().min(1).max(100).default(20),
-    offset: Joi.number().integer().min(0).default(0),
+    limit: Joi.number().integer().min(1).max(100).default(12),
+    page: Joi.number().integer().min(1).default(1),
     lang: Joi.string().valid("fr", "en", "mos", "dyu").default("fr"),
   });
   const { value, error } = schema.validate(req.query);
   if (error) throw BadRequest(error.message);
-  const { limit, offset, lang, ...filters } = value;
-  const items = await Property.search(filters, { limit, offset, lang });
-  res.json({ items, limit, offset });
+  const { limit, page, lang, ...filters } = value;
+  const offset = (page - 1) * limit;
+  const { items, total } = await Property.search(filters, { limit, offset, lang });
+  res.json({ items, total, page, limit });
 }
 
 async function estimate(req, res) {

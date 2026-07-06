@@ -198,6 +198,38 @@ router.get("/searches/:id/unsubscribe", asyncHandler(async (req, res) => {
   res.redirect(302, `${frontendUrl}/properties?unsubscribed=1`);
 }));
 
+// ─── Profil public annonceur ──────────────────────────────────────────────────
+router.get("/sellers/:id", publicLimiter, asyncHandler(async (req, res) => {
+  const { query: dbQ } = require("../config/db");
+  const { NotFound } = require("../utils/errors");
+  const Property = require("../models/Property");
+
+  // Infos publiques du vendeur (pas d'email/téléphone)
+  const { rows } = await dbQ(
+    `SELECT id, full_name, country_code, created_at
+     FROM users WHERE id = $1 AND is_blocked = false`,
+    [req.params.id]
+  );
+  if (!rows[0]) throw NotFound("Annonceur introuvable");
+  const seller = rows[0];
+
+  // Annonces publiées actives
+  const { rows: propRows } = await dbQ(
+    `SELECT p.id, p.type, p.transaction_type, p.title, p.price, p.currency,
+            p.city, p.country_code, p.area_m2, p.bedrooms, p.published_at,
+            p.lat, p.lng,
+            (SELECT photo_url FROM property_photos pp WHERE pp.property_id = p.id ORDER BY pp.position ASC LIMIT 1) AS cover_photo
+       FROM properties p
+      WHERE p.owner_id = $1
+        AND p.status = 'published'
+        AND (p.listing_expires_at IS NULL OR p.listing_expires_at > NOW())
+      ORDER BY p.published_at DESC`,
+    [req.params.id]
+  );
+
+  res.json({ seller, listings: propRows });
+}));
+
 // Newsletter
 router.post("/newsletter/subscribe", publicLimiter, asyncHandler(async (req, res) => {
   const { email, name } = req.body || {};
