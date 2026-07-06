@@ -6,6 +6,7 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   output: "standalone",
+  transpilePackages: ["react-leaflet-cluster"],
   images: {
     remotePatterns: [{ protocol: "https", hostname: "**" }],
     formats: ["image/avif", "image/webp"],
