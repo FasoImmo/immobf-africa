@@ -7,12 +7,14 @@ import {
   AppBar, Toolbar, Typography, Button, Container, Box,
   Select, MenuItem, Menu, IconButton, Drawer, List,
   ListItem, ListItemButton, ListItemText, Divider,
-  useMediaQuery, useTheme,
+  useMediaQuery, useTheme, Badge,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import CloseIcon from "@mui/icons-material/Close";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import { Messages } from "../lib/api";
 
 export default function Layout({ children, title = "ImmoBF Africa" }) {
   const { t, i18n } = useTranslation();
@@ -25,6 +27,7 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
   const [accountAnchor, setAccountAnchor] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [unread, setUnread] = useState(0);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -34,6 +37,17 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
       }
     }
   }, []);
+
+  // Polling badge messages non-lus (toutes les 30s si connecté)
+  useEffect(() => {
+    if (!user) return;
+    const fetchUnread = () => {
+      Messages.unread().then((d) => setUnread(d.unread || 0)).catch(() => {});
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30_000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   function logout() {
     localStorage.removeItem("immobf_token");
@@ -131,6 +145,11 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
             <ListItem disablePadding>
               <ListItemButton sx={{ color: "white" }} onClick={() => navigate("/account")}>
                 <ListItemText primary={`📋 ${t("nav.my_listings")}`} />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton sx={{ color: "white" }} onClick={() => navigate("/messages")}>
+                <ListItemText primary={`💬 Messages${unread > 0 ? ` (${unread})` : ""}`} />
               </ListItemButton>
             </ListItem>
             <ListItem disablePadding>
@@ -234,6 +253,15 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
                 </MenuItem>
               </Menu>
 
+              {/* Messages */}
+              {user && (
+                <IconButton color="inherit" onClick={() => router.push("/messages")} sx={{ ml: 1 }}>
+                  <Badge badgeContent={unread || null} color="error">
+                    <ChatBubbleOutlineIcon />
+                  </Badge>
+                </IconButton>
+              )}
+
               {/* Langue */}
               <Select value={i18n.language} onChange={(e) => changeLang(e.target.value)}
                 variant="standard"
@@ -258,6 +286,9 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
                     </MenuItem>
                     <MenuItem onClick={() => { setAccountAnchor(null); router.push("/account"); }}>
                       📋 {t("nav.my_listings")}
+                    </MenuItem>
+                    <MenuItem onClick={() => { setAccountAnchor(null); router.push("/messages"); }}>
+                      💬 Messages {unread > 0 && `(${unread})`}
                     </MenuItem>
                     <MenuItem onClick={() => { setAccountAnchor(null); router.push("/sell?tx=sale"); }}>
                       📝 {t("nav.publish")}

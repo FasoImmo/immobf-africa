@@ -8,7 +8,7 @@ import Layout from "../../components/Layout";
 import PaymentDialog from "../../components/PaymentDialog";
 import PropertyCard from "../../components/PropertyCard";
 import BookingCalendar from "../../components/BookingCalendar";
-import { Properties, Analytics } from "../../lib/api";
+import { Properties, Analytics, Messages } from "../../lib/api";
 import { formatFCFA, formatArea } from "../../lib/format";
 
 const MapView = dynamic(() => import("../../components/MapView"), { ssr: false });
@@ -38,6 +38,21 @@ export default function PropertyDetail() {
   const [commissionPaid, setCommissionPaid] = useState(false);
   const [bookedRanges, setBookedRanges] = useState([]);
   const [copied, setCopied] = useState(false);
+  const [contactLoading, setContactLoading] = useState(false);
+
+  async function handleContact() {
+    const token = typeof window !== "undefined" ? localStorage.getItem("immobf_token") : null;
+    if (!token) { router.push("/login"); return; }
+    setContactLoading(true);
+    try {
+      const { conversation } = await Messages.start(id);
+      router.push(`/messages/${conversation.id}`);
+    } catch (_) {
+      router.push("/messages");
+    } finally {
+      setContactLoading(false);
+    }
+  }
 
   const handleShare = useCallback(async () => {
     const url = typeof window !== "undefined" ? window.location.href : "";
@@ -338,6 +353,16 @@ export default function PropertyDetail() {
                 🔒 {t("property.whatsapp_locked")}
               </Typography>
             )}
+
+            {/* Bouton messagerie interne */}
+            <Button
+              fullWidth variant="outlined" size="large"
+              sx={{ mt: 1 }}
+              onClick={handleContact}
+              disabled={contactLoading}
+            >
+              💬 {contactLoading ? "…" : "Envoyer un message"}
+            </Button>
           </Paper>
         </Grid>
       </Grid>

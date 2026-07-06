@@ -91,6 +91,14 @@ export const Sellers = {
   get: (id) => api.get(`/sellers/${id}`).then((r) => r.data),
 };
 
+export const Messages = {
+  start: (property_id) => api.post("/conversations", { property_id }).then((r) => r.data),
+  list: () => api.get("/conversations").then((r) => r.data),
+  unread: () => api.get("/conversations/unread").then((r) => r.data),
+  getMessages: (id) => api.get(`/conversations/${id}/messages`).then((r) => r.data),
+  send: (id, body) => api.post(`/conversations/${id}/messages`, { body }).then((r) => r.data),
+};
+
 export const Auth = {
   register: (data) => api.post("/auth/register", data).then((r) => r.data),
   login: (data) => api.post("/auth/login", data).then((r) => r.data),

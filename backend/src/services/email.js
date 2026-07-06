@@ -378,6 +378,26 @@ async function sendSearchAlert(email, { properties, filters, unsubscribeUrl }) {
     text: `${properties.length} nouvelle(s) annonce(s) sur ImmoBF Africa pour : ${filtersDesc}. Voir sur immoafrica.online` });
 }
 
+async function sendMessageNotification(recipientEmail, { senderName, propertyTitle, conversationId, preview }) {
+  const FRONTEND = process.env.FRONTEND_URL || "https://www.immoafrica.online";
+  const link = `${FRONTEND}/messages/${conversationId}`;
+  const html = baseTemplate(`
+    <h2>💬 Nouveau message</h2>
+    <p><strong>${senderName}</strong> vous a envoyé un message concernant :</p>
+    <p style="font-size:16px; font-weight:700; color:#0E7C66;">${propertyTitle}</p>
+    <blockquote style="border-left:4px solid #0E7C66; margin:16px 0; padding:8px 16px; color:#444; background:#f9f9f9; border-radius:4px;">
+      ${preview}
+    </blockquote>
+    <a href="${link}" class="btn">Répondre →</a>
+  `);
+  await send({
+    to: recipientEmail,
+    subject: `💬 Nouveau message de ${senderName} — ImmoBF Africa`,
+    html,
+    text: `${senderName} vous a écrit : "${preview}". Répondre : ${link}`,
+  });
+}
+
 module.exports = {
   send,
   sendOtpEmail,
@@ -391,4 +411,5 @@ module.exports = {
   sendListingSuspended,
   sendListingRestored,
   sendSearchAlert,
+  sendMessageNotification,
 };

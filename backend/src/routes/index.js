@@ -14,6 +14,7 @@ const photoCtl = require("../controllers/photosController");
 const analytics = require("../controllers/analyticsController");
 const adminCtl = require("../controllers/adminController");
 const metaCtl  = require("../controllers/metaWebhookController");
+const msgCtl   = require("../controllers/messagesController");
 
 const router = express.Router();
 
@@ -229,6 +230,20 @@ router.get("/sellers/:id", publicLimiter, asyncHandler(async (req, res) => {
 
   res.json({ seller, listings: propRows });
 }));
+
+// ─── Messagerie interne ───────────────────────────────────────────────────────
+const msgLimiter = rateLimit({ windowMs: 60_000, max: 30 });
+
+// Démarrer ou récupérer une conversation (buyer → property)
+router.post  ("/conversations",              requireAuth, msgLimiter, asyncHandler(msgCtl.startConversation));
+// Liste mes conversations
+router.get   ("/conversations",              requireAuth,             asyncHandler(msgCtl.listConversations));
+// Nombre de messages non-lus (badge navbar)
+router.get   ("/conversations/unread",       requireAuth,             asyncHandler(msgCtl.unreadCount));
+// Messages d'une conversation + marque comme lus
+router.get   ("/conversations/:id/messages", requireAuth,             asyncHandler(msgCtl.getMessages));
+// Envoyer un message
+router.post  ("/conversations/:id/messages", requireAuth, msgLimiter, asyncHandler(msgCtl.sendMessage));
 
 // Newsletter
 router.post("/newsletter/subscribe", publicLimiter, asyncHandler(async (req, res) => {
