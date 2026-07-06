@@ -2,13 +2,13 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Box, Typography, Chip, Button, Grid, Paper, Divider, Stack, Alert, TextField, Tooltip } from "@mui/material";
+import { Box, Typography, Chip, Button, Grid, Paper, Divider, Stack, Alert, TextField, Tooltip, Rating, CircularProgress } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../../components/Layout";
 import PaymentDialog from "../../components/PaymentDialog";
 import PropertyCard from "../../components/PropertyCard";
 import BookingCalendar from "../../components/BookingCalendar";
-import { Properties, Analytics, Messages } from "../../lib/api";
+import { Properties, Analytics, Messages, Reviews } from "../../lib/api";
 import { formatFCFA, formatArea } from "../../lib/format";
 
 const MapView = dynamic(() => import("../../components/MapView"), { ssr: false });
@@ -39,6 +39,17 @@ export default function PropertyDetail() {
   const [bookedRanges, setBookedRanges] = useState([]);
   const [copied, setCopied] = useState(false);
   const [contactLoading, setContactLoading] = useState(false);
+
+  // ─── Avis / notation ──────────────────────────────────────────────────────
+  const [myReview, setMyReview]         = useState(null);   // avis existant
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSaving, setReviewSaving] = useState(false);
+  const [reviewDone, setReviewDone]     = useState(false);
+  const meId = (() => {
+    if (typeof window === "undefined") return null;
+    try { return JSON.parse(localStorage.getItem("immobf_user") || "{}")?.id; } catch { return null; }
+  })();
 
   async function handleContact() {
     const token = typeof window !== "undefined" ? localStorage.getItem("immobf_token") : null;
@@ -88,6 +99,17 @@ export default function PropertyDetail() {
       // Tracking vue + annonces similaires en parallèle
       Analytics.trackView(id, "view");
       Analytics.similar(id).then((r) => setSimilar(r.items || [])).catch(() => {});
+      // Charger l'avis existant si connecté
+      if (meId) {
+        Reviews.myReview(id).then((r) => {
+          if (r.review) {
+            setMyReview(r.review);
+            setReviewRating(r.review.rating);
+            setReviewComment(r.review.comment || "");
+            setReviewDone(true);
+          }
+        }).catch(() => {});
+      }
       // Historique local des propriétés consultées
       try {
         const key = "immobf_recent";
@@ -366,6 +388,67 @@ export default function PropertyDetail() {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* ─── Notation / avis ─────────────────────────────────────────────── */}
+      {(() => {
+        const isOwner  = meId && p && meId === p.owner_id;
+        const loggedIn = Boolean(meId);
+
+        if (!loggedIn || isOwner) return null;
+
+        async function handleReviewSubmit(e) {
+          e.preventDefault();
+          if (!reviewRating) return;
+          setReviewSaving(true);
+          try {
+            const { review } = await Reviews.submit(id, { rating: reviewRating, comment: reviewComment || null });
+            setMyReview(review);
+            setReviewDone(true);
+          } catch (_) {}
+          finally { setReviewSaving(false); }
+        }
+
+        return (
+          <Box sx={{ mt: 5 }}>
+            <Divider sx={{ mb: 3 }} />
+            <Typography variant="h5" gutterBottom>⭐ Votre avis</Typography>
+            {reviewDone ? (
+              <Alert severity="success" sx={{ maxWidth: 560 }}>
+                Merci ! Votre note ({reviewRating}/5) a été enregistrée.{" "}
+                <Button size="small" onClick={() => setReviewDone(false)}>Modifier</Button>
+              </Alert>
+            ) : (
+              <Paper elevation={0} sx={{ p: 3, maxWidth: 560, border: "1px solid #e0e0e0", borderRadius: 3 }}
+                component="form" onSubmit={handleReviewSubmit}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Notez cet annonceur pour cette annonce
+                </Typography>
+                <Rating
+                  value={reviewRating}
+                  onChange={(_, v) => setReviewRating(v || 0)}
+                  size="large"
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  fullWidth multiline rows={3} size="small"
+                  label="Commentaire (facultatif)"
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  inputProps={{ maxLength: 1000 }}
+                  sx={{ mb: 2 }}
+                />
+                <Button
+                  type="submit" variant="contained"
+                  disabled={!reviewRating || reviewSaving}
+                  startIcon={reviewSaving ? <CircularProgress size={16} color="inherit" /> : null}
+                >
+                  {myReview ? "Mettre à jour mon avis" : "Publier mon avis"}
+                </Button>
+              </Paper>
+            )}
+          </Box>
+        );
+      })()}
 
       {/* ─── Annonces similaires ─────────────────────────────────────────── */}
       {similar.length > 0 && (

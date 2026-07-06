@@ -187,3 +187,9 @@ export const Config = {
   promo: () => api.get("/config/promo").then((r) => r.data),
   pricing: () => api.get("/config/pricing").then((r) => r.data),
 };
+
+export const Reviews = {
+  submit:    (propertyId, data) => api.post(`/properties/${propertyId}/review`, data).then((r) => r.data),
+  myReview:  (propertyId)       => api.get(`/properties/${propertyId}/review/me`).then((r) => r.data),
+  forSeller: (sellerId, params) => api.get(`/sellers/${sellerId}/reviews`, { params }).then((r) => r.data),
+};

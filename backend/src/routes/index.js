@@ -229,7 +229,56 @@ router.get("/sellers/:id", publicLimiter, asyncHandler(async (req, res) => {
     [req.params.id]
   );
 
-  res.json({ seller, listings: propRows });
+  // Score moyen
+  const Review = require("../models/Review");
+  const reviewStats = await Review.statsForSeller(req.params.id);
+
+  res.json({ seller: { ...seller, ...reviewStats }, listings: propRows });
+}));
+
+// ─── Avis & notations ────────────────────────────────────────────────────────
+const reviewsLimiter = rateLimit({ windowMs: 60_000, max: 10 });
+
+// POST /properties/:id/review — laisser / modifier un avis (acheteur connecté)
+router.post("/properties/:id/review", requireAuth, reviewsLimiter, asyncHandler(async (req, res) => {
+  const Joi = require("joi");
+  const Review = require("../models/Review");
+  const Property = require("../models/Property");
+  const { BadRequest, Forbidden, NotFound } = require("../utils/errors");
+
+  const schema = Joi.object({
+    rating:  Joi.number().integer().min(1).max(5).required(),
+    comment: Joi.string().min(5).max(1000).allow("", null),
+  });
+  const { value, error } = schema.validate(req.body);
+  if (error) throw BadRequest(error.message);
+
+  const prop = await Property.findById(req.params.id);
+  if (!prop) throw NotFound("Annonce introuvable");
+  if (prop.owner_id === req.user.id) throw Forbidden("Vous ne pouvez pas noter votre propre annonce");
+
+  const review = await Review.upsert(req.params.id, req.user.id, prop.owner_id, value);
+  res.json({ review });
+}));
+
+// GET /properties/:id/review/me — avis existant du user connecté
+router.get("/properties/:id/review/me", requireAuth, asyncHandler(async (req, res) => {
+  const Review = require("../models/Review");
+  const review = await Review.findByPropertyAndReviewer(req.params.id, req.user.id);
+  res.json({ review: review || null });
+}));
+
+// GET /sellers/:id/reviews — avis reçus par un vendeur (public)
+router.get("/sellers/:id/reviews", publicLimiter, asyncHandler(async (req, res) => {
+  const Review = require("../models/Review");
+  const page  = Math.max(1, parseInt(req.query.page)  || 1);
+  const limit = Math.min(50, parseInt(req.query.limit) || 10);
+  const offset = (page - 1) * limit;
+  const [reviews, stats] = await Promise.all([
+    Review.listForSeller(req.params.id, { limit, offset }),
+    Review.statsForSeller(req.params.id),
+  ]);
+  res.json({ reviews, stats, page, limit });
 }));
 
 // ─── Messagerie interne ───────────────────────────────────────────────────────

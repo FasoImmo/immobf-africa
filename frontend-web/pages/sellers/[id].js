@@ -3,12 +3,13 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import {
   Box, Typography, Grid, Avatar, Chip, Divider, CircularProgress,
+  Rating, Paper,
 } from "@mui/material";
 import { PersonOutline } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
 import Layout from "../../components/Layout";
 import PropertyCard from "../../components/PropertyCard";
-import { Sellers } from "../../lib/api";
+import { Sellers, Reviews } from "../../lib/api";
 import { AFRICAN_COUNTRIES } from "../../lib/africanCountries";
 
 const TX_LABEL = {
@@ -22,6 +23,16 @@ function countryName(code) {
   return found ? `${found.flag} ${found.name}` : code;
 }
 
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return "aujourd'hui";
+  if (days === 1) return "hier";
+  if (days < 30)  return `il y a ${days} jours`;
+  const months = Math.floor(days / 30);
+  return `il y a ${months} mois`;
+}
+
 export default function SellerProfile() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -32,6 +43,9 @@ export default function SellerProfile() {
   const [loading, setLoading]   = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  const [reviews, setReviews]   = useState([]);
+  const [reviewStats, setReviewStats] = useState({ avg_rating: 0, total_reviews: 0 });
+
   useEffect(() => {
     if (!id) return;
     setLoading(true);
@@ -39,11 +53,23 @@ export default function SellerProfile() {
       .then(({ seller: s, listings: l }) => {
         setSeller(s);
         setListings(l || []);
+        // avg_rating + total_reviews sont déjà dans la réponse seller
+        if (s.avg_rating !== undefined) {
+          setReviewStats({ avg_rating: s.avg_rating, total_reviews: s.total_reviews });
+        }
       })
       .catch((err) => {
         if (err?.response?.status === 404) setNotFound(true);
       })
       .finally(() => setLoading(false));
+
+    // Charger les avis séparément (liste paginée)
+    Reviews.forSeller(id, { limit: 10 })
+      .then(({ reviews: r, stats }) => {
+        setReviews(r || []);
+        if (stats) setReviewStats(stats);
+      })
+      .catch(() => {});
   }, [id]);
 
   if (loading) {
@@ -87,12 +113,12 @@ export default function SellerProfile() {
       <Box sx={{
         display: "flex", alignItems: "center", gap: 3,
         bgcolor: "background.paper", borderRadius: 3,
-        boxShadow: 1, p: 3, mb: 4,
+        boxShadow: 1, p: 3, mb: 4, flexWrap: "wrap",
       }}>
         <Avatar sx={{ width: 72, height: 72, bgcolor: "primary.main", fontSize: 32 }}>
           {seller.full_name ? seller.full_name.charAt(0).toUpperCase() : <PersonOutline />}
         </Avatar>
-        <Box>
+        <Box sx={{ flex: 1 }}>
           <Typography variant="h5" fontWeight={700}>
             {seller.full_name || "Annonceur"}
           </Typography>
@@ -104,13 +130,20 @@ export default function SellerProfile() {
           <Typography variant="body2" color="text.secondary">
             Membre depuis {memberSince}
           </Typography>
-          <Chip
-            label={`${listings.length} annonce${listings.length > 1 ? "s" : ""} active${listings.length > 1 ? "s" : ""}`}
-            size="small"
-            color="primary"
-            variant="outlined"
-            sx={{ mt: 0.5 }}
-          />
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 0.5, alignItems: "center" }}>
+            <Chip
+              label={`${listings.length} annonce${listings.length > 1 ? "s" : ""} active${listings.length > 1 ? "s" : ""}`}
+              size="small" color="primary" variant="outlined"
+            />
+            {reviewStats.total_reviews > 0 && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Rating value={Number(reviewStats.avg_rating)} precision={0.1} readOnly size="small" />
+                <Typography variant="body2" color="text.secondary">
+                  {Number(reviewStats.avg_rating).toFixed(1)} ({reviewStats.total_reviews} avis)
+                </Typography>
+              </Box>
+            )}
+          </Box>
         </Box>
       </Box>
 
@@ -129,7 +162,6 @@ export default function SellerProfile() {
             <Grid container spacing={2}>
               {items.map((p) => (
                 <Grid item xs={12} sm={6} md={4} key={p.id}>
-                  {/* Adapter la shape pour PropertyCard */}
                   <PropertyCard property={{
                     ...p,
                     photos: p.cover_photo ? [{ photo_url: p.cover_photo }] : [],
@@ -140,6 +172,63 @@ export default function SellerProfile() {
             </Grid>
           </Box>
         ))
+      )}
+
+      {/* ─── Avis reçus ─────────────────────────────────────────────────────── */}
+      {reviews.length > 0 && (
+        <Box sx={{ mt: 4 }}>
+          <Divider sx={{ mb: 3 }} />
+          <Typography variant="h5" fontWeight={700} gutterBottom>
+            ⭐ Avis ({reviewStats.total_reviews})
+          </Typography>
+          {reviewStats.total_reviews > 0 && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
+              <Typography variant="h3" fontWeight={700} color="primary.main">
+                {Number(reviewStats.avg_rating).toFixed(1)}
+              </Typography>
+              <Box>
+                <Rating value={Number(reviewStats.avg_rating)} precision={0.1} readOnly />
+                <Typography variant="caption" color="text.secondary">
+                  sur {reviewStats.total_reviews} avis
+                </Typography>
+              </Box>
+            </Box>
+          )}
+          <Grid container spacing={2}>
+            {reviews.map((r) => (
+              <Grid item xs={12} sm={6} md={4} key={r.id}>
+                <Paper elevation={0} sx={{ p: 2.5, border: "1px solid #e0e0e0", borderRadius: 3, height: "100%" }}>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Avatar sx={{ width: 32, height: 32, bgcolor: "grey.400", fontSize: 14 }}>
+                        {r.reviewer_name?.charAt(0).toUpperCase() || "?"}
+                      </Avatar>
+                      <Typography variant="body2" fontWeight={600}>
+                        {r.reviewer_name || "Utilisateur"}
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      {timeAgo(r.created_at)}
+                    </Typography>
+                  </Box>
+                  <Rating value={r.rating} readOnly size="small" sx={{ mb: 1 }} />
+                  {r.property_title && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                      <Link href={`/properties/${r.property_id}`} style={{ color: "#0E7C66" }}>
+                        {r.property_title.length > 50 ? r.property_title.slice(0, 48) + "…" : r.property_title}
+                      </Link>
+                    </Typography>
+                  )}
+                  {r.comment && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontStyle: "italic" }}>
+                      &ldquo;{r.comment}&rdquo;
+                    </Typography>
+                  )}
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
       )}
     </Layout>
   );
