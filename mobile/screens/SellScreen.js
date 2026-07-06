@@ -4,7 +4,7 @@ import {
   ScrollView, Alert, ActivityIndicator, Image, FlatList,
   Modal, Linking,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as tokenStore from "../lib/tokenStore";
 import * as ImagePicker from "expo-image-picker";
 import { Properties, Photos, Payments, Admin } from "../lib/api";
 import { useLang } from "../lib/lang";
@@ -242,7 +242,7 @@ export default function SellScreen({ navigation, route }) {
   const [promo, setPromo] = useState(null); // null=loading
 
   useEffect(() => {
-    AsyncStorage.getItem("immobf_token").then((tok) => setLoggedIn(Boolean(tok)));
+    tokenStore.getToken().then((tok) => setLoggedIn(Boolean(tok)));
     Admin.getPromo().then(setPromo).catch(() => setPromo({ active: false }));
   }, []);
 

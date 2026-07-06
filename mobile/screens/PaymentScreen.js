@@ -4,6 +4,7 @@ import {
   ActivityIndicator, Alert, Linking, ScrollView, Modal, FlatList,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as tokenStore from "../lib/tokenStore";
 import { Payments } from "../lib/api";
 import { useLang } from "../lib/lang";
 
@@ -202,12 +203,13 @@ export default function PaymentScreen({ route }) {
 
   // Détecter si l'utilisateur est invité (pas de token) + récupérer son email
   useEffect(() => {
-    AsyncStorage.multiGet(["immobf_token", "immobf_user"]).then(([[, tok], [, userJson]]) => {
-      setIsGuest(!tok);
-      if (tok && userJson) {
-        try { setLoggedUserEmail(JSON.parse(userJson).email || ""); } catch { /* noop */ }
-      }
-    });
+    Promise.all([tokenStore.getToken(), AsyncStorage.getItem("immobf_user")])
+      .then(([tok, userJson]) => {
+        setIsGuest(!tok);
+        if (tok && userJson) {
+          try { setLoggedUserEmail(JSON.parse(userJson).email || ""); } catch { /* noop */ }
+        }
+      });
   }, []);
 
   // Persiste le paiement commission pour débloquer WhatsApp sur PropertyScreen

@@ -1,13 +1,13 @@
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
+import * as tokenStore from "./tokenStore";
 
 const baseURL = Constants?.expoConfig?.extra?.apiUrl || "http://10.0.2.2:4000";
 
 const api = axios.create({ baseURL: `${baseURL}/api/v1`, timeout: 30000 });
 
 api.interceptors.request.use(async (cfg) => {
-  const token = await AsyncStorage.getItem("immobf_token");
+  const token = await tokenStore.getToken();
   if (token) cfg.headers.Authorization = `Bearer ${token}`;
   return cfg;
 });
@@ -16,11 +16,11 @@ api.interceptors.request.use(async (cfg) => {
 let _refreshPromise = null;
 
 async function doRefresh() {
-  const refresh = await AsyncStorage.getItem("immobf_refresh");
+  const refresh = await tokenStore.getRefresh();
   if (!refresh) throw new Error("No refresh token");
   const { data } = await axios.post(`${baseURL}/api/v1/auth/refresh`, { refresh });
-  await AsyncStorage.setItem("immobf_token", data.access);
-  await AsyncStorage.setItem("immobf_refresh", data.refresh);
+  await tokenStore.setToken(data.access);
+  await tokenStore.setRefresh(data.refresh);
   return data.access;
 }
 
@@ -38,7 +38,7 @@ api.interceptors.response.use(
       config.headers.Authorization = `Bearer ${newToken}`;
       return api(config);
     } catch (_) {
-      await AsyncStorage.multiRemove(["immobf_token", "immobf_refresh", "immobf_user"]);
+      await tokenStore.clearSession();
       return Promise.reject(error);
     }
   }

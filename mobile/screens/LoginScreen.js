@@ -4,6 +4,7 @@ import {
   Alert, ScrollView, KeyboardAvoidingView, Platform,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as tokenStore from "../lib/tokenStore";
 import { Auth, Properties } from "../lib/api";
 import { useLang } from "../lib/lang";
 
@@ -193,8 +194,8 @@ export default function LoginScreen() {
       if (email.includes("@")) payload.email = email;
       else payload.phone = email;
       const r = await Auth.login(payload);
-      await AsyncStorage.setItem("immobf_token", r.access);
-      if (r.refresh) await AsyncStorage.setItem("immobf_refresh", r.refresh);
+      await tokenStore.setToken(r.access);
+      if (r.refresh) await tokenStore.setRefresh(r.refresh);
       await AsyncStorage.setItem("immobf_user", JSON.stringify(r.user));
       setMe(r.user);
     } catch (e) {
@@ -212,8 +213,8 @@ export default function LoginScreen() {
     setBusy(true);
     try {
       const r = await Auth.register({ email, phone, password, full_name: fullName });
-      await AsyncStorage.setItem("immobf_token", r.access);
-      if (r.refresh) await AsyncStorage.setItem("immobf_refresh", r.refresh);
+      await tokenStore.setToken(r.access);
+      if (r.refresh) await tokenStore.setRefresh(r.refresh);
       await AsyncStorage.setItem("immobf_user", JSON.stringify(r.user));
       setMe(r.user);
     } catch (e) {
@@ -222,7 +223,7 @@ export default function LoginScreen() {
   }
 
   async function doLogout() {
-    await AsyncStorage.multiRemove(["immobf_token", "immobf_refresh", "immobf_user"]);
+    await tokenStore.clearSession();
     setMe(null);
     setEmail(""); setPhone(""); setPassword("");
   }
