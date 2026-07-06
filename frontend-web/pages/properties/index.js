@@ -30,7 +30,7 @@ export default function BrowsePage() {
   };
 
   const [filters, setFilters] = useState({
-    country: "", city: "", type: "", transaction_type: "", min_price: "", max_price: "",
+    q: "", country: "", city: "", type: "", transaction_type: "", min_price: "", max_price: "",
   });
   const [items, setItems]     = useState([]);
   const [loading, setLoading] = useState(false);
@@ -45,6 +45,7 @@ export default function BrowsePage() {
       typeof window !== "undefined" ? window.location.search : ""
     );
     const f = {
+      q:                params.get("q")                 || "",
       country:          params.get("country")           || "",
       city:             params.get("city")              || "",
       type:             params.get("type")              || "",
@@ -96,6 +97,12 @@ export default function BrowsePage() {
       </Box>
 
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 3 }}>
+        <TextField label={t("search.placeholder") || "Mot-clé"} size="small"
+          value={filters.q} onChange={set("q")}
+          sx={{ flex: "1 1 200px" }}
+          placeholder="villa, bureau, Bobo…"
+          onKeyDown={(e) => e.key === "Enter" && runSearch()}
+        />
         <TextField select label={t("search.country") || "Pays"} size="small" value={filters.country}
           onChange={set("country")} sx={{ minWidth: 190 }}>
           <MenuItem value="">{t("search.all_countries") || "Tous les pays"}</MenuItem>

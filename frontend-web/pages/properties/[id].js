@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Box, Typography, Chip, Button, Grid, Paper, Divider, Stack, Alert, TextField } from "@mui/material";
+import { Box, Typography, Chip, Button, Grid, Paper, Divider, Stack, Alert, TextField, Tooltip } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../../components/Layout";
 import PaymentDialog from "../../components/PaymentDialog";
@@ -37,6 +37,21 @@ export default function PropertyDetail() {
   const [checkIn, setCheckIn] = useState("");
   const [commissionPaid, setCommissionPaid] = useState(false);
   const [bookedRanges, setBookedRanges] = useState([]);
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = useCallback(async () => {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const title = p?.title || "Annonce ImmoBF Africa";
+    if (navigator.share) {
+      try { await navigator.share({ title, url }); return; } catch (_) {}
+    }
+    // Fallback : copier dans le presse-papiers
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch (_) {}
+  }, [p]);
 
   // Charge l'état "commission payée" et les dates réservées depuis localStorage + API
   useEffect(() => {
@@ -160,7 +175,27 @@ export default function PropertyDetail() {
         <Chip label={(p.neighborhood ? p.neighborhood + ", " : "") + p.city + ", " + p.country_code} />
       </Box>
 
-      <Typography variant="h4" gutterBottom>{p.title}</Typography>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 1 }}>
+        <Typography variant="h4">{p.title}</Typography>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          {/* WhatsApp */}
+          <Button
+            size="small" variant="outlined"
+            sx={{ color: "#25D366", borderColor: "#25D366", "&:hover": { borderColor: "#1ebe5a", bgcolor: "#f0fdf4" } }}
+            component="a"
+            href={`https://wa.me/?text=${encodeURIComponent(p.title + "\n" + (typeof window !== "undefined" ? window.location.href : ""))}`}
+            target="_blank" rel="noopener noreferrer"
+          >
+            💬 WhatsApp
+          </Button>
+          {/* Copier / Share natif */}
+          <Tooltip title={copied ? "Lien copié ✓" : "Partager"} placement="top">
+            <Button size="small" variant="outlined" onClick={handleShare}>
+              {copied ? "✓ Copié" : "🔗 Partager"}
+            </Button>
+          </Tooltip>
+        </Box>
+      </Box>
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
