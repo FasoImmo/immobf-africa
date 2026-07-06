@@ -18,12 +18,18 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "africa.immobf.app",
-      "buildNumber": "4"
+      "buildNumber": "4",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "ImmoBF utilise votre position pour géolocaliser votre annonce sur la carte."
+      }
     },
     "android": {
       "package": "africa.immobf.app",
       "versionCode": 4,
-      "permissions": []
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": { "favicon": "./assets/favicon.png" },
     "extra": {

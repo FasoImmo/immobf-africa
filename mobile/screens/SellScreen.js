@@ -6,6 +6,7 @@ import {
 } from "react-native";
 import * as tokenStore from "../lib/tokenStore";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { Properties, Photos, Payments, Admin } from "../lib/api";
 import { useLang } from "../lib/lang";
 
@@ -261,7 +262,11 @@ export default function SellScreen({ navigation, route }) {
     country_code: "BF",
     city: "",
     area_m2: "",
+    lat: "",
+    lng: "",
   });
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [coordPaste, setCoordPaste] = useState("");
   const [areaUnit, setAreaUnit] = useState("m2"); // "m2" | "ha"
   const [showCountryModal, setShowCountryModal] = useState(false);
   const [formBusy, setFormBusy] = useState(false);
@@ -281,6 +286,8 @@ export default function SellScreen({ navigation, route }) {
         country_code: initialData.country_code || "BF",
         city: initialData.city || "",
         area_m2: initialData.area_m2 ? String(initialData.area_m2) : "",
+        lat: initialData.location?.lat ? String(initialData.location.lat) : "",
+        lng: initialData.location?.lng ? String(initialData.location.lng) : "",
       });
       setPropertyId(routeParams.propertyId);
     } else if (resumeId) {
@@ -297,6 +304,8 @@ export default function SellScreen({ navigation, route }) {
           country_code: p.country_code || "BF",
           city: p.city || "",
           area_m2: p.area_m2 ? String(p.area_m2) : "",
+          lat: p.location?.lat ? String(p.location.lat) : "",
+          lng: p.location?.lng ? String(p.location.lng) : "",
         });
         setPropertyId(resumeId);
         setStep(2);
@@ -366,6 +375,56 @@ export default function SellScreen({ navigation, route }) {
     } catch (e) {
       Alert.alert("Erreur", e?.response?.data?.error?.message || e.message);
     } finally { setFormBusy(false); }
+  }
+
+  // ─── GPS helpers ─────────────────────────────────────────────────────────────
+  function parseCoords(text) {
+    if (!text) return null;
+    let m = text.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+    if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+    m = text.match(/[?&](?:q|ll)=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+    if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+    m = text.match(/(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/);
+    if (m) {
+      const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
+      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) return { lat, lng };
+    }
+    return null;
+  }
+
+  async function handleGeolocate() {
+    setGeoLoading(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          lang === "fr" ? "Permission refusée" : "Permission denied",
+          lang === "fr"
+            ? "Autorisez l'accès à la localisation dans les paramètres de l'application."
+            : "Allow location access in app settings."
+        );
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      setForm((f) => ({
+        ...f,
+        lat: String(pos.coords.latitude.toFixed(6)),
+        lng: String(pos.coords.longitude.toFixed(6)),
+      }));
+    } catch (e) {
+      Alert.alert("Erreur", e.message);
+    } finally {
+      setGeoLoading(false);
+    }
+  }
+
+  function handleCoordPaste(text) {
+    setCoordPaste(text);
+    const parsed = parseCoords(text);
+    if (parsed) {
+      setForm((f) => ({ ...f, lat: String(parsed.lat), lng: String(parsed.lng) }));
+      setCoordPaste("");
+    }
   }
 
   // ─── Étape 2 : paiement frais de publication ──────────────────────────────
@@ -611,6 +670,42 @@ export default function SellScreen({ navigation, route }) {
             value={form.city} onChangeText={(v) => setForm({ ...form, city: v })}
             style={s.input}
           />
+
+          {/* GPS */}
+          <View style={s.gpsBox}>
+            <Text style={s.label}>📍 GPS {lang === "fr" ? "(optionnel — carte)" : "(optional — map)"}</Text>
+            <TouchableOpacity
+              style={[s.gpsBtn, geoLoading && { opacity: 0.6 }]}
+              onPress={handleGeolocate}
+              disabled={geoLoading}
+            >
+              {geoLoading
+                ? <ActivityIndicator size="small" color="#0E7C66" />
+                : <Text style={s.gpsBtnText}>📍 {lang === "fr" ? "Ma position actuelle" : "Use my location"}</Text>
+              }
+            </TouchableOpacity>
+            <TextInput
+              style={s.input}
+              placeholder={lang === "fr" ? "Coller depuis Google Maps : 12.3647, -1.5333" : "Paste from Google Maps: 12.3647, -1.5333"}
+              value={coordPaste}
+              onChangeText={handleCoordPaste}
+            />
+            {form.lat && form.lng ? (
+              <Text style={s.gpsConfirm}>✅ {parseFloat(form.lat).toFixed(4)}, {parseFloat(form.lng).toFixed(4)}</Text>
+            ) : null}
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TextInput
+                style={[s.input, { flex: 1 }]}
+                placeholder="Lat" keyboardType="numeric"
+                value={form.lat} onChangeText={(v) => setForm({ ...form, lat: v })}
+              />
+              <TextInput
+                style={[s.input, { flex: 1 }]}
+                placeholder="Lng" keyboardType="numeric"
+                value={form.lng} onChangeText={(v) => setForm({ ...form, lng: v })}
+              />
+            </View>
+          </View>
 
           {/* Prix + devise */}
           <Text style={s.label}>{t.price}</Text>
@@ -962,6 +1057,11 @@ const s = StyleSheet.create({
   // Photos
   photoPickBtn: { marginTop: 8, borderWidth: 2, borderColor: "#0E7C66", borderStyle: "dashed", borderRadius: 10, padding: 16, alignItems: "center" },
   photoPickText: { color: "#0E7C66", fontSize: 15, fontWeight: "600" },
+  // GPS
+  gpsBox: { borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 10, padding: 12, backgroundColor: "#fafafa", marginBottom: 4 },
+  gpsBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: "#0E7C66", borderRadius: 8, padding: 10, marginBottom: 8 },
+  gpsBtnText: { color: "#0E7C66", fontWeight: "600", fontSize: 14 },
+  gpsConfirm: { color: "#0E7C66", fontSize: 12, marginBottom: 6 },
   photoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
   photoThumb: { width: 80, height: 80, borderRadius: 6, overflow: "hidden", position: "relative" },
   thumbImg: { width: 80, height: 80 },

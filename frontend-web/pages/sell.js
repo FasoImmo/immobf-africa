@@ -199,6 +199,8 @@ export default function SellPage() {
   const [areaUnit, setAreaUnit] = useState("m2"); // "m2" | "ha"
   const [formErr, setFormErr] = useState(null);
   const [formBusy, setFormBusy] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [coordPaste, setCoordPaste] = useState("");
 
   // ─── Étape 2 : paiement ───────────────────────────────────────────────────
   const [providers, setProviders] = useState([]);
@@ -396,6 +398,52 @@ export default function SellPage() {
     }, 3000);
     return function() { clearInterval(pollRef.current); };
   }, [polling, txId]);
+
+  // ─── GPS helpers ───────────────────────────────────────────────────────────
+  // Extrait lat/lng depuis n'importe quel texte collé :
+  //   "12.3647, -1.5333"  /  "12.3647 -1.5333"
+  //   URL Google Maps : https://www.google.com/maps/@12.364,-1.533,15z
+  //   Lien de partage : https://maps.app.goo.gl/... (contient @lat,lng)
+  //   Copie Google Maps : "12°21'52.9"N 1°32'00.0"W"
+  function parseCoords(text) {
+    if (!text) return null;
+    // Format URL @lat,lng
+    let m = text.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+    if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+    // Format ?q=lat,lng ou ?ll=lat,lng
+    m = text.match(/[?&](?:q|ll)=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+    if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+    // Degrés décimaux séparés par virgule ou espace : "12.3647, -1.5333"
+    m = text.match(/(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/);
+    if (m) {
+      const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
+      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) return { lat, lng };
+    }
+    return null;
+  }
+
+  async function handleGeolocate() {
+    if (!navigator.geolocation) return setFormErr("Géolocalisation non supportée par ce navigateur.");
+    setGeoLoading(true); setFormErr(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setForm((f) => ({ ...f, lat: String(pos.coords.latitude.toFixed(6)), lng: String(pos.coords.longitude.toFixed(6)) }));
+        setGeoLoading(false);
+      },
+      () => { setFormErr("Position refusée. Autorisez l'accès à la localisation dans votre navigateur."); setGeoLoading(false); },
+      { timeout: 10000 }
+    );
+  }
+
+  function handleCoordPaste(e) {
+    const text = e.target.value;
+    setCoordPaste(text);
+    const parsed = parseCoords(text);
+    if (parsed) {
+      setForm((f) => ({ ...f, lat: String(parsed.lat), lng: String(parsed.lng) }));
+      setCoordPaste(""); // vider après succès
+    }
+  }
 
   function change(k) {
     return function(e) {
@@ -725,16 +773,37 @@ export default function SellPage() {
               <Grid item xs={12}>
                 <TextField fullWidth label={t("sell.address")} value={form.address} onChange={change("address")} />
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField fullWidth type="number" label="Latitude (GPS)"
-                  placeholder="ex: 12.3647"
-                  value={form.lat} onChange={change("lat")}
-                  helperText="Optionnel — permet l'affichage sur la carte" />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField fullWidth type="number" label="Longitude (GPS)"
-                  placeholder="ex: -1.5333"
-                  value={form.lng} onChange={change("lng")} />
+              {/* ── Géolocalisation GPS ── */}
+              <Grid item xs={12}>
+                <Box sx={{ border: "1px solid #e0e0e0", borderRadius: 2, p: 2, background: "#fafafa" }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                    📍 Localisation GPS <Typography component="span" variant="caption" color="text.secondary">(optionnel — affiche le bien sur la carte)</Typography>
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
+                    <Button
+                      variant="outlined" size="small"
+                      disabled={geoLoading}
+                      onClick={handleGeolocate}
+                      startIcon={geoLoading ? <CircularProgress size={14} /> : null}
+                    >
+                      {geoLoading ? "Localisation…" : "📍 Ma position actuelle"}
+                    </Button>
+                    <TextField
+                      size="small" sx={{ flex: 1, minWidth: 220 }}
+                      label="Coller depuis Google Maps"
+                      placeholder="12.3647, -1.5333  ou  URL Google Maps"
+                      value={coordPaste}
+                      onChange={handleCoordPaste}
+                      helperText={form.lat && form.lng ? `✅ ${parseFloat(form.lat).toFixed(4)}, ${parseFloat(form.lng).toFixed(4)}` : "Copiez les coordonnées ou l'URL depuis Google Maps"}
+                    />
+                  </Box>
+                  <Box sx={{ display: "flex", gap: 2 }}>
+                    <TextField size="small" type="number" label="Latitude" placeholder="12.3647"
+                      value={form.lat} onChange={change("lat")} sx={{ flex: 1 }} />
+                    <TextField size="small" type="number" label="Longitude" placeholder="-1.5333"
+                      value={form.lng} onChange={change("lng")} sx={{ flex: 1 }} />
+                  </Box>
+                </Box>
               </Grid>
 
               {form.type !== "land" && (
