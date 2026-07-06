@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Box, Typography, Chip, Button, Grid, Paper, Divider, Stack, Alert, TextField } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../../components/Layout";
@@ -9,6 +10,8 @@ import PropertyCard from "../../components/PropertyCard";
 import BookingCalendar from "../../components/BookingCalendar";
 import { Properties, Analytics } from "../../lib/api";
 import { formatFCFA, formatArea } from "../../lib/format";
+
+const MapView = dynamic(() => import("../../components/MapView"), { ssr: false });
 
 const TX_COLOR = {
   sale:       "#1565c0",
@@ -106,8 +109,43 @@ export default function PropertyDetail() {
   }
   var conflict = isRent && p.transaction_type === "rent_short" ? hasConflict() : false;
 
+  // ─── Données structurées JSON-LD (schema.org) ────────────────────────────
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "RealEstateListing",
+    "name": p.title,
+    "description": p.description,
+    "url": `https://www.immoafrica.online/properties/${p.id}`,
+    "image": p.photos?.[0]?.url || `https://picsum.photos/seed/${p.id}/1200/600`,
+    "offers": {
+      "@type": "Offer",
+      "price": p.price,
+      "priceCurrency": p.currency || "XOF",
+      "availability": "https://schema.org/InStock",
+    },
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": p.city,
+      "addressCountry": p.country_code,
+      ...(p.neighborhood ? { "streetAddress": p.neighborhood } : {}),
+    },
+    ...(p.location?.lat && p.location?.lng ? {
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": p.location.lat,
+        "longitude": p.location.lng,
+      },
+    } : {}),
+    ...(p.area_m2 ? { "floorSize": { "@type": "QuantitativeValue", "value": p.area_m2, "unitCode": "MTK" } } : {}),
+    ...(p.bedrooms ? { "numberOfRooms": p.bedrooms } : {}),
+  };
+
   return (
     <Layout title={p.title + " — ImmoBF"}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {router.query.published === "1" && (
         <Alert severity="success" sx={{ mb: 2 }}>{t("property.published_banner")}</Alert>
       )}
@@ -158,6 +196,18 @@ export default function PropertyDetail() {
             <Typography variant="h6">Description</Typography>
             <Typography sx={{ whiteSpace: "pre-line" }}>{p.description}</Typography>
           </Paper>
+
+          {p.location?.lat && p.location?.lng && (
+            <Paper elevation={0} sx={{ p: 2, mt: 2 }}>
+              <Typography variant="h6" gutterBottom>📍 Localisation</Typography>
+              <Box sx={{ height: 280, borderRadius: 2, overflow: "hidden", border: "1px solid #e0e0e0" }}>
+                <MapView properties={[p]} />
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                Coordonnées approximatives — confirmez l'adresse exacte avec l'annonceur.
+              </Typography>
+            </Paper>
+          )}
         </Grid>
 
         <Grid item xs={12} md={4}>

@@ -1,10 +1,14 @@
 import Link from "next/link";
-import { Card, CardActionArea, CardContent, CardMedia, Typography, Chip, Box } from "@mui/material";
+import { Card, CardActionArea, CardContent, CardMedia, Typography, Chip, Box, IconButton, Tooltip } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { formatFCFA, formatArea } from "../lib/format";
+import { useFavorites } from "../lib/useFavorites";
 
 export default function PropertyCard({ property }) {
   const { t } = useTranslation();
+  const { toggle, isFav } = useFavorites();
+  const fav = isFav(property.id);
+
   const cover = property.photos?.[0]?.url
     || `https://picsum.photos/seed/${property.id}/600/400`;
 
@@ -16,7 +20,24 @@ export default function PropertyCard({ property }) {
   const txInfo = TX_LABEL[property.transaction_type];
 
   return (
-    <Card elevation={2}>
+    <Card elevation={2} sx={{ position: "relative" }}>
+      {/* Bouton favoris — hors du CardActionArea pour ne pas déclencher la navigation */}
+      <Tooltip title={fav ? "Retirer des favoris" : "Sauvegarder"}>
+        <IconButton
+          size="small"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(property.id); }}
+          sx={{
+            position: "absolute", top: 6, right: 6, zIndex: 1,
+            bgcolor: "rgba(255,255,255,0.85)",
+            "&:hover": { bgcolor: "white" },
+            fontSize: 18,
+          }}
+          aria-label={fav ? "Retirer des favoris" : "Sauvegarder"}
+        >
+          {fav ? "❤️" : "🤍"}
+        </IconButton>
+      </Tooltip>
+
       <CardActionArea component={Link} href={`/properties/${property.id}`}>
         <CardMedia component="img" height="180" image={cover} alt={property.title} />
         <CardContent>

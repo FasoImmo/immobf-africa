@@ -8,8 +8,10 @@ import {
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
+import PropertyCard from "../components/PropertyCard";
 import { Analytics, Auth, Properties } from "../lib/api";
 import { formatFCFA } from "../lib/format";
+import { useFavorites } from "../lib/useFavorites";
 
 const EUR_RATE = 655.957;
 const USD_RATE = 600;
@@ -59,6 +61,15 @@ export default function AccountPage() {
   const [profileMsg, setProfileMsg] = useState(null);
 
   const [draftSaved, setDraftSaved] = useState(false);
+
+  // ── Favoris ───────────────────────────────────────────────────────────────
+  const { favIds, clearAll: clearFavs } = useFavorites();
+  const [favProperties, setFavProperties] = useState([]);
+  useEffect(() => {
+    if (!favIds.length) { setFavProperties([]); return; }
+    Promise.all(favIds.map((id) => Properties.get(id).then((d) => d.property).catch(() => null)))
+      .then((results) => setFavProperties(results.filter(Boolean)));
+  }, [favIds.join(",")]); // eslint-disable-line
 
   // ── Gestion calendrier de blocage (annonces rent_short) ───────────────────
   const [blockDialog, setBlockDialog] = useState(null); // listing | null
@@ -568,6 +579,30 @@ export default function AccountPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* ─── Mes favoris ──────────────────────────────────────────────────── */}
+      {favIds.length > 0 && (
+        <Box sx={{ mt: 5 }}>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+            <Typography variant="h5">❤️ Mes favoris ({favIds.length})</Typography>
+            <Button size="small" color="inherit" onClick={clearFavs}
+              sx={{ color: "text.secondary", fontSize: 12 }}>
+              Tout effacer
+            </Button>
+          </Box>
+          {favProperties.length === 0 ? (
+            <Typography color="text.secondary">Chargement…</Typography>
+          ) : (
+            <Grid container spacing={2}>
+              {favProperties.map((p) => (
+                <Grid item xs={12} sm={6} md={4} key={p.id}>
+                  <PropertyCard property={p} />
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </Box>
+      )}
 
     </Layout>
   );
