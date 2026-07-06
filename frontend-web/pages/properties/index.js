@@ -3,9 +3,11 @@ import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 import {
   Grid, TextField, MenuItem, Typography, Box, Button,
-  ToggleButton, ToggleButtonGroup, Pagination,
+  ToggleButton, ToggleButtonGroup, Pagination, Collapse,
+  FormControlLabel, Switch, Chip,
   Dialog, DialogTitle, DialogContent, DialogActions, Alert as MuiAlert,
 } from "@mui/material";
+import TuneIcon from "@mui/icons-material/Tune";
 import { useTranslation } from "react-i18next";
 import Layout from "../../components/Layout";
 import PropertyCard from "../../components/PropertyCard";
@@ -35,8 +37,10 @@ export default function BrowsePage() {
 
   const [filters, setFilters] = useState({
     q: "", country: "", city: "", type: "", transaction_type: "",
-    min_price: "", max_price: "", max_area: "",
+    min_price: "", max_price: "", min_area: "", max_area: "",
+    bedrooms: "", is_furnished: "", rent_period: "", sort: "newest",
   });
+  const [advOpen, setAdvOpen] = useState(false);
   const [items, setItems]     = useState([]);
   const [total, setTotal]     = useState(0);
   const [page, setPage]       = useState(1);
@@ -64,7 +68,12 @@ export default function BrowsePage() {
       transaction_type: params.get("transaction_type")  || "",
       min_price:        params.get("min_price")         || "",
       max_price:        params.get("max_price")         || "",
+      min_area:         params.get("min_area")          || "",
       max_area:         params.get("max_area")          || "",
+      bedrooms:         params.get("bedrooms")          || "",
+      is_furnished:     params.get("is_furnished")      || "",
+      rent_period:      params.get("rent_period")       || "",
+      sort:             params.get("sort")              || "newest",
     };
     setFilters(f);
     setPage(1);
@@ -88,8 +97,14 @@ export default function BrowsePage() {
   }
 
   const set = (key) => (e) => setFilters((f) => ({ ...f, [key]: e.target.value }));
+  const setDirect = (key, val) => setFilters((f) => ({ ...f, [key]: val }));
   const pageTitle = TX_TITLES[filters.transaction_type] || t("browse.title_all");
   const totalPages = Math.ceil(total / LIMIT);
+
+  // Nombre de filtres avancés actifs (badge)
+  const advCount = [
+    filters.min_area, filters.bedrooms, filters.is_furnished, filters.rent_period,
+  ].filter(Boolean).length;
 
   function goPage(p) {
     setPage(p);
@@ -151,43 +166,112 @@ export default function BrowsePage() {
         </Box>
       </Box>
 
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 3 }}>
+      {/* ─── Filtres principaux ─────────────────────────────────────────────── */}
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 1 }}>
         <TextField label={t("search.placeholder") || "Mot-clé"} size="small"
           value={filters.q} onChange={set("q")}
-          sx={{ flex: "1 1 200px" }}
+          sx={{ flex: "1 1 180px" }}
           placeholder="villa, bureau, Bobo…"
           onKeyDown={(e) => e.key === "Enter" && runSearch()}
         />
         <TextField select label={t("search.country") || "Pays"} size="small" value={filters.country}
-          onChange={set("country")} sx={{ minWidth: 190 }}>
+          onChange={set("country")} sx={{ minWidth: 170 }}>
           <MenuItem value="">{t("search.all_countries") || "Tous les pays"}</MenuItem>
           {AFRICAN_COUNTRIES.map((c) => (
             <MenuItem key={c.code} value={c.code}>{c.flag} {c.name}</MenuItem>
           ))}
         </TextField>
-        <TextField label={t("search.city") || "Ville"} size="small" value={filters.city} onChange={set("city")} />
+        <TextField label={t("search.city") || "Ville"} size="small" value={filters.city} onChange={set("city")} sx={{ width: 130 }} />
         <TextField select label="Transaction" size="small" value={filters.transaction_type}
-          onChange={set("transaction_type")} sx={{ minWidth: 210 }}>
+          onChange={set("transaction_type")} sx={{ minWidth: 190 }}>
           {TX_OPTIONS.map((o) => (
             <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
           ))}
         </TextField>
         <TextField select label={t("search.type")} size="small" value={filters.type}
-          onChange={set("type")} sx={{ minWidth: 160 }}>
+          onChange={set("type")} sx={{ minWidth: 140 }}>
           <MenuItem value="">—</MenuItem>
           {["land","house","apartment","office","commercial"].map((v) => (
             <MenuItem key={v} value={v}>{t(`types.${v}`)}</MenuItem>
           ))}
         </TextField>
         <TextField label={t("search.price_min")} type="number" size="small"
-          value={filters.min_price} onChange={set("min_price")} />
+          value={filters.min_price} onChange={set("min_price")} sx={{ width: 120 }} />
         <TextField label={t("search.price_max")} type="number" size="small"
-          value={filters.max_price} onChange={set("max_price")} />
-        <TextField label="Superficie max (m²)" type="number" size="small"
-          value={filters.max_area} onChange={set("max_area")}
-          sx={{ width: 160 }} />
+          value={filters.max_price} onChange={set("max_price")} sx={{ width: 120 }} />
+
+        {/* Tri */}
+        <TextField select label="Trier par" size="small" value={filters.sort}
+          onChange={set("sort")} sx={{ minWidth: 160 }}>
+          <MenuItem value="newest">Plus récent</MenuItem>
+          <MenuItem value="oldest">Plus ancien</MenuItem>
+          <MenuItem value="price_asc">Prix ↑</MenuItem>
+          <MenuItem value="price_desc">Prix ↓</MenuItem>
+          <MenuItem value="area_asc">Superficie ↑</MenuItem>
+          <MenuItem value="area_desc">Superficie ↓</MenuItem>
+        </TextField>
+
+        {/* Bouton filtres avancés */}
+        <Button
+          size="small" variant={advOpen ? "contained" : "outlined"}
+          startIcon={<TuneIcon />}
+          onClick={() => setAdvOpen((v) => !v)}
+          sx={{ alignSelf: "center" }}
+        >
+          Avancé{advCount > 0 ? ` (${advCount})` : ""}
+        </Button>
+
         <Button variant="contained" onClick={() => { setPage(1); runSearch(null, 1); }}>{t("search.filters")}</Button>
       </Box>
+
+      {/* ─── Filtres avancés ────────────────────────────────────────────────── */}
+      <Collapse in={advOpen}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2, p: 2, bgcolor: "grey.50", borderRadius: 2, border: "1px solid #e0e0e0" }}>
+          <TextField label="Superficie min (m²)" type="number" size="small"
+            value={filters.min_area} onChange={set("min_area")} sx={{ width: 150 }} />
+          <TextField label="Superficie max (m²)" type="number" size="small"
+            value={filters.max_area} onChange={set("max_area")} sx={{ width: 150 }} />
+          <TextField select label="Chambres min" size="small" value={filters.bedrooms}
+            onChange={set("bedrooms")} sx={{ width: 130 }}>
+            <MenuItem value="">—</MenuItem>
+            {[1,2,3,4,5].map((n) => (
+              <MenuItem key={n} value={n}>{n}+</MenuItem>
+            ))}
+          </TextField>
+          <TextField select label="Période location" size="small" value={filters.rent_period}
+            onChange={set("rent_period")} sx={{ width: 160 }}>
+            <MenuItem value="">—</MenuItem>
+            <MenuItem value="nightly">Nuitée</MenuItem>
+            <MenuItem value="weekly">Semaine</MenuItem>
+            <MenuItem value="monthly">Mois</MenuItem>
+          </TextField>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2">Meublé</Typography>
+            <ToggleButtonGroup
+              value={filters.is_furnished}
+              exclusive
+              onChange={(_, v) => setDirect("is_furnished", v ?? "")}
+              size="small"
+            >
+              <ToggleButton value="">Tous</ToggleButton>
+              <ToggleButton value="true">Oui</ToggleButton>
+              <ToggleButton value="false">Non</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+          {advCount > 0 && (
+            <Button size="small" color="error" variant="text"
+              onClick={() => {
+                setDirect("min_area", "");
+                setDirect("max_area", "");
+                setDirect("bedrooms", "");
+                setDirect("is_furnished", "");
+                setDirect("rent_period", "");
+              }}>
+              Réinitialiser
+            </Button>
+          )}
+        </Box>
+      </Collapse>
 
       {/* ─── Vue carte ──────────────────────────────────────────────────────── */}
       {viewMode === "map" && (

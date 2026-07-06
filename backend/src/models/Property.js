@@ -142,6 +142,7 @@ async function search(filters, opts) {
   var limit = options.limit !== undefined ? options.limit : 20;
   var offset = options.offset !== undefined ? options.offset : 0;
   var lang = options.lang;
+  var sort = options.sort || filters.sort || "newest";
 
   // Exclure les annonces expirées (listing_expires_at passé)
   const clauses = [
@@ -167,10 +168,13 @@ async function search(filters, opts) {
   if (filters.neighborhood) push("p.neighborhood ILIKE '%'||$?||'%'", filters.neighborhood);
   if (filters.type) push("p.type = $?", filters.type);
   if (filters.transaction_type) push("p.transaction_type = $?", filters.transaction_type);
-  if (filters.is_furnished !== undefined) push("p.is_furnished = $?", filters.is_furnished);
+  if (filters.is_furnished === true || filters.is_furnished === "true")  push("p.is_furnished = true");
+  if (filters.is_furnished === false || filters.is_furnished === "false") push("p.is_furnished = false");
+  if (filters.rent_period) push("p.rent_period = $?", filters.rent_period);
   if (filters.min_price != null) push("p.price >= $?", filters.min_price);
   if (filters.max_price != null) push("p.price <= $?", filters.max_price);
   if (filters.min_area != null) push("p.area_m2 >= $?", filters.min_area);
+  if (filters.max_area != null) push("p.area_m2 <= $?", filters.max_area);
   if (filters.bedrooms != null) push("p.bedrooms >= $?", filters.bedrooms);
   if (filters.q) push("(p.title ILIKE '%'||$?||'%' OR p.description ILIKE '%'||$?||'%')", filters.q, filters.q);
 
@@ -191,17 +195,37 @@ async function search(filters, opts) {
   }
 
   const where = clauses.length ? "WHERE " + clauses.join(" AND ") : "";
+
+  // Compte total (sans LIMIT/OFFSET) pour la pagination
+  const countParams = params.slice();
+  const { rows: countRows } = await query(
+    "SELECT COUNT(*) AS total FROM properties p " + where,
+    countParams
+  );
+  const total = parseInt(countRows[0]?.total || 0, 10);
+
+  const SORT_MAP = {
+    newest:     "(p.boosted_until > NOW()) DESC, p.published_at DESC NULLS LAST",
+    oldest:     "(p.boosted_until > NOW()) DESC, p.published_at ASC NULLS LAST",
+    price_asc:  "(p.boosted_until > NOW()) DESC, p.price ASC",
+    price_desc: "(p.boosted_until > NOW()) DESC, p.price DESC",
+    area_asc:   "(p.boosted_until > NOW()) DESC, p.area_m2 ASC NULLS LAST",
+    area_desc:  "(p.boosted_until > NOW()) DESC, p.area_m2 DESC NULLS LAST",
+  };
+  const orderBy = SORT_MAP[sort] || SORT_MAP.newest;
+
   params.push(limit, offset);
 
   const { rows } = await query(
     "SELECT " + BASE_COLS + " FROM properties p " + where +
-    " ORDER BY (p.boosted_until > NOW()) DESC, p.published_at DESC NULLS LAST" +
+    " ORDER BY " + orderBy +
     " LIMIT $" + (params.length - 1) + " OFFSET $" + params.length,
     params
   );
 
   const hydrated = rows.map(hydrate);
-  return Promise.all(hydrated.map(function(p) { return withTranslation(p, lang); }));
+  const items = await Promise.all(hydrated.map(function(p) { return withTranslation(p, lang); }));
+  return { items, total };
 }
 
 /**
