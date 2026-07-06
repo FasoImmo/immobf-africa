@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { Grid, TextField, MenuItem, Typography, Box, Button } from "@mui/material";
+import dynamic from "next/dynamic";
+import { Grid, TextField, MenuItem, Typography, Box, Button, ToggleButton, ToggleButtonGroup } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../../components/Layout";
 import PropertyCard from "../../components/PropertyCard";
 import { Properties, Analytics } from "../../lib/api";
 import { AFRICAN_COUNTRIES } from "../../lib/africanCountries";
+
+// MapView chargé côté client uniquement (Leaflet ne supporte pas SSR)
+const MapView = dynamic(() => import("../../components/MapView"), { ssr: false });
 
 export default function BrowsePage() {
   const router = useRouter();
@@ -24,12 +28,14 @@ export default function BrowsePage() {
     "rent_long":  t("browse.title_rent_long"),
     "rent_short": t("browse.title_rent_short"),
   };
+
   const [filters, setFilters] = useState({
     country: "", city: "", type: "", transaction_type: "", min_price: "", max_price: "",
   });
-  const [items, setItems] = useState([]);
+  const [items, setItems]     = useState([]);
   const [loading, setLoading] = useState(false);
-  const [ready, setReady] = useState(false);
+  const [ready, setReady]     = useState(false);
+  const [viewMode, setViewMode] = useState("list"); // "list" | "map"
 
   // Utilise window.location.search (toujours à jour) + router.asPath comme
   // dépendance pour relancer la recherche à chaque changement d'URL.
@@ -40,11 +46,11 @@ export default function BrowsePage() {
     );
     const f = {
       country:          params.get("country")           || "",
-      city:             params.get("city")             || "",
-      type:             params.get("type")             || "",
-      transaction_type: params.get("transaction_type") || "",
-      min_price:        params.get("min_price")        || "",
-      max_price:        params.get("max_price")        || "",
+      city:             params.get("city")              || "",
+      type:             params.get("type")              || "",
+      transaction_type: params.get("transaction_type")  || "",
+      min_price:        params.get("min_price")         || "",
+      max_price:        params.get("max_price")         || "",
     };
     setFilters(f);
     setReady(true);
@@ -67,9 +73,27 @@ export default function BrowsePage() {
   const set = (key) => (e) => setFilters((f) => ({ ...f, [key]: e.target.value }));
   const pageTitle = TX_TITLES[filters.transaction_type] || t("browse.title_all");
 
+  // Nombre d'annonces géolocalisées (pour afficher l'info dans le toggle)
+  const geoCount = items.filter((p) => p.location?.lat && p.location?.lng).length;
+
   return (
     <Layout title={pageTitle + " — ImmoBF"}>
-      <Typography variant="h4" gutterBottom>{pageTitle}</Typography>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 1 }}>
+        <Typography variant="h4">{pageTitle}</Typography>
+        <ToggleButtonGroup
+          value={viewMode}
+          exclusive
+          onChange={(_, v) => { if (v) setViewMode(v); }}
+          size="small"
+        >
+          <ToggleButton value="list" aria-label="Vue liste">
+            📋 Liste
+          </ToggleButton>
+          <ToggleButton value="map" aria-label="Vue carte">
+            🗺️ Carte{geoCount > 0 ? ` (${geoCount})` : ""}
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
 
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 3 }}>
         <TextField select label={t("search.country") || "Pays"} size="small" value={filters.country}
@@ -100,18 +124,31 @@ export default function BrowsePage() {
         <Button variant="contained" onClick={() => runSearch()}>{t("search.filters")}</Button>
       </Box>
 
-      <Grid container spacing={2}>
-        {items.map((p) => (
-          <Grid item xs={12} sm={6} md={4} key={p.id}>
-            <PropertyCard property={p} />
-          </Grid>
-        ))}
-        {!loading && ready && items.length === 0 && (
-          <Grid item xs={12}>
-            <Typography color="text.secondary">{t("search.no_results") || "Aucun résultat pour ces filtres."}</Typography>
-          </Grid>
-        )}
-      </Grid>
+      {/* ─── Vue carte ──────────────────────────────────────────────────────── */}
+      {viewMode === "map" && (
+        <Box sx={{ height: 520, width: "100%", mb: 3, borderRadius: 2, overflow: "hidden", border: "1px solid #e0e0e0" }}>
+          <MapView
+            properties={items}
+            onSelect={(p) => router.push(`/properties/${p.id}`)}
+          />
+        </Box>
+      )}
+
+      {/* ─── Vue liste ──────────────────────────────────────────────────────── */}
+      {viewMode === "list" && (
+        <Grid container spacing={2}>
+          {items.map((p) => (
+            <Grid item xs={12} sm={6} md={4} key={p.id}>
+              <PropertyCard property={p} />
+            </Grid>
+          ))}
+          {!loading && ready && items.length === 0 && (
+            <Grid item xs={12}>
+              <Typography color="text.secondary">{t("search.no_results") || "Aucun résultat pour ces filtres."}</Typography>
+            </Grid>
+          )}
+        </Grid>
+      )}
     </Layout>
   );
 }

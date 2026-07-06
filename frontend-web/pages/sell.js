@@ -193,6 +193,7 @@ export default function SellPage() {
     type: "house", title: "", description: "", title_en: "", description_en: "",
     price: "", currency: "XOF", area_m2: "", bedrooms: "", bathrooms: "",
     country_code: "BF", city: "", address: "", neighborhood: "",
+    lat: "", lng: "",
     is_furnished: false, rent_period: "monthly",
   });
   const [areaUnit, setAreaUnit] = useState("m2"); // "m2" | "ha"
@@ -311,6 +312,8 @@ export default function SellPage() {
         city: p.city || "",
         address: p.address || "",
         neighborhood: p.neighborhood || "",
+        lat: p.location?.lat ?? "",
+        lng: p.location?.lng ?? "",
         is_furnished: p.is_furnished || false,
         rent_period: p.rent_period || "monthly",
       });
@@ -342,6 +345,8 @@ export default function SellPage() {
         city: p.city || "",
         address: p.address || "",
         neighborhood: p.neighborhood || "",
+        lat: p.location?.lat ?? "",
+        lng: p.location?.lng ?? "",
         is_furnished: p.is_furnished || false,
         rent_period: p.rent_period || "monthly",
       });
@@ -719,6 +724,17 @@ export default function SellPage() {
               </Grid>
               <Grid item xs={12}>
                 <TextField fullWidth label={t("sell.address")} value={form.address} onChange={change("address")} />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth type="number" label="Latitude (GPS)"
+                  placeholder="ex: 12.3647"
+                  value={form.lat} onChange={change("lat")}
+                  helperText="Optionnel — permet l'affichage sur la carte" />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth type="number" label="Longitude (GPS)"
+                  placeholder="ex: -1.5333"
+                  value={form.lng} onChange={change("lng")} />
               </Grid>
 
               {form.type !== "land" && (
