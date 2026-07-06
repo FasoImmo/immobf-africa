@@ -200,6 +200,28 @@ class PawaPayProvider extends PaymentProvider {
     return digits;
   }
 
+  /**
+   * Interroge l'API PawaPay pour connaître le statut actuel d'un dépôt.
+   * Utilisé par le cron de réconciliation pour les transactions restées pending.
+   * @returns {"succeeded"|"failed"|null} null = toujours en cours ou erreur réseau
+   */
+  async checkStatus(depositId) {
+    const { apiToken } = config.providers.pawapay;
+    if (!apiToken || !depositId) return null;
+    try {
+      const res  = await fetch(`${this._baseUrl()}/v2/deposits/${depositId}`, {
+        headers: { Authorization: `Bearer ${apiToken}` },
+      });
+      const body = await res.json();
+      // Statuts PawaPay : ACCEPTED (en cours) | COMPLETED | FAILED | EXPIRED
+      if (body.status === "COMPLETED") return "succeeded";
+      if (body.status === "FAILED" || body.status === "EXPIRED") return "failed";
+      return null; // ACCEPTED = toujours en attente
+    } catch (_) {
+      return null; // erreur réseau — ne pas marquer failed
+    }
+  }
+
   async initiate({ amount, currency = "XOF", reference, customerPhone, metadata }) {
     const { apiToken } = config.providers.pawapay;
     const countryCode = metadata?.country_code || "BF";

@@ -236,6 +236,29 @@ class FedaPayProvider extends PaymentProvider {
     };
   }
 
+  /**
+   * Interroge l'API FedaPay pour connaître le statut actuel d'une transaction.
+   * Utilisé par le cron de réconciliation pour les transactions restées pending.
+   * @returns {"succeeded"|"failed"|null}
+   */
+  async checkStatus(externalId) {
+    const { secretKey } = config.providers.fedapay;
+    if (!secretKey || !externalId) return null;
+    try {
+      const res  = await fetch(`${this._baseUrl()}/transactions/${externalId}`, {
+        headers: this._authHeaders(secretKey),
+      });
+      const body = await res.json();
+      const tx   = body?.["v1/transaction"];
+      if (!tx) return null;
+      return mapFedaPayStatus(tx.status) === "succeeded" ? "succeeded"
+           : mapFedaPayStatus(tx.status) === "failed"    ? "failed"
+           : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   async refund({ externalId }) {
     const { secretKey } = config.providers.fedapay;
     if (!secretKey) {

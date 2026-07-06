@@ -105,6 +105,9 @@ if (require.main === module) {
     // Démarrer les alertes d'expiration d'annonce (cron quotidien)
     const { startExpiryAlertsCron } = require("./services/expiryAlerts");
     startExpiryAlertsCron();
+    // Démarrer la réconciliation des paiements pending (cron horaire)
+    const { startReconciliationCron } = require("./services/reconciliation");
+    startReconciliationCron();
   });
 }
 

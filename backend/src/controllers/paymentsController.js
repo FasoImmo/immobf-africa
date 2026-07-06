@@ -8,6 +8,7 @@ const Property = require("../models/Property");
 const User = require("../models/User");
 const registry = require("../services/PaymentProviderRegistry");
 const { generateReceipt } = require("../services/receipt");
+const { handleSucceededPayment } = require("../services/paymentActions");
 const { BadRequest, NotFound, Forbidden } = require("../utils/errors");
 const logger = require("../utils/logger");
 const config = require("../config");
@@ -296,102 +297,7 @@ async function webhook(req, res) {
   });
 
   if (parsed.status === "succeeded") {
-    // --- Frais de publication → auto-publier l'annonce ---
-    if (tx.purpose === "listing_fee" && tx.property_id) {
-      try {
-        const plans = config.commissions.listingPlans;
-        const months = Object.entries(plans).find(([, v]) => v === Number(tx.amount))?.[0] || 1;
-        const days = Number(months) * 30;
-        await Property.markListingFeePaid(tx.property_id);
-        await Property.setExpiry(tx.property_id, days);
-        logger.info({ property_id: tx.property_id, days }, "listing_fee paid — annonce publiée");
-      } catch (e) {
-        logger.error({ err: e.message, property_id: tx.property_id }, "markListingFeePaid failed");
-      }
-    }
-
-    // --- Escrow / dépôt de garantie ---
-    if (tx.purpose === "escrow" || tx.purpose === "deposit") {
-      const dueAt = new Date(Date.now() + 30 * 24 * 3600 * 1000);
-      await Escrow.create(tx.id, dueAt);
-    }
-
-    // --- Boost ---
-    if (tx.purpose === "boost" && tx.property_id) {
-      await Property.boost(tx.property_id, updated.buyer_id, 7);
-    }
-
-    // --- Reçu PDF + Email ---
-    try {
-      const buyer = await User.findById(updated.buyer_id);
-      const property = updated.property_id ? await Property.findById(updated.property_id) : null;
-      await generateReceipt(updated, { buyer, property });
-      // CORRECTIF (30/06/2026) : priorité à l'email saisi à la caisse
-      // (tx.customer_email) — sinon repli sur l'email du compte. Avant ce
-      // correctif, seul buyer.email était utilisé : si le compte n'avait pas
-      // d'email (créé avant que l'email soit obligatoire), aucun reçu ne
-      // partait, sans que personne ne le sache.
-      const receiptEmail = tx.customer_email || buyer?.email;
-      if (receiptEmail) {
-        const { sendPaymentReceipt } = require("../services/email");
-        const plans = config.commissions.listingPlans;
-        const months = Object.entries(plans).find(([, v]) => v === Number(updated.amount))?.[0] || 1;
-        await sendPaymentReceipt(receiptEmail, {
-          amount: updated.amount,
-          currency: updated.currency,
-          reference: updated.reference,
-          purpose: updated.purpose,
-          propertyTitle: property?.title,
-          months: Number(months),
-        });
-      } else {
-        logger.warn({ transaction_id: updated.id }, "Aucun email destinataire pour le reçu (ni caisse ni compte)");
-      }
-
-      // --- Copie facture à l'annonceur (commission de réservation) ---
-      // L'annonceur doit recevoir, en même temps que le client, une copie de
-      // la facture de la commission ImmoBF perçue sur sa réservation.
-      if (updated.purpose === "commission" && property?.owner_id) {
-        try {
-          const owner = await User.findById(property.owner_id);
-          if (owner?.email) {
-            const { sendOwnerCommissionReceipt } = require("../services/email");
-            const PERIOD_LABEL = { monthly: "mois", weekly: "semaine(s)", nightly: "nuit(s)" };
-            const details = await Transaction.findLatestEvent(updated.id, "booking_details");
-            await sendOwnerCommissionReceipt(owner.email, {
-              amount: updated.amount,
-              currency: updated.currency,
-              reference: updated.reference,
-              propertyTitle: property.title,
-              buyerPhone: buyer?.phone,
-              units: details?.booking_units,
-              periodLabel: PERIOD_LABEL[details?.rent_period] || "",
-              totalAmount: details?.total_booking_amount,
-            });
-          }
-        } catch (e) {
-          logger.warn({ err: e.message }, "Owner commission receipt copy failed");
-        }
-      }
-
-      // --- Créer la réservation calendrier (court séjour, webhook) ---
-      if (updated.purpose === "commission" && updated.property_id) {
-        try {
-          const details = await Transaction.findLatestEvent(updated.id, "booking_details");
-          if (details?.check_in && details?.booking_units) {
-            const checkIn  = new Date(details.check_in);
-            const checkOut = new Date(checkIn);
-            checkOut.setDate(checkOut.getDate() + Number(details.booking_units));
-            await Booking.create(updated.property_id, updated.id, checkIn, checkOut);
-            logger.info({ property_id: updated.property_id, check_in: details.check_in }, "webhook: booking créé");
-          }
-        } catch (e) {
-          logger.warn({ err: e.message }, "webhook: booking creation failed");
-        }
-      }
-    } catch (e) {
-      logger.warn({ err: e.message }, "Receipt generation failed");
-    }
+    await handleSucceededPayment(updated);
   }
 
   res.json({ ok: true });
