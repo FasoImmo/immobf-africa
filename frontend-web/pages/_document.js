@@ -20,6 +20,7 @@ export default function Document() {
         <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
 
         {/* SEO */}
+        <meta name="google-site-verification" content="v-csxptQHijmKpBSimeU0zyAEo7-Rwo35M8aUNTPC4A" />
         <meta name="application-name" content="ImmoBF Africa" />
         <meta name="description" content="Plateforme immobilière africaine — achat, location, mobile money" />
         <meta property="og:type" content="website" />
