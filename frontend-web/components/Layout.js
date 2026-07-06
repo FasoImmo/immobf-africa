@@ -153,6 +153,11 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
               </ListItemButton>
             </ListItem>
             <ListItem disablePadding>
+              <ListItemButton sx={{ color: "white" }} onClick={() => navigate("/account/stats")}>
+                <ListItemText primary="📊 Tableau de bord" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
               <ListItemButton sx={{ color: "#ffcdd2" }} onClick={logout}>
                 <ListItemText primary={t("nav.logout")}
                   primaryTypographyProps={{ sx: { color: "#ffcdd2" } }} />
@@ -289,6 +294,9 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
                     </MenuItem>
                     <MenuItem onClick={() => { setAccountAnchor(null); router.push("/messages"); }}>
                       💬 Messages {unread > 0 && `(${unread})`}
+                    </MenuItem>
+                    <MenuItem onClick={() => { setAccountAnchor(null); router.push("/account/stats"); }}>
+                      📊 Tableau de bord
                     </MenuItem>
                     <MenuItem onClick={() => { setAccountAnchor(null); router.push("/sell?tx=sale"); }}>
                       📝 {t("nav.publish")}

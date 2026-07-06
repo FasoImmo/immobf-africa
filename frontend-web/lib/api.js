@@ -134,6 +134,7 @@ export const Analytics = {
   availability: (id) => api.get(`/properties/${id}/availability`).then((r) => r.data),
   suggestions: (sessionId) => api.get("/suggestions", { params: { session_id: sessionId } }).then((r) => r.data),
   myStats: () => api.get("/my/stats").then((r) => r.data),
+  dashboard: () => api.get("/my/stats/dashboard").then((r) => r.data),
 };
 
 export const Photos = {

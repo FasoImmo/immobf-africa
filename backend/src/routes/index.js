@@ -168,6 +168,7 @@ router.delete("/my/listings/:id/block-dates/:blockId", requireAuth, asyncHandler
   res.json({ ok: true });
 }));
 router.get ("/my/stats",                requireAuth,      asyncHandler(analytics.myStats));
+router.get ("/my/stats/dashboard",     requireAuth,      asyncHandler(analytics.sellerDashboard));
 router.get ("/suggestions",             asyncHandler(analytics.suggestions));
 
 // ─── Recherches sauvegardées / alertes email ─────────────────────────────────

@@ -266,4 +266,75 @@ async function suggestions(req, res) {
   res.json({ items: rows, based_on: { cities, types, txTypes } });
 }
 
-module.exports = { trackView, trackSearch, propertyStats, myStats, similar, suggestions };
+// ─── Tableau de bord complet annonceur ───────────────────────────────────────
+async function sellerDashboard(req, res) {
+  const owner_id = req.user.id;
+
+  // 1. KPIs globaux + par annonce
+  const { rows: listings } = await query(
+    `SELECT
+       p.id, p.title, p.city, p.country_code, p.status,
+       p.transaction_type, p.price, p.currency,
+       p.listing_expires_at, p.published_at,
+       COUNT(pv.id) FILTER (WHERE pv.event_type = 'view')           AS total_views,
+       COUNT(pv.id) FILTER (WHERE pv.event_type = 'whatsapp_click') AS whatsapp_clicks,
+       COUNT(pv.id) FILTER (WHERE pv.event_type = 'view'
+                              AND pv.created_at > NOW() - INTERVAL '7 days') AS views_7d,
+       COUNT(DISTINCT pv.session_id)                                AS unique_visitors,
+       CASE
+         WHEN p.listing_expires_at IS NULL THEN 'no_subscription'
+         WHEN p.listing_expires_at < NOW() THEN 'expired'
+         WHEN p.listing_expires_at < NOW() + INTERVAL '7 days' THEN 'expiring_soon'
+         ELSE 'active'
+       END AS subscription_status,
+       COALESCE(EXTRACT(DAY FROM (p.listing_expires_at - NOW()))::int, 0) AS days_remaining
+     FROM properties p
+     LEFT JOIN property_views pv ON pv.property_id = p.id
+     WHERE p.owner_id = $1
+     GROUP BY p.id
+     ORDER BY total_views DESC NULLS LAST`,
+    [owner_id]
+  );
+
+  // 2. Courbe vues/jour sur 30 jours (toutes annonces confondues)
+  const { rows: viewsByDay } = await query(
+    `SELECT
+       DATE_TRUNC('day', pv.created_at)::date AS day,
+       COUNT(*) FILTER (WHERE pv.event_type = 'view')           AS views,
+       COUNT(*) FILTER (WHERE pv.event_type = 'whatsapp_click') AS whatsapp_clicks
+     FROM property_views pv
+     JOIN properties p ON p.id = pv.property_id
+     WHERE p.owner_id = $1
+       AND pv.created_at > NOW() - INTERVAL '30 days'
+     GROUP BY day
+     ORDER BY day ASC`,
+    [owner_id]
+  );
+
+  // 3. Messages reçus (toutes conversations où je suis le seller)
+  const { rows: msgRows } = await query(
+    `SELECT
+       COUNT(DISTINCT c.id)  AS total_conversations,
+       COUNT(m.id) FILTER (WHERE m.sender_id <> $1 AND m.read_at IS NULL) AS unread_messages,
+       COUNT(m.id) FILTER (WHERE m.sender_id <> $1)                       AS total_messages_received
+     FROM conversations c
+     LEFT JOIN messages m ON m.conversation_id = c.id
+     WHERE c.seller_id = $1`,
+    [owner_id]
+  );
+
+  // 4. Totaux globaux
+  const totals = {
+    total_views:       listings.reduce((s, r) => s + parseInt(r.total_views || 0), 0),
+    whatsapp_clicks:   listings.reduce((s, r) => s + parseInt(r.whatsapp_clicks || 0), 0),
+    views_7d:          listings.reduce((s, r) => s + parseInt(r.views_7d || 0), 0),
+    unique_visitors:   listings.reduce((s, r) => s + parseInt(r.unique_visitors || 0), 0),
+    active_listings:   listings.filter((r) => r.subscription_status === "active").length,
+    total_listings:    listings.length,
+    ...msgRows[0],
+  };
+
+  res.json({ listings, views_by_day: viewsByDay, totals });
+}
+
+module.exports = { trackView, trackSearch, propertyStats, myStats, similar, suggestions, sellerDashboard };
