@@ -14,7 +14,6 @@
 
 import { useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 
 // ─── Fix icône par défaut Leaflet (webpack casse le chemin _getIconUrl) ───────
@@ -90,8 +89,7 @@ export default function MapView({ properties = [], onSelect }) {
 
       <FitBounds properties={geoProps} />
 
-      <MarkerClusterGroup chunkedLoading>
-        {geoProps.map((property) => (
+      {geoProps.map((property) => (
           <Marker
             key={property.id}
             position={[property.location.lat, property.location.lng]}
@@ -127,7 +125,6 @@ export default function MapView({ properties = [], onSelect }) {
             </Popup>
           </Marker>
         ))}
-      </MarkerClusterGroup>
     </MapContainer>
   );
 }
