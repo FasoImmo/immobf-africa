@@ -27,9 +27,10 @@ const Transaction = require("../models/Transaction");
 const { handleSucceededPayment } = require("./paymentActions");
 const logger     = require("../utils/logger");
 
-// Seuil au-delà duquel on considère qu'un webhook ne viendra plus jamais.
-// 24h est conservateur : PawaPay expire les dépôts en moins de 3h en pratique.
-const STALE_HOURS = 24;
+// Seuil minimum d'âge d'une transaction pending pour qu'elle passe en
+// réconciliation. On laisse 3 min pour que le webhook arrive en premier —
+// le live checkStatus dans GET /payments/:id couvre le cas temps-réel.
+const STALE_MINUTES = 3;
 
 // Sécurité : pas plus de 100 transactions réconciliées par run pour éviter
 // un flood d'appels API en cas de bug ou d'accumulation passée.
@@ -42,7 +43,7 @@ async function runReconciliation() {
      FROM transactions
      WHERE status = 'pending'
        AND external_id IS NOT NULL
-       AND created_at < NOW() - INTERVAL '${STALE_HOURS} hours'
+       AND created_at < NOW() - INTERVAL '${STALE_MINUTES} minutes'
      ORDER BY created_at ASC
      LIMIT ${BATCH_LIMIT}`
   );
@@ -115,16 +116,11 @@ async function runReconciliation() {
 }
 
 function startReconciliationCron() {
-  // Toutes les heures, à H:05 (décalé de 5 min pour ne pas chevaucher
-  // l'alerte d'expiration qui tourne à 08:00 pile).
-  cron.schedule("5 * * * *", async () => {
+  // Toutes les 5 minutes — le live checkStatus dans GET /payments/:id gère
+  // le cas temps-réel (polling frontend) ; le cron est un filet de sécurité
+  // pour les transactions dont le webhook ET le polling ont manqué.
+  cron.schedule("*/5 * * * *", async () => {
     try {
       await runReconciliation();
     } catch (e) {
-      logger.error({ err: e.message }, "reconciliation cron: échec global");
-    }
-  });
-  logger.info("Reconciliation cron scheduled (hourly at :05)");
-}
-
-module.exports = { startReconciliationCron, runReconciliation };
+      logger.error({ err: e.message }, "reconcilia

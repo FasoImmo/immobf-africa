@@ -58,8 +58,13 @@ export default function PropertyDetail() {
     try {
       const { conversation } = await Messages.start(id);
       router.push(`/messages/${conversation.id}`);
-    } catch (_) {
-      router.push("/messages");
+    } catch (e) {
+      const msg = e?.response?.data?.error?.message || e.message || "";
+      if (msg.toLowerCase().includes("vous ne pouvez pas")) {
+        alert("Vous êtes l'annonceur de cette annonce.");
+      } else {
+        router.push("/messages");
+      }
     } finally {
       setContactLoading(false);
     }
@@ -376,15 +381,24 @@ export default function PropertyDetail() {
               </Typography>
             )}
 
-            {/* Bouton messagerie interne */}
-            <Button
-              fullWidth variant="outlined" size="large"
-              sx={{ mt: 1 }}
-              onClick={handleContact}
-              disabled={contactLoading}
-            >
-              💬 {contactLoading ? "…" : "Envoyer un message"}
-            </Button>
+            {/* Bouton messagerie interne — masqué pour le propriétaire,
+                verrouillé derrière la commission pour les locations */}
+            {meId && p && meId !== p.owner_id && (
+              isRent && !commissionPaid ? (
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, textAlign: "center" }}>
+                  🔒 Payez la commission pour contacter l&apos;annonceur
+                </Typography>
+              ) : (
+                <Button
+                  fullWidth variant="outlined" size="large"
+                  sx={{ mt: 1 }}
+                  onClick={handleContact}
+                  disabled={contactLoading}
+                >
+                  💬 {contactLoading ? "…" : "Envoyer un message"}
+                </Button>
+              )
+            )}
           </Paper>
         </Grid>
       </Grid>
@@ -451,31 +465,4 @@ export default function PropertyDetail() {
       })()}
 
       {/* ─── Annonces similaires ─────────────────────────────────────────── */}
-      {similar.length > 0 && (
-        <Box sx={{ mt: 5 }}>
-          <Typography variant="h5" gutterBottom>{t("property.similar")}</Typography>
-          <Grid container spacing={2}>
-            {similar.map((s) => (
-              <Grid item xs={12} sm={6} md={3} key={s.id}>
-                <PropertyCard property={s} />
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-      )}
-
-      {isRent && (
-        <PaymentDialog
-          open={payOpen}
-          onClose={function() { setPayOpen(false); }}
-          onSuccess={handleCommissionPaid}
-          property={p}
-          amount={commissionAmount}
-          purpose="commission"
-          bookingUnits={units}
-          checkIn={checkIn}
-        />
-      )}
-    </Layout>
-  );
-}
+      {similar.length > 0 &

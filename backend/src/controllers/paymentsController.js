@@ -315,6 +315,35 @@ async function get(req, res) {
     // Transaction ID is a UUID — guessing is infeasible in practice
     if (tx.buyer_id !== null) throw Forbidden();
   }
+
+  // Si la transaction est encore en attente ET que le provider supporte
+  // checkStatus, on interroge le provider en temps réel plutôt que de
+  // retourner l'état DB (potentiellement périmé si le webhook n'est pas
+  // arrivé). Permet au polling frontend (toutes les 4,5 s) de détecter
+  // la confirmation sans dépendre du webhook ni du cron de réconciliation.
+  if (tx.status === "pending" && tx.external_id) {
+    try {
+      const provider = registry.get(tx.provider);
+      if (typeof provider.checkStatus === "function") {
+        let liveStatus = await provider.checkStatus(tx.external_id);
+        // Certains providers (ex. CinetPay) renvoient un objet { status, ... }
+        // plutôt qu'une simple string — normaliser ici.
+        if (liveStatus && typeof liveStatus === "object") liveStatus = liveStatus.status;
+        if (liveStatus && liveStatus !== "pending") {
+          const updated = await Transaction.updateStatus(tx.id, liveStatus);
+          await Transaction.logEvent(tx.id, "live_check", { from: "pending", to: liveStatus });
+          if (liveStatus === "succeeded") {
+            await handleSucceededPayment(updated);
+          }
+          return res.json({ transaction: updated });
+        }
+      }
+    } catch (e) {
+      // Erreur réseau / provider down : on retourne l'état DB sans planter
+      logger.warn({ err: e.message, transaction_id: tx.id }, "live checkStatus failed, returning DB state");
+    }
+  }
+
   res.json({ transaction: tx });
 }
 
@@ -354,37 +383,4 @@ async function mockSucceed(req, res) {
 
 /**
  * DIAGNOSTIC TEMPORAIRE (29/06/2026) — débogage de l'absence de callback
- * PawaPay : la console Railway s'est révélée difficile à utiliser pour
- * lancer une requête SQL/HTTP manuelle, donc on expose deux routes admin
- * pour (1) lister les dernières transactions PawaPay et (2) demander à
- * PawaPay de renvoyer le callback d'un dépôt précis. À retirer une fois
- * le problème de callback résolu et confirmé stable.
- */
-async function adminPawapayLast(req, res) {
-  if (req.user.role !== "admin") throw Forbidden();
-  const { query } = require("../config/db");
-  const { rows } = await query(
-    `SELECT id, reference, external_id, status, amount, currency, created_at, updated_at
-     FROM transactions WHERE provider = 'pawapay' ORDER BY created_at DESC LIMIT 5`
-  );
-  res.json({ transactions: rows });
-}
-
-async function adminPawapayResendCallback(req, res) {
-  if (req.user.role !== "admin") throw Forbidden();
-  const depositId = req.params.depositId;
-  const { apiToken, live } = config.providers.pawapay;
-  if (!apiToken) throw new BadRequest("PawaPay non configuré");
-  const baseUrl = live ? "https://api.pawapay.io" : "https://api.sandbox.pawapay.io";
-  const r = await fetch(`${baseUrl}/v2/deposits/resend-callback/${depositId}`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiToken}` },
-  });
-  const body = await r.json().catch(() => ({}));
-  res.status(r.status).json(body);
-}
-
-module.exports = {
-  listProviders, initiate, webhook, get, listMine, releaseEscrow, mockSucceed,
-  adminPawapayLast, adminPawapayResendCallback,
-};
+ * PawaPay : la console Railway s'est rév
