@@ -181,6 +181,8 @@ export const Admin = {
   sendContactNewsletter: (data) => api.post("/admin/contacts/newsletter", data).then((r) => r.data),
   getPricing: () => api.get("/admin/pricing").then((r) => r.data),
   setPricing: (data) => api.patch("/admin/pricing", data).then((r) => r.data),
+  reviews: () => api.get("/admin/reviews").then((r) => r.data),
+  deleteReview: (id) => api.delete(`/admin/reviews/${id}`).then((r) => r.data),
 };
 
 export const Config = {

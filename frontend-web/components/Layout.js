@@ -157,6 +157,15 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
                 <ListItemText primary="📊 Tableau de bord" />
               </ListItemButton>
             </ListItem>
+            {user?.role === "admin" && (
+              <ListItem disablePadding>
+                <ListItemButton sx={{ color: "white", bgcolor: "rgba(255,255,255,0.12)", borderRadius: 1, mx: 1, mt: 0.5 }}
+                  onClick={() => navigate("/admin")}>
+                  <ListItemText primary="⚙️ Administration"
+                    primaryTypographyProps={{ fontWeight: 700, sx: { color: "white" } }} />
+                </ListItemButton>
+              </ListItem>
+            )}
             <ListItem disablePadding>
               <ListItemButton sx={{ color: "#ffcdd2" }} onClick={logout}>
                 <ListItemText primary={t("nav.logout")}
@@ -301,6 +310,13 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
                     <MenuItem onClick={() => { setAccountAnchor(null); router.push("/sell?tx=sale"); }}>
                       📝 {t("nav.publish")}
                     </MenuItem>
+                    {user?.role === "admin" && [
+                      <Divider key="div-admin" />,
+                      <MenuItem key="admin-link" onClick={() => { setAccountAnchor(null); router.push("/admin"); }}
+                        sx={{ fontWeight: 700, color: "#0E7C66" }}>
+                        ⚙️ Administration
+                      </MenuItem>,
+                    ]}
                     <MenuItem onClick={logout} sx={{ color: "error.main" }}>
                       {t("nav.logout")}
                     </MenuItem>

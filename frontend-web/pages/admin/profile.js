@@ -6,7 +6,7 @@ import {
 } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
-import Layout from "../../components/Layout";
+import AdminLayout from "../../components/AdminLayout";
 import { Admin } from "../../lib/api";
 
 function Section({ title, children }) {
@@ -133,23 +133,23 @@ export default function AdminProfile() {
 
   if (authorized === null) {
     return (
-      <Layout title="Profil admin — ImmoBF">
+      <AdminLayout title="Profil admin — ImmoBF">
         <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box>
-      </Layout>
+      </AdminLayout>
     );
   }
   if (authorized === false) {
     return (
-      <Layout title="Profil admin — ImmoBF">
+      <AdminLayout title="Profil admin — ImmoBF">
         <Paper sx={{ p: 4, textAlign: "center" }}>
           <Typography variant="h5">Accès refusé</Typography>
         </Paper>
-      </Layout>
+      </AdminLayout>
     );
   }
 
   return (
-    <Layout title="Profil admin — ImmoBF">
+    <AdminLayout title="Profil admin — ImmoBF">
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3, flexWrap: "wrap" }}>
         <Button variant="text" onClick={() => router.push("/admin")}>← Tableau de bord</Button>
         <Typography variant="h5" fontWeight={700} sx={{ flex: 1 }}>Profil administrateur</Typography>
@@ -234,7 +234,7 @@ export default function AdminProfile() {
         </Typography>
         <TestEmailPanel />
       </Section>
-    </Layout>
+    </AdminLayout>
   );
 }
 

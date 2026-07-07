@@ -4,7 +4,7 @@ import {
   Box, Typography, Button, Paper, Table, TableHead, TableRow, TableCell,
   TableBody, Chip, CircularProgress, Alert, Divider, Grid,
 } from "@mui/material";
-import Layout from "../../../components/Layout";
+import AdminLayout from "../../../components/AdminLayout";
 import { Admin } from "../../../lib/api";
 import { formatFCFA } from "../../../lib/format";
 
@@ -39,10 +39,10 @@ export default function AdminUserStats() {
   }, [id, authorized]);
 
   if (authorized === null || loading) {
-    return <Layout title="Stats annonceur — Admin"><Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box></Layout>;
+    return <AdminLayout title="Stats annonceur — Admin"><Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box></AdminLayout>;
   }
   if (authorized === false) {
-    return <Layout title="Stats annonceur — Admin"><Alert severity="error">Accès réservé aux administrateurs.</Alert></Layout>;
+    return <AdminLayout title="Stats annonceur — Admin"><Alert severity="error">Accès réservé aux administrateurs.</Alert></AdminLayout>;
   }
 
   const u = data?.user;
@@ -54,7 +54,7 @@ export default function AdminUserStats() {
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   return (
-    <Layout title={`Stats — ${u?.full_name || u?.phone || "..."} — Admin`}>
+    <AdminLayout title={`Stats — ${u?.full_name || u?.phone || "..."} — Admin`}>
       <Box sx={{ display: "flex", gap: 2, alignItems: "center", mb: 3 }}>
         <Button variant="outlined" onClick={() => router.push("/admin/users")}>← Abonnés</Button>
         <Typography variant="h5" fontWeight={700}>
@@ -174,6 +174,6 @@ export default function AdminUserStats() {
           </TableBody>
         </Table>
       </Paper>
-    </Layout>
+    </AdminLayout>
   );
 }

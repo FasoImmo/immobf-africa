@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import Layout from "../../components/Layout";
+import AdminLayout from "../../components/AdminLayout";
 import { Admin } from "../../lib/api";
 
 const FLAG = (code) =>
@@ -301,6 +301,6 @@ export default function AdminContacts() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Layout>
+    </AdminLayout>
   );
 }

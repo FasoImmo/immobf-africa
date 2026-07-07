@@ -123,4 +123,10 @@ function startReconciliationCron() {
     try {
       await runReconciliation();
     } catch (e) {
-      logger.error({ err: e.message }, "reconcilia
+      logger.error({ err: e.message }, "reconciliation cron: échec global");
+    }
+  });
+  logger.info("Reconciliation cron scheduled (every 5 min)");
+}
+
+module.exports = { startReconciliationCron, runReconciliation };

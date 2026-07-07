@@ -7,7 +7,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
-import Layout from "../../components/Layout";
+import AdminLayout from "../../components/AdminLayout";
 import { Admin } from "../../lib/api";
 import { formatFCFA } from "../../lib/format";
 
@@ -120,18 +120,18 @@ export default function AdminRevenues() {
 
   if (authorized === null) {
     return (
-      <Layout title="Paiements — Admin ImmoBF">
+      <AdminLayout title="Paiements — Admin ImmoBF">
         <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box>
-      </Layout>
+      </AdminLayout>
     );
   }
   if (authorized === false) {
     return (
-      <Layout title="Paiements — Admin ImmoBF">
+      <AdminLayout title="Paiements — Admin ImmoBF">
         <Paper sx={{ p: 4, textAlign: "center" }}>
           <Typography variant="h5">Accès refusé</Typography>
         </Paper>
-      </Layout>
+      </AdminLayout>
     );
   }
 
@@ -181,7 +181,7 @@ export default function AdminRevenues() {
     : `${startDate || "…"} → ${endDate || "…"}`;
 
   return (
-    <Layout title="Paiements & Revenus — Admin ImmoBF">
+    <AdminLayout title="Paiements & Revenus — Admin ImmoBF">
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3, flexWrap: "wrap" }}>
         <Button variant="text" onClick={() => router.push("/admin")}>← Tableau de bord</Button>
         <Typography variant="h5" fontWeight={700} sx={{ flex: 1 }}>
@@ -610,6 +610,6 @@ export default function AdminRevenues() {
           </>
         )}
       </Drawer>
-    </Layout>
+    </AdminLayout>
   );
 }

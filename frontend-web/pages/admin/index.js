@@ -2,497 +2,311 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import {
   Box, Grid, Paper, Typography, Table, TableHead, TableRow, TableCell,
-  TableBody, Button, CircularProgress, Chip, Divider, TextField, Alert,
+  TableBody, Button, CircularProgress, Chip, Avatar,
 } from "@mui/material";
-import Layout from "../../components/Layout";
-import { Admin } from "../../lib/api";
-import { Switch, FormControlLabel } from "@mui/material";
+import TrendingUpIcon      from "@mui/icons-material/TrendingUp";
+import ReceiptLongIcon     from "@mui/icons-material/ReceiptLong";
+import PeopleAltIcon       from "@mui/icons-material/PeopleAlt";
+import ApartmentIcon       from "@mui/icons-material/Apartment";
+import CheckCircleIcon     from "@mui/icons-material/CheckCircle";
+import PendingIcon         from "@mui/icons-material/Pending";
+import CancelIcon          from "@mui/icons-material/Cancel";
+import EmojiEventsIcon     from "@mui/icons-material/EmojiEvents";
+import PublicIcon          from "@mui/icons-material/Public";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
+  ResponsiveContainer, Cell,
+} from "recharts";
+import AdminLayout    from "../../components/AdminLayout";
+import { Admin }      from "../../lib/api";
 import { formatFCFA } from "../../lib/format";
 
-function KpiCard({ label, value, color }) {
+// ── Palette ────────────────────────────────────────────────────────────────
+const TEAL = "#0E7C66";
+const PROVIDER_COLORS = {
+  pawapay:    "#FF6B35",
+  fedapay:    "#7C3AED",
+  cinetpay:   "#0369A1",
+  flutterwave:"#F59E0B",
+  default:    "#64748B",
+};
+function pColor(name) { return PROVIDER_COLORS[(name||"").toLowerCase()] || PROVIDER_COLORS.default; }
+
+// ── KPI card ──────────────────────────────────────────────────────────────
+function KpiCard({ label, value, icon, color = TEAL, sub }) {
   return (
-    <Paper sx={{ p: 2, height: "100%" }}>
-      <Typography variant="overline" color="text.secondary">{label}</Typography>
-      <Typography variant="h5" fontWeight={700} color={color || "text.primary"} sx={{ mt: 0.5 }}>
-        {value}
-      </Typography>
+    <Paper sx={{ p: 2.5, borderRadius: 2.5, height: "100%", borderLeft: `4px solid ${color}`, "&:hover": { boxShadow: 4 }, transition: "box-shadow .15s" }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
+        <Typography variant="caption" sx={{ color: "#64748B", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.6, fontWeight: 600 }}>
+          {label}
+        </Typography>
+        <Box sx={{ bgcolor: color + "18", borderRadius: 1.5, p: 0.75, color, display: "flex" }}>{icon}</Box>
+      </Box>
+      <Typography variant="h5" fontWeight={800} sx={{ color: "#0F172A" }}>{value}</Typography>
+      {sub && <Typography variant="caption" sx={{ color: "#94A3B8", fontSize: 11, mt: 0.25, display: "block" }}>{sub}</Typography>}
     </Paper>
   );
 }
 
-function accessGuard(router, setAuthorized) {
-  if (typeof window === "undefined") return;
-  const token = localStorage.getItem("immobf_token");
-  if (!token) { router.replace("/login?redirect=/admin"); return; }
-  let user = null;
-  try { user = JSON.parse(localStorage.getItem("immobf_user") || "null"); } catch (_) {}
-  if (!user || user.role !== "admin") { setAuthorized(false); return; }
-  setAuthorized(true);
+function CustomTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <Paper sx={{ p: 1.5, fontSize: 13, borderRadius: 1.5 }}>
+      {payload.map((p) => (
+        <Typography key={p.dataKey} sx={{ color: p.fill || p.color }}>{formatFCFA(p.value)}</Typography>
+      ))}
+    </Paper>
+  );
 }
 
-const PURPOSE_LABEL = {
-  listing_fee: "Frais publication",
-  commission: "Commission",
-  deposit: "Acompte",
-};
-
-const STATUS_COLOR = {
-  succeeded: "success",
-  pending: "warning",
-  failed: "error",
-};
+const STATUS_COLOR  = { succeeded: "success", pending: "warning", failed: "error" };
+const PURPOSE_LABEL = { listing_fee: "Publication", commission: "Commission" };
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [authorized, setAuthorized] = useState(null);
-  const [data, setData] = useState(null);
+  const [loading,    setLoading]    = useState(true);
+  const [data,       setData]       = useState(null);
   const [properties, setProperties] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [testEmailTo, setTestEmailTo] = useState("");
-  const [testEmailBusy, setTestEmailBusy] = useState(false);
-  const [testEmailResult, setTestEmailResult] = useState(null);
-  const [promo, setPromo] = useState(null);
-  const [promoSaving, setPromoSaving] = useState(false);
-  const [promoMsg, setPromoMsg] = useState(null);
-  const [pricing, setPricing] = useState(null);
-  const [pricingSaving, setPricingSaving] = useState(false);
-  const [pricingMsg, setPricingMsg] = useState(null);
-
-  useEffect(() => { accessGuard(router, setAuthorized); }, []); // eslint-disable-line
+  const [byProvider, setByProvider] = useState([]);
 
   useEffect(() => {
-    if (authorized !== true) return;
-    Admin.getPromo().then(setPromo).catch(() => {});
-    Admin.getPricing().then(setPricing).catch(() => {});
     setLoading(true);
-    Promise.all([Admin.revenues(), Admin.properties({ limit: 200 })])
-      .then(([rev, props]) => {
+    Promise.all([Admin.revenues(), Admin.properties({ limit: 500 }), Admin.paymentStats()])
+      .then(([rev, props, ps]) => {
         setData(rev);
         setProperties(props.properties || []);
+        setByProvider((ps.byProvider || []).map((p) => ({
+          ...p, name: (p.provider || "?").toUpperCase(),
+          total_revenue: Number(p.total_revenue) || 0,
+        })));
       })
       .finally(() => setLoading(false));
-  }, [authorized]);
+  }, []);
 
-  if (authorized === null) {
-    return (
-      <Layout title="Admin - ImmoBF">
-        <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box>
-      </Layout>
-    );
-  }
-  if (authorized === false) {
-    return (
-      <Layout title="Admin - ImmoBF">
-        <Paper sx={{ p: 4, textAlign: "center" }}>
-          <Typography variant="h5">Acces refuse</Typography>
-          <Typography color="text.secondary" sx={{ mt: 1 }}>Reserve aux administrateurs.</Typography>
-        </Paper>
-      </Layout>
-    );
-  }
-
-  const stats = data?.stats || {};
-  const annonceurs = data?.annonceurs || [];
-  const transactions = data?.transactions || [];
-
-  const byCountry = properties.reduce((acc, p) => {
-    const c = p.country_code || "ND";
-    acc[c] = (acc[c] || 0) + 1;
-    return acc;
-  }, {});
-
-  const top5 = [...annonceurs].slice(0, 5);
-
-  function exportCsv() {
-    const rows = [["id","nom","email","telephone","nb_annonces","nb_transactions","total_paye_xof","pays_principal","dernier_paiement"]]
-      .concat(annonceurs.map((a) => [
-        a.id, a.full_name, a.email || "", a.phone, a.nb_annonces,
-        a.nb_transactions, a.total_paid, a.main_country || "",
-        a.last_payment_at ? new Date(a.last_payment_at).toLocaleDateString("fr-FR") : "",
-      ]));
-    const csv = rows.map((r) => r.map((v) => String(v ?? "").replace(/"/g, '""')).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "annonceurs-immobf.csv"; a.click();
-    URL.revokeObjectURL(url);
-  }
+  const stats  = data?.stats || {};
+  const top5   = (data?.annonceurs || []).slice(0, 5);
+  const txs    = data?.transactions || [];
+  const totalTx = (stats.nb_succeeded||0) + (stats.nb_failed||0) + (stats.nb_pending||0);
+  const successRate = totalTx > 0 ? Math.round(((stats.nb_succeeded||0)/totalTx)*100) : 0;
+  const byCountry = properties.reduce((acc, p) => { const c=p.country_code||"ND"; acc[c]=(acc[c]||0)+1; return acc; }, {});
 
   return (
-    <Layout title="Admin - ImmoBF">
-      <Typography variant="h4" fontWeight={700} gutterBottom>Tableau de bord</Typography>
-
-      {loading && (
-        <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
-          <CircularProgress size={18} />
-          <Typography variant="body2">Chargement...</Typography>
-        </Box>
-      )}
-
-      {/* ─── Layout 2 colonnes : panels à gauche, navigation à droite ───── */}
-      <Grid container spacing={3} alignItems="flex-start" sx={{ mb: 3 }}>
-        {/* Colonne gauche — KPIs + réglages */}
-        <Grid item xs={12} md={8}>
-
-      <Typography variant="h6" sx={{ mb: 1, mt: 1 }}>Revenus ImmoBF</Typography>
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={6} sm={3}>
-          <KpiCard label="CA Total" value={formatFCFA(stats.total_revenue || 0)} color="#1B6B3A" />
+    <AdminLayout title="Tableau de bord — Admin ImmoBF">
+      {/* ── KPI row 1 ──────────────────────────────────────────────────── */}
+      <Grid container spacing={2.5} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <KpiCard label="Chiffre d'affaires" value={formatFCFA(stats.total_revenue||0)}
+            icon={<TrendingUpIcon fontSize="small" />} color={TEAL}
+            sub={`${formatFCFA(stats.revenue_listing||0)} pub + ${formatFCFA(stats.revenue_commission||0)} com.`} />
         </Grid>
-        <Grid item xs={6} sm={3}>
-          <KpiCard label="Frais publication" value={formatFCFA(stats.revenue_listing || 0)} />
+        <Grid item xs={6} sm={6} md={3}>
+          <KpiCard label="Transactions réussies" value={stats.nb_succeeded||0}
+            icon={<CheckCircleIcon fontSize="small" />} color="#16a34a"
+            sub={`Taux : ${successRate}%`} />
         </Grid>
-        <Grid item xs={6} sm={3}>
-          <KpiCard label="Commissions" value={formatFCFA(stats.revenue_commission || 0)} />
+        <Grid item xs={6} sm={6} md={3}>
+          <KpiCard label="En attente" value={stats.nb_pending||0}
+            icon={<PendingIcon fontSize="small" />} color="#d97706" />
         </Grid>
-        <Grid item xs={6} sm={3}>
-          <KpiCard label="Annonceurs actifs" value={stats.nb_annonceurs_actifs || 0} />
+        <Grid item xs={6} sm={6} md={3}>
+          <KpiCard label="Échouées" value={stats.nb_failed||0}
+            icon={<CancelIcon fontSize="small" />} color="#dc2626" />
         </Grid>
       </Grid>
 
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={4}>
-          <KpiCard label="Tx reussies" value={stats.nb_succeeded || 0} color="green" />
+      {/* ── KPI row 2 ──────────────────────────────────────────────────── */}
+      <Grid container spacing={2.5} sx={{ mb: 3 }}>
+        <Grid item xs={6} sm={6} md={3}>
+          <KpiCard label="Annonceurs actifs" value={stats.nb_annonceurs_actifs||0}
+            icon={<PeopleAltIcon fontSize="small" />} color="#7c3aed" />
         </Grid>
-        <Grid item xs={4}>
-          <KpiCard label="En attente" value={stats.nb_pending || 0} color="orange" />
+        <Grid item xs={6} sm={6} md={3}>
+          <KpiCard label="Annonces publiées" value={properties.length}
+            icon={<ApartmentIcon fontSize="small" />} color="#0369a1" />
         </Grid>
-        <Grid item xs={4}>
-          <KpiCard label="Echouees" value={stats.nb_failed || 0} color="red" />
+        <Grid item xs={6} sm={6} md={3}>
+          <KpiCard label="Frais de publication" value={formatFCFA(stats.revenue_listing||0)}
+            icon={<ReceiptLongIcon fontSize="small" />} color="#0891b2" />
+        </Grid>
+        <Grid item xs={6} sm={6} md={3}>
+          <KpiCard label="Commissions" value={formatFCFA(stats.revenue_commission||0)}
+            icon={<EmojiEventsIcon fontSize="small" />} color="#be185d" />
         </Grid>
       </Grid>
 
-      <Divider sx={{ my: 3 }} />
-
-      {/* ─── Diagnostic email ───────────────────────────────────────────── */}
-      <Paper elevation={0} sx={{ p: 2, mb: 3, bgcolor: "#f0f4f8", borderRadius: 2 }}>
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>🔧 Diagnostic Resend — test d&apos;envoi email</Typography>
-        <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
-          <TextField
-            size="small" type="email" label="Adresse de destination"
-            value={testEmailTo} onChange={(e) => setTestEmailTo(e.target.value)}
-            sx={{ bgcolor: "white", minWidth: 240 }}
-            placeholder="votre@email.com"
-          />
-          <Button
-            size="small" variant="outlined"
-            disabled={testEmailBusy || !testEmailTo}
-            onClick={async () => {
-              setTestEmailBusy(true); setTestEmailResult(null);
-              try {
-                const r = await Admin.testEmail(testEmailTo);
-                setTestEmailResult({ ok: r.ok, msg: r.ok ? `Envoyé (id: ${r.resend?.data?.id})` : `Refusé : ${JSON.stringify(r.resend?.error || r.error)}`, from: r.from });
-              } catch (e) {
-                setTestEmailResult({ ok: false, msg: e?.response?.data?.error?.message || "Erreur réseau" });
-              } finally { setTestEmailBusy(false); }
-            }}
-          >
-            {testEmailBusy ? <CircularProgress size={16} /> : "Envoyer le test"}
-          </Button>
-        </Box>
-        {testEmailResult && (
-          <Alert severity={testEmailResult.ok ? "success" : "error"} sx={{ mt: 1 }}>
-            {testEmailResult.msg}
-            {testEmailResult.from && <Typography component="span" variant="caption" sx={{ ml: 1, opacity: 0.7 }}>FROM: {testEmailResult.from}</Typography>}
-          </Alert>
-        )}
-      </Paper>
-
-      {/* ─── Tarifs annonces + commission ──────────────────────────────────── */}
-      {pricing !== null && (
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" fontWeight={700} gutterBottom>
-            💰 Tarifs annonces &amp; commission
-          </Typography>
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            {[
-              { key: "listing_1m",  label: "1 mois (FCFA)" },
-              { key: "listing_3m",  label: "3 mois (FCFA)" },
-              { key: "listing_6m",  label: "6 mois (FCFA)" },
-              { key: "listing_12m", label: "12 mois (FCFA)" },
-            ].map(({ key, label }) => (
-              <Grid item xs={6} sm={3} key={key}>
-                <TextField
-                  size="small" label={label} type="number"
-                  value={pricing[key] ?? ""}
-                  onChange={(e) => setPricing((p) => ({ ...p, [key]: Number(e.target.value) }))}
-                  inputProps={{ min: 0 }}
-                  fullWidth
-                />
-              </Grid>
-            ))}
-            <Grid item xs={6} sm={3}>
-              <TextField
-                size="small" label="Commission %" type="number"
-                value={pricing.commission_pct ?? ""}
-                onChange={(e) => setPricing((p) => ({ ...p, commission_pct: Number(e.target.value) }))}
-                inputProps={{ min: 0, max: 100, step: 0.5 }}
-                fullWidth
-              />
-            </Grid>
-          </Grid>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Button
-              size="small" variant="contained" color="primary" disabled={pricingSaving}
-              onClick={async () => {
-                setPricingSaving(true); setPricingMsg(null);
-                try {
-                  const r = await Admin.setPricing({
-                    listing_1m:  pricing.listing_1m,
-                    listing_3m:  pricing.listing_3m,
-                    listing_6m:  pricing.listing_6m,
-                    listing_12m: pricing.listing_12m,
-                    commission_pct: pricing.commission_pct,
-                  });
-                  setPricing(r.pricing);
-                  setPricingMsg({ ok: true, text: "Tarifs enregistrés ✅" });
-                } catch { setPricingMsg({ ok: false, text: "Erreur lors de la sauvegarde." }); }
-                finally { setPricingSaving(false); }
-              }}
-            >
-              {pricingSaving ? <CircularProgress size={16} color="inherit" /> : "Enregistrer"}
-            </Button>
-            {pricingMsg && <Typography variant="caption" color={pricingMsg.ok ? "success.main" : "error"}>{pricingMsg.text}</Typography>}
-          </Box>
-        </Paper>
-      )}
-
-      {/* ─── Promo publication gratuite ─────────────────────────────────────── */}
-      {promo !== null && (
-        <Paper elevation={0} sx={{ p: 2, mb: 3, bgcolor: "#f0fdf4", borderRadius: 2, border: "1px solid #86efac" }}>
-          <Typography variant="subtitle2" sx={{ mb: 1.5 }}>🎉 Publication gratuite — offre temporaire</Typography>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={promo.configured || false}
-                onChange={async (e) => {
-                  setPromoSaving(true); setPromoMsg(null);
-                  try {
-                    const r = await Admin.setPromo({ active: e.target.checked });
-                    setPromo(r.promo);
-                    setPromoMsg({ ok: true, text: e.target.checked ? "Promo activée ✅" : "Promo désactivée" });
-                  } catch { setPromoMsg({ ok: false, text: "Erreur lors de la mise à jour." }); }
-                  finally { setPromoSaving(false); }
-                }}
-                color="success"
-              />
-            }
-            label={promo.configured ? "Promo activée" : "Promo désactivée"}
-          />
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1 }}>
-            <TextField size="small" type="date" label="Début" value={promo.start || ""}
-              onChange={(e) => setPromo((p) => ({ ...p, start: e.target.value }))}
-              InputLabelProps={{ shrink: true }} sx={{ minWidth: 150 }} />
-            <TextField size="small" type="date" label="Fin" value={promo.end || ""}
-              onChange={(e) => setPromo((p) => ({ ...p, end: e.target.value }))}
-              InputLabelProps={{ shrink: true }} sx={{ minWidth: 150 }} />
-          </Box>
-          <TextField size="small" fullWidth label="Message FR" value={promo.message_fr || ""}
-            onChange={(e) => setPromo((p) => ({ ...p, message_fr: e.target.value }))}
-            sx={{ mt: 1 }} placeholder="🎉 Publication gratuite jusqu'au 31 juillet ! Publiez sans frais." />
-          <TextField size="small" fullWidth label="Message EN" value={promo.message_en || ""}
-            onChange={(e) => setPromo((p) => ({ ...p, message_en: e.target.value }))}
-            sx={{ mt: 1 }} placeholder="🎉 Free listing until July 31! Publish at no cost." />
-          <Box sx={{ mt: 1.5, display: "flex", gap: 1, alignItems: "center" }}>
-            <Button size="small" variant="contained" color="success" disabled={promoSaving}
-              onClick={async () => {
-                setPromoSaving(true); setPromoMsg(null);
-                try {
-                  const r = await Admin.setPromo({
-                    active: promo.configured,
-                    start: promo.start || null,
-                    end: promo.end || null,
-                    message_fr: promo.message_fr || null,
-                    message_en: promo.message_en || null,
-                  });
-                  setPromo(r.promo);
-                  setPromoMsg({ ok: true, text: "Paramètres sauvegardés ✅" });
-                } catch { setPromoMsg({ ok: false, text: "Erreur lors de la sauvegarde." }); }
-                finally { setPromoSaving(false); }
-              }}>
-              {promoSaving ? <CircularProgress size={16} color="inherit" /> : "Enregistrer"}
-            </Button>
-            {promoMsg && <Typography variant="caption" color={promoMsg.ok ? "success.main" : "error"}>{promoMsg.text}</Typography>}
-          </Box>
-        </Paper>
-      )}
-
-        </Grid>{/* fin colonne gauche */}
-
-        {/* Colonne droite — navigation */}
-        <Grid item xs={12} md={4}>
-          <Paper elevation={1} sx={{ p: 2, borderRadius: 2, position: "sticky", top: 80 }}>
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5, color: "text.secondary" }}>
-              Navigation
+      {/* ── Charts ─────────────────────────────────────────────────────── */}
+      <Grid container spacing={2.5} sx={{ mb: 3 }}>
+        {/* Bar chart providers */}
+        <Grid item xs={12} md={7}>
+          <Paper sx={{ p: 3, borderRadius: 2.5, height: 300 }}>
+            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2, color: "#0F172A" }}>
+              Revenus par fournisseur de paiement
             </Typography>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              <Button fullWidth variant="contained" onClick={() => router.push("/admin/users")}>
-                👥 Gérer les abonnés
-              </Button>
-              <Button fullWidth variant="contained" onClick={() => router.push("/admin/properties")}>
-                🏠 Délais de publication
-              </Button>
-              <Button fullWidth variant="contained" color="secondary" onClick={() => router.push("/admin/revenues")}>
-                💳 Paiements &amp; Revenus
-              </Button>
-              <Button fullWidth variant="contained" color="secondary" onClick={() => router.push("/admin/transactions")}>
-                🔍 Toutes les transactions
-              </Button>
-              <Button fullWidth variant="contained" color="info" onClick={() => router.push("/admin/contacts")}>
-                📋 Base contacts / CRM
-              </Button>
-              <Button fullWidth variant="outlined" color="success" onClick={() => router.push("/admin/newsletter")}>
-                📧 Newsletter
-              </Button>
-              <Button fullWidth variant="outlined" onClick={() => router.push("/admin/profile")}>
-                ⚙️ Mon profil
-              </Button>
+            {loading ? (
+              <Box sx={{ display:"flex", justifyContent:"center", alignItems:"center", height:200 }}>
+                <CircularProgress size={28} sx={{ color: TEAL }} />
+              </Box>
+            ) : byProvider.length === 0 ? (
+              <Box sx={{ display:"flex", justifyContent:"center", alignItems:"center", height:200 }}>
+                <Typography color="text.disabled">Aucune transaction</Typography>
+              </Box>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={byProvider} barSize={40}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                  <XAxis dataKey="name" tick={{ fontSize:12, fill:"#64748B" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize:11, fill:"#94A3B8" }} axisLine={false} tickLine={false}
+                    tickFormatter={(v) => v>=1000 ? (v/1000)+"k" : v} />
+                  <RTooltip content={<CustomTooltip />} />
+                  <Bar dataKey="total_revenue" radius={[6,6,0,0]}>
+                    {byProvider.map((e) => <Cell key={e.name} fill={pColor(e.name)} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </Paper>
+        </Grid>
+
+        {/* Annonces par pays */}
+        <Grid item xs={12} md={5}>
+          <Paper sx={{ p: 3, borderRadius: 2.5, height: 300, display:"flex", flexDirection:"column" }}>
+            <Box sx={{ display:"flex", alignItems:"center", gap:1, mb:2 }}>
+              <PublicIcon fontSize="small" sx={{ color: TEAL }} />
+              <Typography variant="subtitle1" fontWeight={700} sx={{ color:"#0F172A" }}>Annonces par pays</Typography>
+            </Box>
+            <Box sx={{ flex:1, overflowY:"auto" }}>
+              {Object.entries(byCountry).sort((a,b)=>b[1]-a[1]).map(([c,n]) => {
+                const pct = properties.length > 0 ? Math.round((n/properties.length)*100) : 0;
+                return (
+                  <Box key={c} sx={{ mb:1.5 }}>
+                    <Box sx={{ display:"flex", justifyContent:"space-between", mb:0.5 }}>
+                      <Typography variant="body2" fontWeight={600} sx={{ fontSize:13 }}>{c}</Typography>
+                      <Typography variant="caption" color="text.secondary">{n} ({pct}%)</Typography>
+                    </Box>
+                    <Box sx={{ height:6, bgcolor:"#F1F5F9", borderRadius:3, overflow:"hidden" }}>
+                      <Box sx={{ height:"100%", width:`${pct}%`, bgcolor:TEAL, borderRadius:3 }} />
+                    </Box>
+                  </Box>
+                );
+              })}
+              {Object.keys(byCountry).length === 0 && !loading && (
+                <Typography color="text.disabled" variant="body2">Aucune annonce</Typography>
+              )}
             </Box>
           </Paper>
         </Grid>
-      </Grid>{/* fin layout 2 colonnes */}
-
-      <Divider sx={{ my: 3 }} />
-
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Typography variant="h6" sx={{ mb: 1 }}>Annonces par pays</Typography>
-          <Paper>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Pays</TableCell>
-                  <TableCell align="right">Annonces</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {Object.entries(byCountry).sort((a, b) => b[1] - a[1]).map(([c, n]) => (
-                  <TableRow key={c}>
-                    <TableCell>{c}</TableCell>
-                    <TableCell align="right">{n}</TableCell>
-                  </TableRow>
-                ))}
-                {Object.keys(byCountry).length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={2} align="center" sx={{ color: "text.secondary" }}>
-                      Aucune annonce
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={8}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-            <Typography variant="h6">Top annonceurs (CA ImmoBF)</Typography>
-            <Button size="small" variant="outlined" onClick={() => router.push("/admin/revenues")}>
-              Voir tous
-            </Button>
-          </Box>
-          <Paper>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Nom</TableCell>
-                  <TableCell>Pays</TableCell>
-                  <TableCell align="right">Annonces</TableCell>
-                  <TableCell align="right">Total paye</TableCell>
-                  <TableCell>Derniere activite</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {top5.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight={600}>{a.full_name || "ND"}</Typography>
-                      <Typography variant="caption" color="text.secondary">{a.phone}</Typography>
-                    </TableCell>
-                    <TableCell>{a.main_country || "ND"}</TableCell>
-                    <TableCell align="right">{a.nb_annonces}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: "#1B6B3A" }}>
-                      {formatFCFA(a.total_paid)}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="caption">
-                        {a.last_payment_at
-                          ? new Date(a.last_payment_at).toLocaleDateString("fr-FR")
-                          : "ND"}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {top5.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ color: "text.secondary" }}>
-                      Aucune donnee
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </Paper>
-        </Grid>
       </Grid>
 
-      <Divider sx={{ my: 3 }} />
-
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-        <Typography variant="h6">20 dernieres transactions</Typography>
-        <Button size="small" variant="outlined" onClick={exportCsv}>Exporter CSV</Button>
-      </Box>
-      <Paper sx={{ overflowX: "auto" }}>
+      {/* ── Top annonceurs ─────────────────────────────────────────────── */}
+      <Paper sx={{ p:3, borderRadius:2.5, mb:3 }}>
+        <Box sx={{ display:"flex", justifyContent:"space-between", alignItems:"center", mb:2 }}>
+          <Box sx={{ display:"flex", alignItems:"center", gap:1 }}>
+            <EmojiEventsIcon sx={{ color:"#d97706", fontSize:20 }} />
+            <Typography variant="subtitle1" fontWeight={700} sx={{ color:"#0F172A" }}>Top annonceurs</Typography>
+          </Box>
+          <Button size="small" variant="outlined" onClick={() => router.push("/admin/revenues")}
+            sx={{ borderRadius:1.5, fontSize:12 }}>Voir tous</Button>
+        </Box>
         <Table size="small">
           <TableHead>
-            <TableRow>
-              <TableCell>Date</TableCell>
-              <TableCell>Annonceur</TableCell>
-              <TableCell>Pays</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Fournisseur</TableCell>
-              <TableCell align="right">Montant</TableCell>
-              <TableCell>Statut</TableCell>
+            <TableRow sx={{ "& th":{ fontWeight:700, color:"#475569", fontSize:12, bgcolor:"#F8FAFC", border:0 } }}>
+              <TableCell>#</TableCell><TableCell>Annonceur</TableCell><TableCell>Pays</TableCell>
+              <TableCell align="right">Annonces</TableCell><TableCell align="right">Total payé</TableCell>
+              <TableCell>Dernière activité</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {transactions.slice(0, 20).map((t) => (
-              <TableRow key={t.id}>
+            {top5.map((a, i) => (
+              <TableRow key={a.id} hover sx={{ "&:last-child td":{ border:0 } }}>
                 <TableCell>
-                  <Typography variant="caption">
-                    {new Date(t.created_at).toLocaleDateString("fr-FR")}
-                  </Typography>
+                  <Typography variant="body2" fontWeight={700} sx={{ color: i===0?"#d97706":"#94A3B8" }}>#{i+1}</Typography>
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2">{t.buyer_name || "ND"}</Typography>
+                  <Box sx={{ display:"flex", alignItems:"center", gap:1.5 }}>
+                    <Avatar sx={{ width:30, height:30, bgcolor:TEAL+"22", color:TEAL, fontSize:13, fontWeight:700 }}>
+                      {(a.full_name||"?")[0].toUpperCase()}
+                    </Avatar>
+                    <Box>
+                      <Typography variant="body2" fontWeight={600} sx={{ fontSize:13 }}>{a.full_name||"ND"}</Typography>
+                      <Typography variant="caption" color="text.secondary">{a.phone||a.email||""}</Typography>
+                    </Box>
+                  </Box>
+                </TableCell>
+                <TableCell><Typography variant="caption" fontWeight={600}>{a.main_country||"ND"}</Typography></TableCell>
+                <TableCell align="right"><Chip label={a.nb_annonces} size="small" sx={{ fontWeight:700 }} /></TableCell>
+                <TableCell align="right">
+                  <Typography variant="body2" fontWeight={700} sx={{ color:TEAL }}>{formatFCFA(a.total_paid)}</Typography>
+                </TableCell>
+                <TableCell>
                   <Typography variant="caption" color="text.secondary">
-                    {t.buyer_phone || t.buyer_email || ""}
+                    {a.last_payment_at ? new Date(a.last_payment_at).toLocaleDateString("fr-FR") : "—"}
                   </Typography>
-                </TableCell>
-                <TableCell>{t.property_country || "ND"}</TableCell>
-                <TableCell>
-                  <Typography variant="caption">{PURPOSE_LABEL[t.purpose] || t.purpose}</Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="caption">{t.provider}</Typography>
-                </TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700 }}>
-                  {formatFCFA(t.amount)}
-                </TableCell>
-                <TableCell>
-                  <Chip label={t.status} size="small" color={STATUS_COLOR[t.status] || "default"} />
                 </TableCell>
               </TableRow>
             ))}
-            {transactions.length === 0 && !loading && (
-              <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ color: "text.secondary", py: 3 }}>
-                  Aucune transaction
-                </TableCell>
-              </TableRow>
+            {top5.length===0 && !loading && (
+              <TableRow><TableCell colSpan={6} align="center" sx={{ py:4, color:"text.disabled" }}>Aucune donnée</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
       </Paper>
-    </Layout>
+
+      {/* ── Transactions récentes ───────────────────────────────────────── */}
+      <Paper sx={{ p:3, borderRadius:2.5 }}>
+        <Box sx={{ display:"flex", justifyContent:"space-between", alignItems:"center", mb:2 }}>
+          <Box sx={{ display:"flex", alignItems:"center", gap:1 }}>
+            <ReceiptLongIcon sx={{ color:"#64748B", fontSize:20 }} />
+            <Typography variant="subtitle1" fontWeight={700} sx={{ color:"#0F172A" }}>Transactions récentes</Typography>
+          </Box>
+          <Button size="small" variant="outlined" onClick={() => router.push("/admin/transactions")}
+            sx={{ borderRadius:1.5, fontSize:12 }}>Toutes</Button>
+        </Box>
+        {loading ? (
+          <Box sx={{ display:"flex", justifyContent:"center", py:4 }}><CircularProgress size={24} sx={{ color:TEAL }} /></Box>
+        ) : (
+          <Box sx={{ overflowX:"auto" }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ "& th":{ fontWeight:700, color:"#475569", fontSize:12, bgcolor:"#F8FAFC", border:0 } }}>
+                  <TableCell>Date</TableCell><TableCell>Annonceur</TableCell><TableCell>Pays</TableCell>
+                  <TableCell>Type</TableCell><TableCell>Provider</TableCell>
+                  <TableCell align="right">Montant</TableCell><TableCell>Statut</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {txs.slice(0,12).map((t) => (
+                  <TableRow key={t.id} hover sx={{ "&:last-child td":{ border:0 } }}>
+                    <TableCell>
+                      <Typography variant="caption" color="#64748B">
+                        {new Date(t.created_at).toLocaleDateString("fr-FR")}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={500} sx={{ fontSize:13 }}>{t.buyer_name||"—"}</Typography>
+                      <Typography variant="caption" color="text.secondary">{t.buyer_phone||t.buyer_email||""}</Typography>
+                    </TableCell>
+                    <TableCell><Typography variant="caption" fontWeight={600}>{t.property_country||"—"}</Typography></TableCell>
+                    <TableCell><Typography variant="caption">{PURPOSE_LABEL[t.purpose]||t.purpose}</Typography></TableCell>
+                    <TableCell>
+                      <Chip label={(t.provider||"—").toUpperCase()} size="small"
+                        sx={{ bgcolor:pColor(t.provider)+"18", color:pColor(t.provider), fontWeight:700, fontSize:11, border:`1px solid ${pColor(t.provider)}33` }} />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography fontWeight={700} sx={{ fontSize:13 }}>{formatFCFA(t.amount)}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={t.status} size="small" color={STATUS_COLOR[t.status]||"default"} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {txs.length===0 && (
+                  <TableRow><TableCell colSpan={7} align="center" sx={{ py:4, color:"text.disabled" }}>Aucune transaction</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Box>
+        )}
+      </Paper>
+    </AdminLayout>
   );
 }

@@ -6,7 +6,7 @@ import {
   TableCell, TableHead, TableRow, TextField, Typography, Tooltip,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import Layout from "../../components/Layout";
+import AdminLayout from "../../components/AdminLayout";
 import { Admin } from "../../lib/api";
 import { formatFCFA } from "../../lib/format";
 
@@ -118,7 +118,7 @@ export default function AdminTransactions() {
 
   if (ok === null) return null;
   if (ok === false) return (
-    <Layout><Box sx={{ p: 4 }}><Typography color="error">Accès refusé.</Typography></Box></Layout>
+    <Layout><Box sx={{ p: 4 }}><Typography color="error">Accès refusé.</Typography></Box></AdminLayout>
   );
 
   return (
@@ -330,6 +330,6 @@ export default function AdminTransactions() {
           </Box>
         )}
       </Container>
-    </Layout>
+    </AdminLayout>
   );
 }

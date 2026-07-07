@@ -442,6 +442,42 @@ async function listTransactions(req, res) {
   res.json(result);
 }
 
+/**
+ * GET /admin/reviews
+ * Liste tous les avis avec contexte : annonce, reviewer, vendeur.
+ */
+async function listReviews(req, res) {
+  const { query } = require("../config/db");
+  const { rows } = await query(`
+    SELECT
+      r.id, r.rating, r.comment, r.created_at,
+      u.full_name  AS reviewer_name, u.phone AS reviewer_phone, u.email AS reviewer_email,
+      p.title      AS property_title, p.id AS property_id,
+      s.full_name  AS seller_name,   s.id AS seller_id
+    FROM reviews r
+    JOIN users      u ON u.id = r.reviewer_id
+    JOIN properties p ON p.id = r.property_id
+    JOIN users      s ON s.id = r.seller_id
+    ORDER BY r.created_at DESC
+    LIMIT 500
+  `);
+  res.json({ reviews: rows });
+}
+
+/**
+ * DELETE /admin/reviews/:id
+ * Suppression administrative d'un avis.
+ */
+async function deleteReview(req, res) {
+  const { query } = require("../config/db");
+  const { rows } = await query(
+    `DELETE FROM reviews WHERE id = $1 RETURNING id`,
+    [req.params.id]
+  );
+  if (!rows[0]) throw NotFound("Avis introuvable");
+  res.json({ ok: true });
+}
+
 module.exports = {
   listUsers, setUserBlocked, logoutUser, deleteUser,
   listProperties, deleteProperty, listRevenues,
@@ -450,4 +486,5 @@ module.exports = {
   listContacts, sendContactNewsletter,
   getPricingAdmin, setPricingAdmin,
   listTransactions,
+  listReviews, deleteReview,
 };

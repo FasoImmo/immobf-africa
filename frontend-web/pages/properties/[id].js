@@ -465,4 +465,31 @@ export default function PropertyDetail() {
       })()}
 
       {/* ─── Annonces similaires ─────────────────────────────────────────── */}
-      {similar.length > 0 &
+      {similar.length > 0 && (
+        <Box sx={{ mt: 5 }}>
+          <Typography variant="h5" gutterBottom>{t("property.similar")}</Typography>
+          <Grid container spacing={2}>
+            {similar.map((s) => (
+              <Grid item xs={12} sm={6} md={3} key={s.id}>
+                <PropertyCard property={s} />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
+
+      {isRent && (
+        <PaymentDialog
+          open={payOpen}
+          onClose={function() { setPayOpen(false); }}
+          onSuccess={handleCommissionPaid}
+          property={p}
+          amount={commissionAmount}
+          purpose="commission"
+          bookingUnits={units}
+          checkIn={checkIn}
+        />
+      )}
+    </Layout>
+  );
+}

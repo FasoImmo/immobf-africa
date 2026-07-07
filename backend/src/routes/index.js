@@ -103,6 +103,8 @@ router.post ("/admin/properties/:id/restore", requireAdmin, asyncHandler(adminCt
 router.get  ("/admin/transactions",           requireAdmin, asyncHandler(adminCtl.listTransactions));
 router.get  ("/admin/contacts",               requireAdmin, asyncHandler(adminCtl.listContacts));
 router.post ("/admin/contacts/newsletter",    requireAdmin, asyncHandler(adminCtl.sendContactNewsletter));
+router.get  ("/admin/reviews",                requireAdmin, asyncHandler(adminCtl.listReviews));
+router.delete("/admin/reviews/:id",           requireAdmin, asyncHandler(adminCtl.deleteReview));
 
 // --- Config publique (promo, etc.) ---
 router.get("/config/promo", publicLimiter, asyncHandler(async (req, res) => {

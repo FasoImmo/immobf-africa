@@ -4,7 +4,7 @@ import {
   Box, Typography, Button, TextField, MenuItem, Alert, CircularProgress,
   Paper, Divider, Chip,
 } from "@mui/material";
-import Layout from "../../components/Layout";
+import AdminLayout from "../../components/AdminLayout";
 import { Admin } from "../../lib/api";
 
 const AFRICAN_COUNTRIES = [
@@ -26,28 +26,12 @@ const AFRICAN_COUNTRIES = [
 
 export default function NewsletterPage() {
   const router = useRouter();
-  const [authorized, setAuthorized] = useState(null);
   const [subject, setSubject] = useState("");
   const [html, setHtml] = useState("");
   const [country, setCountry] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("immobf_user");
-    const token  = localStorage.getItem("immobf_token");
-    if (!stored || !token) { setAuthorized(false); return; }
-    const u = JSON.parse(stored);
-    setAuthorized(u.role === "admin");
-  }, []);
-
-  if (authorized === null) {
-    return <Layout title="Newsletter — Admin"><Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box></Layout>;
-  }
-  if (authorized === false) {
-    return <Layout title="Newsletter — Admin"><Alert severity="error">Accès réservé à l&apos;administrateur.</Alert></Layout>;
-  }
 
   async function handleSend(e) {
     e.preventDefault();
@@ -70,13 +54,8 @@ export default function NewsletterPage() {
   }
 
   return (
-    <Layout title="Newsletter — Admin ImmoBF">
-      <Box sx={{ mb: 2, display: "flex", gap: 2, alignItems: "center" }}>
-        <Button variant="outlined" onClick={() => router.push("/admin")}>← Tableau de bord</Button>
-        <Typography variant="h5" fontWeight={700}>📧 Newsletter</Typography>
-      </Box>
-
-      <Paper elevation={1} sx={{ p: 3, maxWidth: 700 }}>
+    <AdminLayout title="Newsletter — Admin ImmoBF">
+      <Paper elevation={1} sx={{ p: 3, maxWidth: 700, borderRadius: 2.5 }}>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Envoie un email en masse à tous les utilisateurs ayant un email enregistré, avec filtre optionnel par pays.
           Maximum 500 destinataires par envoi (limite Resend).
@@ -133,6 +112,6 @@ export default function NewsletterPage() {
           </Box>
         </Box>
       </Paper>
-    </Layout>
+    </AdminLayout>
   );
 }

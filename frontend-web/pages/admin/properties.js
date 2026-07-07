@@ -5,7 +5,7 @@ import {
   Button, CircularProgress, Chip, Alert, Dialog, DialogTitle, DialogContent,
   DialogActions, TextField, Stack, Grid, MenuItem,
 } from "@mui/material";
-import Layout from "../../components/Layout";
+import AdminLayout from "../../components/AdminLayout";
 import { Admin } from "../../lib/api";
 import { formatFCFA } from "../../lib/format";
 
@@ -264,14 +264,14 @@ export default function AdminProperties() {
   }
 
   if (authorized === null) return (
-    <Layout title="Annonces — Admin"><Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box></Layout>
+    <AdminLayout title="Annonces — Admin"><Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box></AdminLayout>
   );
   if (authorized === false) return (
-    <Layout title="Annonces — Admin">
+    <AdminLayout title="Annonces — Admin">
       <Paper sx={{ p: 4, textAlign: "center" }}>
         <Typography variant="h5" gutterBottom>Accès refusé</Typography>
       </Paper>
-    </Layout>
+    </AdminLayout>
   );
 
   const expiringCount  = properties.filter((p) => p.subscription_status === "expiring_soon").length;
@@ -279,7 +279,7 @@ export default function AdminProperties() {
   const suspendedCount = properties.filter((p) => p.status === "suspended").length;
 
   return (
-    <Layout title="Annonces — Admin">
+    <AdminLayout title="Annonces — Admin">
       {/* En-tête */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
         <Typography variant="h4">
@@ -412,6 +412,6 @@ export default function AdminProperties() {
           <Button onClick={handleSuspend} variant="contained" color="warning">Suspendre</Button>
         </DialogActions>
       </Dialog>
-    </Layout>
+    </AdminLayout>
   );
 }

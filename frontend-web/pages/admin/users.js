@@ -4,7 +4,7 @@ import {
   Box, Paper, Typography, Table, TableHead, TableRow, TableCell, TableBody,
   Button, CircularProgress, Chip, Alert, Snackbar, Grid, TextField, MenuItem,
 } from "@mui/material";
-import Layout from "../../components/Layout";
+import AdminLayout from "../../components/AdminLayout";
 import { Admin } from "../../lib/api";
 
 const ROLE_LABELS = { buyer: "Client", seller: "Vendeur", agent: "Agent", admin: "Admin" };
@@ -97,19 +97,19 @@ export default function AdminUsers() {
   }
 
   if (authorized === null) return (
-    <Layout title="Abonnés — Admin"><Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box></Layout>
+    <AdminLayout title="Abonnés — Admin"><Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box></AdminLayout>
   );
   if (authorized === false) return (
-    <Layout title="Abonnés — Admin">
+    <AdminLayout title="Abonnés — Admin">
       <Paper sx={{ p: 4, textAlign: "center" }}>
         <Typography variant="h5" gutterBottom>Accès refusé</Typography>
         <Typography color="text.secondary">Réservé aux administrateurs.</Typography>
       </Paper>
-    </Layout>
+    </AdminLayout>
   );
 
   return (
-    <Layout title="Abonnés — Admin">
+    <AdminLayout title="Abonnés — Admin">
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
         <Typography variant="h4">
           Abonnés ({filtered.length}{filtered.length !== users.length ? `/${users.length}` : ""})
@@ -229,6 +229,6 @@ export default function AdminUsers() {
       )}
 
       <Snackbar open={!!toast} autoHideDuration={4000} onClose={() => setToast(null)} message={toast} />
-    </Layout>
+    </AdminLayout>
   );
 }
