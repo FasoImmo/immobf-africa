@@ -1,160 +1,262 @@
 "use strict";
-
-const crypto = require("crypto");
-const PaymentProvider = require("./PaymentProvider");
-const config = require("../config");
-
 /**
- * CinetPay — agrégateur multi-opérateurs (Orange Money, Moov, Wave, MTN…).
+ * CinetPayProvider — API "1.0 Aurore" (panel.cinetpay.net)
  *
- * CORRECTIF (confirmé par email CinetPay le 09/06/2026, échange commercial
- * en cours pour ouverture de compte) : les zones RÉELLEMENT actives côté
- * CinetPay aujourd'hui sont plus restreintes que la doc générale ne le
- * suggère, et la carte bancaire est TEMPORAIREMENT indisponible (mobile
- * money uniquement, pour l'instant) :
- *   - Zone XAF : Cameroun (CM)
- *   - Zone XOF : Côte d'Ivoire (CI), Togo (TG), Burkina Faso (BF)
- *   - Zone USD/CDF : RD Congo (CD)
- * Sénégal (SN), Mali (ML), Bénin (BJ) ne sont PAS dans cette liste —
- * retirés de `countries` ci-dessous pour ne pas afficher une fausse option
- * à ces pays. À réviser si CinetPay étend sa couverture ou réactive la carte.
+ * Auth OAuth2:  POST /v1/oauth/login { api_key, api_password } → Bearer token (86400s)
+ * Paiement:     POST /v1/payment (Bearer) → { data.payment_url }
+ * Statut:       GET  /v1/payment/{merchant_transaction_id} (Bearer) → statut canonique
+ * Webhook:      Simple signal — parseWebhook() re-vérifie via GET statut.
+ *               Ne JAMAIS faire confiance au statut transmis dans le payload entrant
+ *               (cf. avertissement sécurité doc CinetPay "1.0 Aurore").
  *
- * Docs: https://docs.cinetpay.com/
- * API base: https://api-checkout.cinetpay.com/v2
+ * Variables d'environnement :
+ *   CINETPAY_API_KEY      — clé API (panneau Ressources > API & sécurité > "API Key")
+ *   CINETPAY_API_PASSWORD — mot de passe API (à créer dans le panneau > "Définir un mot de passe API")
+ *   CINETPAY_NOTIFY_URL   — URL du webhook (ex: https://api.immoafrica.online/api/webhooks/cinetpay)
+ *
+ * Limite CinetPay : merchant_transaction_id ≤ 30 chars.
+ * La référence ImmoBF "IMO-{13digits}-{8hex}" = 26 chars → OK sans troncature.
+ *
+ * Couverture Sandbox validée le 07/07/2026 (compte mahamady-koussoube, BF).
+ * Docs : https://panel.cinetpay.net/mahamady-koussoube/developer/documentation
  */
-class CinetPayProvider extends PaymentProvider {
-  get name() { return "cinetpay"; }
-  get countries() { return ["BF", "CI", "TG", "CM", "CD"]; }
-  get currencies() { return ["XOF", "XAF"]; }
 
-  isConfigured() {
-    const { apiKey, siteId } = config.providers.cinetpay;
-    return Boolean(apiKey && siteId);
+const PaymentProvider = require("./PaymentProvider");
+const config          = require("../config");
+const logger          = require("../utils/logger");
+
+const BASE_URL = "https://api.cinetpay.net";
+
+class CinetPayProvider extends PaymentProvider {
+  constructor() {
+    super();
+    /** @type {string|null} Bearer token mis en cache */
+    this._token       = null;
+    /** @type {number} Timestamp (ms) d'expiration du token */
+    this._tokenExpiry = 0;
   }
 
-  async initiate({ amount, currency = "XOF", reference, customerPhone, customerName, description, metadata }) {
-    const { apiKey, siteId, notifyUrl } = config.providers.cinetpay;
-    const payload = {
-      apikey: apiKey,
-      site_id: siteId,
-      transaction_id: reference,
-      amount,
-      currency,
-      description: description || "Paiement ImmoBF",
-      notify_url: notifyUrl,
-      return_url: `${config.webUrl}/payment/callback?ref=${reference}`,
-      channels: "MOBILE_MONEY",
-      customer_phone_number: customerPhone,
-      customer_name: customerName,
-      metadata: JSON.stringify(metadata || {}),
-    };
+  get name()       { return "cinetpay"; }
+  get label()      { return "CinetPay (Orange Money, Moov, Wave…)"; }
+  get countries()  { return ["BF", "CI", "SN", "CM", "ML", "GN", "TG", "BJ"]; }
+  get currencies() { return ["XOF", "XAF", "GNF"]; }
 
-    // Pour le MVP / dev sans secrets : on simule la réponse.
-    // Sécurité : jamais de faux succès en production (afficherait "Paiement
-    // confirmé" sans débiter le client).
-    if (!apiKey || !siteId) {
-      if (process.env.NODE_ENV === "production") {
-        throw Object.assign(
-          new Error("CinetPay non configuré (clés manquantes) — paiement refusé en production."),
-          { status: 500, code: "cinetpay_not_configured" }
-        );
-      }
-      const logger = require("../utils/logger");
-      logger.warn({ reference }, "CinetPay stub mode (dev) — paiement auto-validé sans appel réel");
-      return {
-        external_id: `cp_stub_${reference}`,
-        status: "succeeded",
-        payment_url: null,
-        raw: { stub: true, payload },
-      };
+  isAvailable() {
+    const { apiKey, apiPassword } = config.providers.cinetpay;
+    return Boolean(apiKey && apiPassword);
+  }
+
+  /**
+   * La nouvelle API "1.0 Aurore" n'utilise plus de signature HMAC sur les webhooks.
+   * La sécurité est assurée par la re-vérification du statut via
+   * GET /v1/payment/{merchant_transaction_id} dans parseWebhook().
+   */
+  verifyWebhookSignature(_headers, _rawBody) { return true; }
+
+  // ── Authentification OAuth2 ───────────────────────────────────────────────
+
+  /**
+   * Obtient (ou réutilise) le Bearer token.
+   * Durée de vie : 86 400 s (24 h). Rafraîchi 60 s avant expiration.
+   */
+  async _getToken() {
+    if (this._token && Date.now() < this._tokenExpiry - 60_000) {
+      return this._token;
     }
 
-    const res = await fetch("https://api-checkout.cinetpay.com/v2/payment", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+    const { apiKey, apiPassword } = config.providers.cinetpay;
+    const res = await fetch(`${BASE_URL}/v1/oauth/login`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body:    JSON.stringify({ api_key: apiKey, api_password: apiPassword }),
     });
     const body = await res.json();
-    if (body.code !== "201") {
-      const err = new Error(`CinetPay initiate failed: ${body.message || body.code}`);
-      err.raw = body;
+
+    if (!res.ok || body.code !== 200) {
+      throw Object.assign(
+        new Error(`CinetPay auth failed (${body.code}): ${body.message || body.status}`),
+        { status: 502, code: "cinetpay_auth_failed", raw: body }
+      );
+    }
+
+    this._token       = body.access_token;
+    this._tokenExpiry = Date.now() + body.expires_in * 1000;
+    logger.debug("CinetPay token rafraîchi");
+    return this._token;
+  }
+
+  _headers(token) {
+    return {
+      "Content-Type": "application/json",
+      Accept:         "application/json",
+      Authorization:  `Bearer ${token}`,
+    };
+  }
+
+  // ── Initialisation du paiement ────────────────────────────────────────────
+
+  async initiate(payment) {
+    const { notifyUrl } = config.providers.cinetpay;
+
+    // ── Mode stub (dev sans clés) ─────────────────────────────────────────
+    if (!this.isAvailable()) {
+      if (process.env.NODE_ENV !== "production") {
+        logger.warn({ reference: payment.reference }, "CinetPay stub mode — succès auto");
+        return {
+          status:      "succeeded",
+          payment_url: null,
+          external_id: payment.reference,
+          raw:         {},
+        };
+      }
+      throw Object.assign(
+        new Error("CinetPay non configuré (clés manquantes) — paiement refusé en production."),
+        { status: 500, code: "cinetpay_not_configured" }
+      );
+    }
+
+    const token = await this._getToken();
+
+    // ── Prénom / Nom séparés (l'API exige les deux champs) ────────────────
+    const fullName  = (payment.customerName || "Client ImmoBF").trim();
+    const spaceIdx  = fullName.indexOf(" ");
+    const firstName = (spaceIdx > 0 ? fullName.substring(0, spaceIdx) : fullName).substring(0, 255);
+    const lastName  = (spaceIdx > 0 ? fullName.substring(spaceIdx + 1) : "ImmoBF").substring(0, 255);
+
+    // ── URLs de retour (max 120 chars selon doc) ──────────────────────────
+    const siteBase       = process.env.NEXT_PUBLIC_SITE_URL || "https://www.immoafrica.online";
+    const successUrl     = `${siteBase}/payment/success?ref=${payment.reference}`.substring(0, 120);
+    const failedUrl      = `${siteBase}/payment/cancel?ref=${payment.reference}`.substring(0, 120);
+    const notifyEndpoint = (notifyUrl || `${siteBase}/api/webhooks/cinetpay`).substring(0, 120);
+
+    const payload = {
+      currency:                payment.currency || "XOF",
+      merchant_transaction_id: payment.reference,   // IMO-{13digits}-{8hex} = 26 chars ≤ 30 ✓
+      amount:                  Math.round(payment.amount),
+      lang:                    "fr",
+      designation:             (payment.description || "Paiement ImmoBF Africa").substring(0, 100),
+      client_email:            payment.customerEmail || "noreply@immoafrica.online",
+      client_phone_number:     payment.customerPhone || undefined,
+      client_first_name:       firstName,
+      client_last_name:        lastName,
+      success_url:             successUrl,
+      failed_url:              failedUrl,
+      notify_url:              notifyEndpoint,
+    };
+
+    const res = await fetch(`${BASE_URL}/v1/payment`, {
+      method:  "POST",
+      headers: this._headers(token),
+      body:    JSON.stringify(payload),
+    });
+    const body = await res.json();
+
+    if (!res.ok || (body.code && body.code !== 200 && body.code !== 201)) {
+      const err = Object.assign(
+        new Error(`CinetPay initiate failed (${body.code}): ${body.message || JSON.stringify(body)}`),
+        { status: 502, code: "cinetpay_initiate_failed", raw: body }
+      );
+      logger.error({ reference: payment.reference, body }, "CinetPay erreur initiate");
       throw err;
     }
+
+    const paymentUrl = body.data?.payment_url || body.payment_url;
+    logger.info({ reference: payment.reference, paymentUrl }, "CinetPay paiement initié");
+
     return {
-      external_id: body?.data?.payment_token || reference,
-      status: "pending",
-      payment_url: body?.data?.payment_url,
-      raw: body,
+      status:      "pending",
+      payment_url: paymentUrl,
+      external_id: payment.reference,
+      raw:         body,
     };
   }
 
+  // ── Statut canonique ──────────────────────────────────────────────────────
+
   /**
-   * Webhook CinetPay : header `x-token` = HMAC-SHA256 hex calculé sur la
-   * CONCATÉNATION ORDONNÉE de 16 champs précis du corps (PAS sur le JSON brut
-   * — piège similaire au format Stripe-like de FedaPay qu'on avait dû
-   * corriger en b721a51). Ordre exact imposé par la doc CinetPay :
-   *   cpm_site_id + cpm_trans_id + cpm_trans_date + cpm_amount + cpm_currency
-   *   + signature + payment_method + cel_phone_num + cpm_phone_prefixe
-   *   + cpm_language + cpm_version + cpm_payment_config + cpm_page_action
-   *   + cpm_custom + cpm_designation + cpm_error_message
-   * Voir https://docs.cinetpay.com/api/1.0-fr/checkout/hmac
+   * Récupère le statut officiel d'une transaction via l'API CinetPay.
+   * Utilisé par parseWebhook() ET par le cron de réconciliation.
    */
-  verifyWebhookSignature(headers, rawBody) {
-    const { secret } = config.providers.cinetpay;
-    if (!secret) return true; // stub mode
+  async checkStatus(reference) {
+    if (!this.isAvailable()) return null;
+    const token = await this._getToken();
+    const res   = await fetch(
+      `${BASE_URL}/v1/payment/${encodeURIComponent(reference)}`,
+      { method: "GET", headers: this._headers(token) }
+    );
+    const body = await res.json();
+    return this._normalizeStatus(body);
+  }
 
-    const token = headers["x-token"] || headers["x-Token"] || headers["x-signature"] || "";
-    if (!token) return false;
+  /**
+   * Mappe le statut brut CinetPay vers les valeurs internes ImmoBF.
+   */
+  _normalizeStatus(body) {
+    const rawStatus = (body?.data?.status || body?.status || "").toUpperCase();
+    let status;
+    switch (rawStatus) {
+      case "SUCCESS":
+      case "ACCEPTED":
+        status = "succeeded"; break;
+      case "FAILED":
+      case "REFUSED":
+      case "CANCELLED":
+        status = "failed"; break;
+      default:
+        status = "pending";
+    }
+    const reference = body?.data?.merchant_transaction_id ?? null;
+    return {
+      reference,
+      status,
+      external_id: body?.data?.id || reference,
+      raw:         body,
+    };
+  }
 
-    let body;
-    try {
-      body = typeof rawBody === "string" ? JSON.parse(rawBody) : JSON.parse(rawBody.toString("utf8"));
-    } catch {
-      return false;
+  // ── Webhook ───────────────────────────────────────────────────────────────
+  /**
+   * AVERTISSEMENT SÉCURITÉ CinetPay (doc "1.0 Aurore") :
+   * Ne jamais faire confiance au statut transmis dans le payload entrant.
+   * Le webhook est un simple signal « regardez cette transaction ».
+   *
+   * → On extrait merchant_transaction_id du payload, puis on appelle
+   *   GET /v1/payment/{merchant_transaction_id} pour le statut canonique.
+   *
+   * IMPORTANT : cette méthode est ASYNC. Le webhook handler doit l'await.
+   */
+  async parseWebhook(body /*, headers — non utilisé dans le nouveau modèle */) {
+    const txId =
+      body?.merchant_transaction_id ||
+      body?.data?.merchant_transaction_id;
+
+    if (!txId) {
+      logger.warn({ body }, "CinetPay webhook reçu sans merchant_transaction_id");
+      return { reference: null, status: "pending", raw: body };
     }
 
-    const data = [
-      body.cpm_site_id, body.cpm_trans_id, body.cpm_trans_date, body.cpm_amount,
-      body.cpm_currency, body.signature, body.payment_method, body.cel_phone_num,
-      body.cpm_phone_prefixe, body.cpm_language, body.cpm_version, body.cpm_payment_config,
-      body.cpm_page_action, body.cpm_custom, body.cpm_designation, body.cpm_error_message,
-    ].map((v) => (v == null ? "" : String(v))).join("");
-
-    const expected = crypto.createHmac("sha256", secret).update(data, "utf8").digest("hex");
-    return safeEqual(token, expected);
+    try {
+      const canonical = await this.checkStatus(txId);
+      logger.info(
+        { txId, status: canonical.status },
+        "CinetPay webhook — statut canonique récupéré"
+      );
+      return {
+        reference:   canonical.reference || txId,
+        status:      canonical.status,
+        external_id: canonical.external_id,
+        raw:         canonical.raw,
+      };
+    } catch (e) {
+      // Re-vérification échouée (réseau / API down) → fallback pending.
+      // Le cron de réconciliation reprendra plus tard.
+      logger.error(
+        { txId, err: e.message },
+        "CinetPay webhook — re-vérification statut échouée, fallback pending"
+      );
+      return { reference: txId, status: "pending", raw: body };
+    }
   }
-
-  /**
-   * Payload notification CinetPay : notre référence d'origine (= `transaction_id`
-   * envoyé à l'initiation) revient dans `cpm_trans_id` — PAS dans `cpm_custom`
-   * (qui contient notre `metadata` sérialisé). `cpm_trans_id` sert donc à la
-   * fois d'`external_id` et de `reference` pour le lookup transaction.
-   * `cpm_error_message` porte le statut texte ("SUCCES" en cas de succès,
-   * raison de l'échec sinon) — à reconfirmer avec un vrai webhook de test.
-   */
-  parseWebhook(body) {
-    const succeeded =
-      body?.cpm_error_message === "SUCCES" ||
-      body?.cpm_result === "00" ||
-      body?.status === "ACCEPTED";
-    return {
-      external_id: body?.cpm_trans_id,
-      reference: body?.cpm_trans_id,
-      status: succeeded ? "succeeded" : "failed",
-      amount: body?.cpm_amount ? Number(body.cpm_amount) : null,
-      currency: body?.cpm_currency || "XOF",
-      raw: body,
-    };
-  }
-}
-
-function safeEqual(a, b) {
-  try {
-    const ab = Buffer.from(String(a));
-    const bb = Buffer.from(String(b));
-    if (ab.length !== bb.length) return false;
-    return crypto.timingSafeEqual(ab, bb);
-  } catch { return false; }
 }
 
 module.exports = CinetPayProvider;

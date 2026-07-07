@@ -259,7 +259,8 @@ async function webhook(req, res) {
     return res.status(401).json({ ok: false });
   }
 
-  const parsed = provider.parseWebhook(req.body);
+  // parseWebhook peut être async (ex. CinetPay re-vérifie le statut via API)
+  const parsed = await Promise.resolve(provider.parseWebhook(req.body, req.headers));
   if (!parsed.reference) {
     logger.warn({ provider: providerName, body: req.body }, "Webhook missing reference");
     return res.status(400).json({ ok: false });

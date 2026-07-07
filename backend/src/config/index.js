@@ -87,10 +87,10 @@ module.exports = {
       live: process.env.FEDAPAY_LIVE === "true",
     },
     cinetpay: {
-      apiKey: process.env.CINETPAY_API_KEY,
-      siteId: process.env.CINETPAY_SITE_ID,
-      secret: process.env.CINETPAY_SECRET_KEY,
-      notifyUrl: process.env.CINETPAY_NOTIFY_URL,
+      apiKey:      process.env.CINETPAY_API_KEY,
+      // API "1.0 Aurore" — authentification OAuth2 (plus de site_id ni de secret HMAC)
+      apiPassword: process.env.CINETPAY_API_PASSWORD,
+      notifyUrl:   process.env.CINETPAY_NOTIFY_URL,
     },
     paydunya: {
       // 3 clés requises — récupérées dans dashboard PayDunya → Intégrations
