@@ -64,6 +64,7 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [guestName, setGuestName] = useState("");
   // Vrai si l'utilisateur n'est pas connecté (paiement invité)
   const [isGuest, setIsGuest] = useState(false);
   // Email réellement utilisé lors de la soumission du paiement (capturé au
@@ -198,6 +199,7 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
         purpose,
         customer_phone: phone,
         customer_email: email || undefined,
+        customer_name:  (isGuest && guestName.trim()) ? guestName.trim() : undefined,
         country_code: buyerCountry || "BF",
         preferred_operator:
           provider === "fedapay" ? preferredOperator || undefined :
@@ -357,6 +359,19 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
                 error={isGuest && !email}
                 helperText={isGuest && !email ? "Requis pour les paiements sans compte" : ""}
                 value={email} onChange={(e) => setEmail(e.target.value)} sx={{ mb: 2 }}
+              />
+            )}
+
+            {isGuest && (
+              <TextField
+                fullWidth
+                label="Votre nom (optionnel)"
+                placeholder="Ex : Moussa Traoré"
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                inputProps={{ maxLength: 120 }}
+                helperText="Permet à l'annonceur de vous identifier"
+                sx={{ mb: 2 }}
               />
             )}
 

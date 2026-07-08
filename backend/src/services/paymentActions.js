@@ -109,6 +109,8 @@ async function handleSucceededPayment(tx) {
             currency:      tx.currency,
             reference:     tx.reference,
             propertyTitle: property.title,
+            buyerName:     buyer?.full_name || tx.customer_name || null,
+            buyerEmail:    buyer?.email || tx.customer_email || null,
             buyerPhone:    buyer?.phone,
             units:         details?.booking_units,
             periodLabel:   PERIOD_LABEL[details?.rent_period] || "",

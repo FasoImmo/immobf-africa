@@ -144,7 +144,9 @@ async function sendPaymentReceipt(email, { amount, currency = "XOF", reference, 
 // mobile money, il doit donc savoir qu'une réservation a été confirmée et
 // combien ImmoBF a perçu.
 async function sendOwnerCommissionReceipt(email, {
-  amount, currency = "XOF", reference, propertyTitle, buyerPhone, units, periodLabel, totalAmount,
+  amount, currency = "XOF", reference, propertyTitle,
+  buyerName, buyerEmail, buyerPhone,
+  units, periodLabel, totalAmount,
 }) {
   const subject = `📄 Copie facture — réservation sur "${propertyTitle}"`;
 
@@ -156,6 +158,7 @@ async function sendOwnerCommissionReceipt(email, {
     <p>Bonjour,</p>
     <p>Un client a réservé votre annonce <strong>"${propertyTitle}"</strong> et a réglé la
       commission ImmoBF Africa correspondante.</p>
+
     <div style="background:#f0f9f7; border-radius:8px; padding:20px; margin:20px 0;">
       <p style="margin:0 0 8px;"><strong>Référence :</strong> ${reference}</p>
       <p style="margin:0 0 8px;"><strong>Annonce :</strong> ${propertyTitle}</p>
@@ -165,8 +168,19 @@ async function sendOwnerCommissionReceipt(email, {
         <span class="amount">${Number(amount).toLocaleString("fr-FR")} ${currency}</span>
       </p>
     </div>
+
+    <!-- Fiche contact client -->
+    <div style="background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:16px 20px; margin:20px 0;">
+      <p style="margin:0 0 10px; font-weight:700; color:#795548;">👤 Coordonnées du client</p>
+      ${buyerName  ? `<p style="margin:0 0 6px;"><strong>Nom :</strong> ${buyerName}</p>` : ""}
+      ${buyerEmail ? `<p style="margin:0 0 6px;"><strong>Email :</strong> <a href="mailto:${buyerEmail}" style="color:#0E7C66;">${buyerEmail}</a></p>` : ""}
+      ${buyerPhone ? `<p style="margin:0;"><strong>Téléphone :</strong> ${buyerPhone}</p>` : ""}
+      ${!buyerName && !buyerEmail && !buyerPhone ? `<p style="margin:0; color:#999;">Aucune coordonnée disponible (paiement invité sans compte).</p>` : ""}
+    </div>
+
     <p><strong>Important :</strong> le client doit désormais vous régler directement le montant
       du séjour/loyer en mobile money. ImmoBF Africa n'encaisse que sa commission, jamais le loyer lui-même.</p>
+
     ${buyerWaNum ? `
       <div style="text-align:center; margin:20px 0;">
         <a href="https://wa.me/${buyerWaNum}"

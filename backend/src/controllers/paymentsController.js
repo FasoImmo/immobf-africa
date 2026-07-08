@@ -97,6 +97,7 @@ async function initiate(req, res) {
     // y envoyer le reçu même si le compte n'a pas d'email enregistré, ou si
     // le client préfère recevoir le reçu à une autre adresse.
     customer_email: value.customer_email || null,
+    customer_name:  value.customer_name  || null,
   });
 
   // Upsert CRM contact (invité ou connecté) — non-bloquant
