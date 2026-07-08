@@ -361,7 +361,7 @@ export default function PropertyDetail() {
               </>
             )}
 
-            {p.owner_whatsapp && (!isRent || commissionPaid) && (
+            {p.owner_whatsapp && meId !== p.owner_id && (!isRent || commissionPaid) && (
               <Button
                 fullWidth variant="contained" size="large"
                 sx={{ mt: 1, bgcolor: "#25D366", "&:hover": { bgcolor: "#1ebe5a" }, color: "white" }}
@@ -375,7 +375,7 @@ export default function PropertyDetail() {
                 💬 {t("property.contact_whatsapp")}
               </Button>
             )}
-            {p.owner_whatsapp && isRent && !commissionPaid && (
+            {p.owner_whatsapp && meId !== p.owner_id && isRent && !commissionPaid && (
               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, textAlign: "center" }}>
                 🔒 {t("property.whatsapp_locked")}
               </Typography>
