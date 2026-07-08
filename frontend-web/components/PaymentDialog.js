@@ -422,25 +422,33 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
                 pour recevoir vos justificatifs par email.
               </Alert>
             )}
-            {/* Bouton WhatsApp vers l'annonceur */}
-            {(() => {
+            {/* Bouton WhatsApp vers l'annonceur — ou fallback messagerie */}
+            {purpose === "commission" && (() => {
               const wa = property?.owner_whatsapp || property?.owner_phone;
-              if (!wa) return null;
-              const clean = wa.replace(/\s+/g, "").replace(/^\+/, "");
-              const msg = encodeURIComponent(
-                `Bonjour, je viens de régler la commission ImmoBF Africa pour votre annonce "${property?.title}". Je souhaite finaliser la réservation.`
-              );
+              if (wa) {
+                const clean = wa.replace(/\s+/g, "").replace(/^\+/, "");
+                const msg = encodeURIComponent(
+                  `Bonjour, je viens de régler la commission ImmoBF Africa pour votre annonce "${property?.title}". Je souhaite finaliser la réservation.`
+                );
+                return (
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    href={`https://wa.me/${clean}?text=${msg}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{ mt: 2, bgcolor: "#25D366", "&:hover": { bgcolor: "#1ebe57" }, fontWeight: 700, fontSize: 15, py: 1.5 }}
+                  >
+                    💬 Contacter l'annonceur sur WhatsApp — {wa}
+                  </Button>
+                );
+              }
+              // L'annonceur n'a pas de WhatsApp — indiquer la messagerie interne
               return (
-                <Button
-                  fullWidth
-                  variant="contained"
-                  href={`https://wa.me/${clean}?text=${msg}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{ mt: 2, bgcolor: "#25D366", "&:hover": { bgcolor: "#1ebe57" }, fontWeight: 700, fontSize: 15, py: 1.5 }}
-                >
-                  💬 Contacter l'annonceur sur WhatsApp — {wa}
-                </Button>
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  Cet annonceur n&apos;a pas de numéro WhatsApp renseigné.
+                  Fermez cette fenêtre puis utilisez le bouton <strong>« Envoyer un message »</strong> sur la page pour le contacter via la messagerie ImmoBF.
+                </Alert>
               );
             })()}
           </Box>

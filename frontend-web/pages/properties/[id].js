@@ -350,14 +350,21 @@ export default function PropertyDetail() {
                     ⛔ {t("property.dates_conflict")}
                   </Alert>
                 )}
-                <Button
-                  fullWidth variant="contained" color="primary" size="large"
-                  sx={{ mt: 1 }}
-                  disabled={conflict}
-                  onClick={function() { setPayOpen(true); }}
-                >
-                  {t("property.reserve_btn")} — {formatFCFA(commissionAmount)}
-                </Button>
+                {/* Le bouton est masqué pour le propriétaire lui-même —
+                    un annonceur ne peut pas payer la commission de son
+                    propre bien (cela n'a aucun sens et causait des tests
+                    déroutants où l'on ne voyait jamais les coordonnées
+                    de contact après paiement). */}
+                {meId !== p.owner_id && (
+                  <Button
+                    fullWidth variant="contained" color="primary" size="large"
+                    sx={{ mt: 1 }}
+                    disabled={conflict}
+                    onClick={function() { setPayOpen(true); }}
+                  >
+                    {t("property.reserve_btn")} — {formatFCFA(commissionAmount)}
+                  </Button>
+                )}
                 <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
                   {t("property.commission_notice")}
                 </Typography>
