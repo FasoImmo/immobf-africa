@@ -83,7 +83,6 @@ export default function NewsletterPage() {
         subject,
         html,
         country_code: country || null,
-        locale: isFr ? "fr" : "en",
       });
       setResult(r);
     } catch (e) {
