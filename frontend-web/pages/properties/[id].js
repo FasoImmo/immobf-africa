@@ -94,7 +94,10 @@ export default function PropertyDetail() {
   function handleCommissionPaid() {
     setCommissionPaid(true);
     try { localStorage.setItem(`commission_paid_${id}`, "1"); } catch {}
-    setPayOpen(false);
+    // Ne pas fermer le dialog ici — laisser l'utilisateur lire le message de
+    // confirmation (✓ Paiement confirmé + bouton WhatsApp) avant de cliquer Fermer.
+    // Avant ce correctif, le dialog se fermait instantanément dès que le paiement
+    // était détecté, et l'utilisateur ne voyait jamais le message de succès.
   }
 
   useEffect(() => {
