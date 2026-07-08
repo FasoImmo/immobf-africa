@@ -212,10 +212,16 @@ class PawaPayProvider extends PaymentProvider {
       const res  = await fetch(`${this._baseUrl()}/v2/deposits/${depositId}`, {
         headers: { Authorization: `Bearer ${apiToken}` },
       });
+      if (!res.ok) return null;
       const body = await res.json();
+      // CORRECTIF (#181) : l'API PawaPay GET /deposits/{id} renvoie un tableau
+      // [{ depositId, status, ... }] et non un objet direct — body.status était
+      // donc undefined, checkStatus renvoyait null à chaque poll, et le dialog
+      // restait en attente indéfiniment même après validation par SMS.
+      const deposit = Array.isArray(body) ? body[0] : body;
       // Statuts PawaPay : ACCEPTED (en cours) | COMPLETED | FAILED | EXPIRED
-      if (body.status === "COMPLETED") return "succeeded";
-      if (body.status === "FAILED" || body.status === "EXPIRED") return "failed";
+      if (deposit?.status === "COMPLETED") return "succeeded";
+      if (deposit?.status === "FAILED" || deposit?.status === "EXPIRED") return "failed";
       return null; // ACCEPTED = toujours en attente
     } catch (_) {
       return null; // erreur réseau — ne pas marquer failed
