@@ -330,6 +330,21 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
               </TextField>
             )}
 
+            {isPawapay && selectedPpOp?.requiresOtp && (
+              <>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Composez <strong>{selectedPpOp.ussd || "*144*4*6#"}</strong>, entrez votre
+                  code secret pour générer un code OTP temporaire, saisissez-le
+                  ci-dessous, remplissez ensuite le numéro et l&apos;email, puis
+                  cliquez <strong>Payer</strong> — le code expire en ~60 secondes.
+                </Alert>
+                <TextField
+                  fullWidth label="Code OTP" sx={{ mb: 2 }}
+                  value={pawapayOtp} onChange={(e) => setPawapayOtp(e.target.value)}
+                />
+              </>
+            )}
+
             <TextField
               fullWidth
               label={`Numéro mobile money (${dialCode}…)`}
@@ -360,24 +375,6 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
                 helperText="Permet à l'annonceur de vous identifier"
                 sx={{ mb: 2 }}
               />
-            )}
-
-            {/* OTP en DERNIER — le code expire ~60s après génération USSD.
-                Remplissez d'abord téléphone/email/nom ci-dessus, puis
-                composez le code USSD, saisissez l'OTP et cliquez Payer. */}
-            {isPawapay && selectedPpOp?.requiresOtp && (
-              <>
-                <Alert severity="warning" sx={{ mb: 2 }}>
-                  ⚡ Remplissez d&apos;abord les champs ci-dessus, puis composez{" "}
-                  <strong>*144*4*6#</strong>, entrez votre code secret pour obtenir
-                  le code OTP, saisissez-le ici et cliquez <strong>Payer</strong>{" "}
-                  immédiatement — le code expire en ~60 secondes.
-                </Alert>
-                <TextField
-                  fullWidth label="Code OTP" sx={{ mb: 2 }}
-                  value={pawapayOtp} onChange={(e) => setPawapayOtp(e.target.value)}
-                />
-              </>
             )}
 
             {/* CORRECTIF (30/06/2026) : rappel visible avant paiement — la
