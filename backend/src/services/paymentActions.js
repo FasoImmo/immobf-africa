@@ -89,6 +89,8 @@ async function handleSucceededPayment(tx) {
         purpose:       tx.purpose,
         propertyTitle: property?.title,
         months:        Number(months),
+        ownerWhatsapp: property?.owner_whatsapp,
+        ownerPhone:    property?.owner_phone,
       });
     } else {
       logger.warn({ transaction_id: tx.id }, "Aucun email destinataire pour le reçu");

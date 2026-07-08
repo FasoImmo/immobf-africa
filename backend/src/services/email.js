@@ -49,7 +49,7 @@ function baseTemplate(content) {
   .body { padding: 28px; color: #333; line-height: 1.6; }
   .btn { display: inline-block; background: #0E7C66; color: white; padding: 12px 28px;
          border-radius: 6px; text-decoration: none; font-weight: bold; margin: 16px 0; }
-  .footer { background: #f9f9f9; padding: 16px; text-align: center; font-size: 12px; color: #999; }
+  .footer { background: #c8e8df; padding: 16px; text-align: center; font-size: 12px; color: #555; }
   .amount { font-size: 28px; font-weight: bold; color: #0E7C66; }
   .badge { display: inline-block; padding: 4px 12px; border-radius: 20px;
            background: #e8f5e9; color: #2e7d32; font-size: 13px; }
@@ -88,13 +88,17 @@ async function sendOtpEmail(email, code, purpose = "verification") {
 }
 
 // ─── 2. Reçu de paiement ─────────────────────────────────────────────────────
-async function sendPaymentReceipt(email, { amount, currency = "XOF", reference, purpose, propertyTitle, months }) {
+async function sendPaymentReceipt(email, { amount, currency = "XOF", reference, purpose, propertyTitle, months, ownerWhatsapp, ownerPhone }) {
   const subject = "Reçu de paiement — ImmoBF Africa";
   const purposeLabel = purpose === "listing_fee"
     ? `Abonnement annonce (${months || 1} mois)`
     : purpose === "deposit"    ? "Acompte immobilier"
     : purpose === "commission" ? "Commission de réservation (5%)"
     : "Paiement ImmoBF Africa";
+
+  // Lien WhatsApp annonceur (affiché dans le reçu commission uniquement)
+  const contactNum = ownerWhatsapp || ownerPhone;
+  const waNum = contactNum ? String(contactNum).replace(/[^0-9]/g, "") : null;
 
   const html = baseTemplate(`
     <h2>✅ Paiement confirmé</h2>
@@ -111,6 +115,18 @@ async function sendPaymentReceipt(email, { amount, currency = "XOF", reference, 
     ${purpose === "listing_fee" ? `
       <p>Votre annonce est maintenant <span class="badge">✓ Publiée</span> et visible pendant <strong>${(months || 1) * 30} jours</strong>.</p>
       <a href="https://immoafrica.online/account" class="btn">Voir mes annonces</a>
+    ` : ""}
+    ${purpose === "commission" ? `
+      <div style="background:#e8f5e9; border-radius:8px; padding:20px; margin:20px 0; text-align:center;">
+        <p style="margin:0 0 8px; font-weight:700; color:#1b5e20;">📱 Contacter l'annonceur</p>
+        <p style="margin:0 0 16px; color:#555; font-size:14px;">
+          Vous pouvez maintenant contacter directement l'annonceur pour finaliser votre réservation.
+        </p>
+        ${waNum
+          ? `<a href="https://wa.me/${waNum}" style="display:inline-block; background:#25D366; color:white; padding:12px 28px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:15px;">💬 Contacter sur WhatsApp</a>`
+          : `<p style="color:#888; font-size:13px;">L'annonceur n'a pas renseigné de numéro WhatsApp. Connectez-vous sur <a href="https://immoafrica.online">immoafrica.online</a> pour lui envoyer un message.</p>`
+        }
+      </div>
     ` : ""}
     <p style="color:#999; font-size:12px;">Conservez cet email comme justificatif de paiement.</p>
   `);
@@ -129,6 +145,9 @@ async function sendOwnerCommissionReceipt(email, {
 }) {
   const subject = `📄 Copie facture — réservation sur "${propertyTitle}"`;
 
+  // Lien WhatsApp acheteur cliquable
+  const buyerWaNum = buyerPhone ? String(buyerPhone).replace(/[^0-9]/g, "") : null;
+
   const html = baseTemplate(`
     <h2>📄 Copie de facture — commission de réservation</h2>
     <p>Bonjour,</p>
@@ -144,8 +163,16 @@ async function sendOwnerCommissionReceipt(email, {
       </p>
     </div>
     <p><strong>Important :</strong> le client doit désormais vous régler directement le montant
-      du séjour/loyer en mobile money${buyerPhone ? ` (numéro client : ${buyerPhone})` : ""}.
-      ImmoBF Africa n'encaisse que sa commission, jamais le loyer lui-même.</p>
+      du séjour/loyer en mobile money. ImmoBF Africa n'encaisse que sa commission, jamais le loyer lui-même.</p>
+    ${buyerWaNum ? `
+      <div style="text-align:center; margin:20px 0;">
+        <a href="https://wa.me/${buyerWaNum}"
+           style="display:inline-block; background:#25D366; color:white; padding:12px 28px;
+                  border-radius:6px; text-decoration:none; font-weight:bold; font-size:15px;">
+          💬 Contacter le client sur WhatsApp (${buyerPhone})
+        </a>
+      </div>
+    ` : ""}
     <p style="color:#999; font-size:12px;">Conservez cet email comme justificatif.</p>
   `);
 

@@ -13,14 +13,16 @@ import { useTranslation } from "react-i18next";
 // réels) ne pas accepter d'entreprise basée au Burkina Faso comme marchand —
 // gardés en option pour d'autres pays/évolutions futures, mais plus
 // recommandés par défaut pour le BF (voir tâche #24, #27, #28).
+// PawaPay est recommandé par défaut (flux natif push — pas de redirection) ;
+// CinetPay sera remis en avant une fois son intégration Go Live validée (#28).
 const PROVIDER_LABELS = {
-  cinetpay: { label: "CinetPay", recommended: true },
-  orange_money_bf: { label: "Orange Money (*144*4*6#)", recommended: true },
+  cinetpay: { label: "CinetPay" },
+  orange_money_bf: { label: "Orange Money (*144*4*6#)" },
   wave: { label: "Wave" },
   flutterwave: { label: "Flutterwave (carte, Orange Money, Mobicash)" },
   fedapay: { label: "FedaPay (tous opérateurs)" },
   moov_money_bf: { label: "Moov Money (*555*6#)" },
-  pawapay: { label: "PawaPay (Mobile Money)" },
+  pawapay: { label: "PawaPay (Moov/Orange/Wave)", recommended: true },
 };
 
 // Pour FedaPay : choix d'opérateur préféré (affiché dans la modal de FedaPay,
