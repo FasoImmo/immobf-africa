@@ -252,8 +252,17 @@ async function publish(id, ownerId, opts) {
     }
   }
 
+  // Quand la promo est active (skipFeeCheck), on marque quand même la
+  // publication comme "payée" (frais offerts) pour que la propriété
+  // n'apparaisse pas en "Sans abonnement" dans le tableau admin.
   const { rows } = await query(
-    "UPDATE properties SET status = 'published', published_at = COALESCE(published_at, NOW()), updated_at = NOW() WHERE id = $1 AND owner_id = $2 RETURNING " + RETURNING_COLS,
+    `UPDATE properties
+     SET status              = 'published',
+         published_at        = COALESCE(published_at, NOW()),
+         listing_fee_paid_at = COALESCE(listing_fee_paid_at, NOW()),
+         updated_at          = NOW()
+     WHERE id = $1 AND owner_id = $2
+     RETURNING ${RETURNING_COLS}`,
     [id, ownerId]
   );
   return hydrate(rows[0]);

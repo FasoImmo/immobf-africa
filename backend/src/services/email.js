@@ -314,12 +314,20 @@ async function sendListingRestored(email, { propertyTitle, propertyId }) {
  */
 async function sendBulkNewsletter(email, { subject, html, recipientName }) {
   const greeting = recipientName ? `Bonjour ${recipientName},` : "Bonjour,";
+  // Si l'admin a saisi du texte brut (sans balises HTML), convertir en paragraphes
+  const hasHtml = /<[a-z][\s\S]*>/i.test(html || "");
+  const bodyHtml = hasHtml
+    ? html
+    : (html || "")
+        .split(/\n{2,}/)
+        .map((p) => `<p style="margin:0 0 12px">${p.replace(/\n/g, "<br/>")}</p>`)
+        .join("\n");
   return send({
     to: email,
     subject,
     html: `<div style="font-family:sans-serif;max-width:600px;margin:auto">
       <p>${greeting}</p>
-      ${html}
+      ${bodyHtml}
       <hr style="margin:32px 0;border:none;border-top:1px solid #eee"/>
       <p style="font-size:12px;color:#999">
         Vous recevez cet email car vous avez interagi avec ImmoBF Africa.<br/>

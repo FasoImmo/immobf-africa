@@ -82,7 +82,7 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
   const [status, setStatus] = useState(null);
   const pollRef = useRef(null);
   const pollAttemptsRef = useRef(0);
-  const MAX_POLL_ATTEMPTS = 40; // ~3 minutes à 4.5s d'intervalle
+  const MAX_POLL_ATTEMPTS = 60; // ~3 minutes à 3s d'intervalle
 
   // Notifie le parent dès que le paiement commission est confirmé (WhatsApp unlock)
   useEffect(() => {
@@ -124,7 +124,7 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
         setStatus("timeout");
         stopPolling();
       }
-    }, 4500);
+    }, 3000);
   }
 
   // Coupe le sondage si le dialog se ferme ou si le composant disparaît —
@@ -387,8 +387,17 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
             avant toute confirmation effective du client. */}
         {status === "pending" && (
           <Alert severity="info" icon={<CircularProgress size={18} />} sx={{ mt: 2 }}>
-            En attente de votre confirmation sur votre téléphone (référence {result?.reference})…
-            Ne fermez pas cette fenêtre.
+            {isPawapay && selectedPpOp && !selectedPpOp.requiresOtp
+              ? <>
+                  Une notification a été envoyée sur votre téléphone Moov/MTN/Wave.
+                  <strong> Ouvrez l&apos;application de votre opérateur et validez le paiement.</strong>
+                  <br/>En attente de confirmation… (réf. {result?.reference})
+                </>
+              : <>
+                  En attente de votre confirmation sur votre téléphone (réf. {result?.reference})…
+                  Ne fermez pas cette fenêtre.
+                </>
+            }
           </Alert>
         )}
         {status === "succeeded" && (

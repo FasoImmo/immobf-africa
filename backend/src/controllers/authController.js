@@ -2,6 +2,7 @@
 
 const Joi = require("joi");
 const User = require("../models/User");
+const Contact = require("../models/Contact");
 const { signAccess, signRefresh, verify } = require("../middleware/auth");
 const { sendOtp, verifyOtp } = require("../services/otp");
 const { BadRequest, Unauthorized, Conflict } = require("../utils/errors");
@@ -27,6 +28,15 @@ async function register(req, res) {
   const existingEmail = await User.findByEmail(value.email);
   if (existingEmail) throw Conflict("Email déjà utilisé");
   const user = await User.create(value);
+  // Synchroniser le nouveau compte dans le CRM contacts
+  Contact.upsert({
+    user_id:  user.id,
+    email:    user.email,
+    phone:    user.phone,
+    name:     user.full_name,
+    country:  user.country_code,
+    language: user.locale,
+  }).catch((e) => logger.warn({ err: e.message }, "register: Contact.upsert failed"));
   const access = signAccess(user);
   const refresh = signRefresh(user, `${user.id}-${Date.now()}`);
   const { password_hash: _pw, token_version: _tv, ...safe } = user;
