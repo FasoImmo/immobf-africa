@@ -219,6 +219,7 @@ export default function AdminTransactions() {
               <Button variant="outlined" onClick={() => {
                 setDateFrom(""); setDateTo(""); setSearch(""); setCountry("");
                 setPurpose(""); setProvider(""); setStatus(""); setMinAmount(""); setMaxAmount("");
+                load(0);
               }}>
                 Réinitialiser
               </Button>
