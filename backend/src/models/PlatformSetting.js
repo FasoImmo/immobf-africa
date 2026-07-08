@@ -30,8 +30,9 @@ async function getPromo() {
     configured: m.promo_active === "true",
     start: m.promo_start || null,
     end:   m.promo_end   || null,
-    message_fr: m.promo_message_fr || null,
-    message_en: m.promo_message_en || null,
+    message_fr:   m.promo_message_fr   || null,
+    message_en:   m.promo_message_en   || null,
+    duration_days: m.promo_duration_days ? Number(m.promo_duration_days) : null,
   };
 }
 

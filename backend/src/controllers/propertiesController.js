@@ -60,6 +60,10 @@ async function publish(req, res) {
   const promo = await PS.getPromo().catch(() => ({ active: false }));
   const p = await Property.publish(req.params.id, req.user.id, { skipFeeCheck: Boolean(promo.active) });
   if (!p) throw Forbidden("Non autorisé ou annonce introuvable");
+  // Si publication via promo et durée configurée, appliquer l'expiration
+  if (promo.active && promo.duration_days) {
+    await Property.setExpiry(req.params.id, promo.duration_days).catch(() => {});
+  }
   res.json({ property: p });
 }
 

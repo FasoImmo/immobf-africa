@@ -65,11 +65,12 @@ export default function AdminSettings() {
     setPromoSaving(true); setPromoMsg(null);
     try {
       const r = await Admin.setPromo({
-        active:     promo.configured,
-        start:      promo.start   || null,
-        end:        promo.end     || null,
-        message_fr: promo.message_fr || null,
-        message_en: promo.message_en || null,
+        active:        promo.configured,
+        start:         promo.start   || null,
+        end:           promo.end     || null,
+        message_fr:    promo.message_fr || null,
+        message_en:    promo.message_en || null,
+        duration_days: promo.duration_days ? Number(promo.duration_days) : null,
       });
       setPromo(r.promo);
       setPromoMsg({ ok: true, text: "Promo enregistrée ✅" });
@@ -194,6 +195,14 @@ export default function AdminSettings() {
                   value={promo.end || ""}
                   onChange={(e) => setPromo((p) => ({ ...p, end: e.target.value }))}
                   InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField size="small" type="number" label="Durée annonce (jours)" fullWidth
+                  value={promo.duration_days ?? ""}
+                  onChange={(e) => setPromo((p) => ({ ...p, duration_days: e.target.value ? Number(e.target.value) : null }))}
+                  inputProps={{ min: 1, max: 365 }}
+                  helperText="Laisser vide = pas d'expiration"
                 />
               </Grid>
               <Grid item xs={12} md={6}>
