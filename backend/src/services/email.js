@@ -174,7 +174,7 @@ async function sendOwnerCommissionReceipt(email, {
       <p style="margin:0 0 10px; font-weight:700; color:#795548;">👤 Coordonnées du client</p>
       ${buyerName  ? `<p style="margin:0 0 6px;"><strong>Nom :</strong> ${buyerName}</p>` : ""}
       ${buyerEmail ? `<p style="margin:0 0 6px;"><strong>Email :</strong> <a href="mailto:${buyerEmail}" style="color:#0E7C66;">${buyerEmail}</a></p>` : ""}
-      ${buyerPhone ? `<p style="margin:0;"><strong>Téléphone :</strong> ${buyerPhone}</p>` : ""}
+      ${buyerPhone ? `<p style="margin:0;"><strong>Téléphone :</strong> <a href="tel:${String(buyerPhone).replace(/[^0-9+]/g, "")}" style="color:#0E7C66;">${buyerPhone}</a></p>` : ""}
       ${!buyerName && !buyerEmail && !buyerPhone ? `<p style="margin:0; color:#999;">Aucune coordonnée disponible (paiement invité sans compte).</p>` : ""}
     </div>
 

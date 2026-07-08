@@ -98,6 +98,7 @@ async function initiate(req, res) {
     // le client préfère recevoir le reçu à une autre adresse.
     customer_email: value.customer_email || null,
     customer_name:  value.customer_name  || null,
+    customer_phone: value.customer_phone || null,
   });
 
   // Upsert CRM contact (invité ou connecté) — non-bloquant
@@ -213,7 +214,9 @@ async function initiate(req, res) {
               currency: tx.currency,
               reference: tx.reference,
               propertyTitle: property.title,
-              buyerPhone: value.customer_phone || req.user?.phone,
+              buyerName:  req.user?.full_name || tx.customer_name  || null,
+              buyerEmail: req.user?.email     || tx.customer_email || null,
+              buyerPhone: value.customer_phone || req.user?.phone  || null,
               units: value.booking_units,
               periodLabel: PERIOD_LABEL[property.rent_period] || "",
               totalAmount: value.booking_units ? property.price * value.booking_units : null,
