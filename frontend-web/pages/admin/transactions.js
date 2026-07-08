@@ -118,11 +118,11 @@ export default function AdminTransactions() {
 
   if (ok === null) return null;
   if (ok === false) return (
-    <Layout><Box sx={{ p: 4 }}><Typography color="error">Accès refusé.</Typography></Box></AdminLayout>
+    <AdminLayout><Box sx={{ p: 4 }}><Typography color="error">Accès refusé.</Typography></Box></AdminLayout>
   );
 
   return (
-    <Layout>
+    <AdminLayout>
       <Container maxWidth="xl" sx={{ py: 4 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3, flexWrap: "wrap" }}>
           <Button variant="outlined" size="small" onClick={() => router.back()}>← Retour</Button>

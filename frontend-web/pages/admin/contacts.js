@@ -129,7 +129,7 @@ export default function AdminContacts() {
   const paged = filtered.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
 
   return (
-    <Layout>
+    <AdminLayout>
       <Box sx={{ p: 3 }}>
         {/* En-tête */}
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2, flexWrap: "wrap", gap: 1 }}>
