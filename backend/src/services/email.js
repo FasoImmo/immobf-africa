@@ -57,7 +57,10 @@ function baseTemplate(content) {
 </head>
 <body>
 <div class="card">
-  <div class="header"><h1>🏠 ImmoBF Africa</h1></div>
+  <div class="header">
+    <img src="https://immoafrica.online/logo-white.svg" alt="ImmoBF Africa" height="48"
+         style="display:block; margin:0 auto 8px; height:48px;" />
+  </div>
   <div class="body">${content}</div>
   <div class="footer">
     © 2026 ImmoBF Africa — <a href="https://immoafrica.online">immoafrica.online</a><br>
