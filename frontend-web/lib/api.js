@@ -171,6 +171,7 @@ export const Admin = {
   testEmail: (to) => api.post("/admin/test-email", { to }).then((r) => r.data),
   userStats: (id) => api.get(`/admin/users/${id}/stats`).then((r) => r.data),
   sendNewsletter: (data) => api.post("/admin/newsletter", data).then((r) => r.data),
+  getNewsletterDraft: () => api.get("/admin/newsletter/draft").then((r) => r.data),
   getPromo: () => api.get("/admin/promo").then((r) => r.data),
   setPromo: (data) => api.post("/admin/promo", data).then((r) => r.data),
   extendListing: (id, days, note) => api.post(`/admin/properties/${id}/extend`, { days, note }).then((r) => r.data),

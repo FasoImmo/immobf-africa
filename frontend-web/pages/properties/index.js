@@ -138,7 +138,7 @@ export default function BrowsePage() {
     <Layout title={pageTitle + " — ImmoBF"}>
       {router.query.unsubscribed === "1" && (
         <MuiAlert severity="info" sx={{ mb: 2 }}>
-          Vous avez été désabonné des alertes pour ces critères.
+          {t("browse.unsubscribed")}
         </MuiAlert>
       )}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 1 }}>
@@ -148,7 +148,7 @@ export default function BrowsePage() {
             size="small" variant="outlined" color="primary"
             onClick={() => { setAlertOpen(true); setAlertStatus(null); }}
           >
-            🔔 Être alerté
+            🔔 {t("browse.be_alerted")}
           </Button>
           <ToggleButtonGroup
             value={viewMode}
@@ -156,11 +156,11 @@ export default function BrowsePage() {
             onChange={(_, v) => { if (v) setViewMode(v); }}
             size="small"
           >
-            <ToggleButton value="list" aria-label="Vue liste">
-              📋 Liste
+            <ToggleButton value="list" aria-label={t("browse.view_list")}>
+              📋 {t("browse.view_list")}
             </ToggleButton>
-            <ToggleButton value="map" aria-label="Vue carte">
-              🗺️ Carte{geoCount > 0 ? ` (${geoCount})` : ""}
+            <ToggleButton value="map" aria-label={t("browse.view_map")}>
+              🗺️ {t("browse.view_map")}{geoCount > 0 ? ` (${geoCount})` : ""}
             </ToggleButton>
           </ToggleButtonGroup>
         </Box>
@@ -201,14 +201,14 @@ export default function BrowsePage() {
           value={filters.max_price} onChange={set("max_price")} sx={{ width: 120 }} />
 
         {/* Tri */}
-        <TextField select label="Trier par" size="small" value={filters.sort}
+        <TextField select label={t("browse.sort_by")} size="small" value={filters.sort}
           onChange={set("sort")} sx={{ minWidth: 160 }}>
-          <MenuItem value="newest">Plus récent</MenuItem>
-          <MenuItem value="oldest">Plus ancien</MenuItem>
-          <MenuItem value="price_asc">Prix ↑</MenuItem>
-          <MenuItem value="price_desc">Prix ↓</MenuItem>
-          <MenuItem value="area_asc">Superficie ↑</MenuItem>
-          <MenuItem value="area_desc">Superficie ↓</MenuItem>
+          <MenuItem value="newest">{t("browse.sort_newest")}</MenuItem>
+          <MenuItem value="oldest">{t("browse.sort_oldest")}</MenuItem>
+          <MenuItem value="price_asc">{t("browse.sort_price_asc")}</MenuItem>
+          <MenuItem value="price_desc">{t("browse.sort_price_desc")}</MenuItem>
+          <MenuItem value="area_asc">{t("browse.sort_area_asc")}</MenuItem>
+          <MenuItem value="area_desc">{t("browse.sort_area_desc")}</MenuItem>
         </TextField>
 
         {/* Bouton filtres avancés */}
@@ -218,7 +218,7 @@ export default function BrowsePage() {
           onClick={() => setAdvOpen((v) => !v)}
           sx={{ alignSelf: "center" }}
         >
-          Avancé{advCount > 0 ? ` (${advCount})` : ""}
+          {t("browse.advanced")}{advCount > 0 ? ` (${advCount})` : ""}
         </Button>
 
         <Button variant="contained" onClick={() => { setPage(1); runSearch(null, 1); }}>{t("search.filters")}</Button>
@@ -227,35 +227,35 @@ export default function BrowsePage() {
       {/* ─── Filtres avancés ────────────────────────────────────────────────── */}
       <Collapse in={advOpen}>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2, p: 2, bgcolor: "grey.50", borderRadius: 2, border: "1px solid #e0e0e0" }}>
-          <TextField label="Superficie min (m²)" type="number" size="small"
+          <TextField label={t("search.area_min")} type="number" size="small"
             value={filters.min_area} onChange={set("min_area")} sx={{ width: 150 }} />
-          <TextField label="Superficie max (m²)" type="number" size="small"
+          <TextField label={t("search.area_max")} type="number" size="small"
             value={filters.max_area} onChange={set("max_area")} sx={{ width: 150 }} />
-          <TextField select label="Chambres min" size="small" value={filters.bedrooms}
+          <TextField select label={t("search.bedrooms_min")} size="small" value={filters.bedrooms}
             onChange={set("bedrooms")} sx={{ width: 130 }}>
             <MenuItem value="">—</MenuItem>
             {[1,2,3,4,5].map((n) => (
               <MenuItem key={n} value={n}>{n}+</MenuItem>
             ))}
           </TextField>
-          <TextField select label="Période location" size="small" value={filters.rent_period}
+          <TextField select label={t("search.rent_period")} size="small" value={filters.rent_period}
             onChange={set("rent_period")} sx={{ width: 160 }}>
             <MenuItem value="">—</MenuItem>
-            <MenuItem value="nightly">Nuitée</MenuItem>
-            <MenuItem value="weekly">Semaine</MenuItem>
-            <MenuItem value="monthly">Mois</MenuItem>
+            <MenuItem value="nightly">{t("browse.period_nightly")}</MenuItem>
+            <MenuItem value="weekly">{t("browse.period_weekly")}</MenuItem>
+            <MenuItem value="monthly">{t("browse.period_monthly")}</MenuItem>
           </TextField>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="body2">Meublé</Typography>
+            <Typography variant="body2">{t("browse.furnished_label")}</Typography>
             <ToggleButtonGroup
               value={filters.is_furnished}
               exclusive
               onChange={(_, v) => setDirect("is_furnished", v ?? "")}
               size="small"
             >
-              <ToggleButton value="">Tous</ToggleButton>
-              <ToggleButton value="true">Oui</ToggleButton>
-              <ToggleButton value="false">Non</ToggleButton>
+              <ToggleButton value="">{t("browse.all")}</ToggleButton>
+              <ToggleButton value="true">{t("browse.yes")}</ToggleButton>
+              <ToggleButton value="false">{t("browse.no")}</ToggleButton>
             </ToggleButtonGroup>
           </Box>
           {advCount > 0 && (
@@ -267,7 +267,7 @@ export default function BrowsePage() {
                 setDirect("is_furnished", "");
                 setDirect("rent_period", "");
               }}>
-              Réinitialiser
+              {t("browse.reset")}
             </Button>
           )}
         </Box>
@@ -288,7 +288,7 @@ export default function BrowsePage() {
         <>
           {ready && total > 0 && (
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              {total} annonce{total > 1 ? "s" : ""} trouvée{total > 1 ? "s" : ""}
+              {t("browse.results_found", { count: total })}
             </Typography>
           )}
           <Grid container spacing={2}>
@@ -318,14 +318,13 @@ export default function BrowsePage() {
       )}
       {/* ─── Dialog alerte email ─────────────────────────────────────────── */}
       <Dialog open={alertOpen} onClose={() => setAlertOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>🔔 Recevoir des alertes</DialogTitle>
+        <DialogTitle>🔔 {t("browse.alert_dialog_title")}</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Entrez votre email pour être notifié dès qu&apos;une nouvelle annonce
-            correspond à vos critères actuels.
+            {t("browse.alert_dialog_body")}
           </Typography>
           <TextField
-            label="Votre email" type="email" fullWidth size="small"
+            label={t("browse.alert_email_label")} type="email" fullWidth size="small"
             value={alertEmail}
             onChange={(e) => setAlertEmail(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSaveAlert()}
@@ -333,24 +332,24 @@ export default function BrowsePage() {
           />
           {alertStatus === "success" && (
             <MuiAlert severity="success" sx={{ mt: 2 }}>
-              ✅ Inscription enregistrée ! Vous recevrez un email dès qu'une annonce correspond.
+              {t("browse.alert_success")}
             </MuiAlert>
           )}
           {alertStatus === "error" && (
             <MuiAlert severity="error" sx={{ mt: 2 }}>
-              ❌ Une erreur est survenue, veuillez réessayer.
+              {t("browse.alert_error")}
             </MuiAlert>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAlertOpen(false)}>Fermer</Button>
+          <Button onClick={() => setAlertOpen(false)}>{t("browse.close")}</Button>
           {alertStatus !== "success" && (
             <Button
               variant="contained"
               onClick={handleSaveAlert}
               disabled={alertLoading || !alertEmail.includes("@")}
             >
-              {alertLoading ? "…" : "M'alerter"}
+              {alertLoading ? "…" : t("browse.alert_btn")}
             </Button>
           )}
         </DialogActions>

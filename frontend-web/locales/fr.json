@@ -18,11 +18,39 @@
     "plans": "Offres d'abonnement"
   },
   "browse": {
-    "all": "Vente & Location",
+    "all": "Tous",
     "title_all": "Parcourir les annonces",
     "title_sale": "Annonces à vendre",
     "title_rent_long": "Location longue durée",
-    "title_rent_short": "Location courte durée / nuitée"
+    "title_rent_short": "Location courte durée / nuitée",
+    "be_alerted": "Être alerté",
+    "view_list": "Liste",
+    "view_map": "Carte",
+    "sort_by": "Trier par",
+    "sort_newest": "Plus récent",
+    "sort_oldest": "Plus ancien",
+    "sort_price_asc": "Prix ↑",
+    "sort_price_desc": "Prix ↓",
+    "sort_area_asc": "Superficie ↑",
+    "sort_area_desc": "Superficie ↓",
+    "advanced": "Avancé",
+    "results_found_one": "1 annonce trouvée",
+    "results_found_other": "{{count}} annonces trouvées",
+    "unsubscribed": "Vous avez été désabonné des alertes pour ces critères.",
+    "alert_dialog_title": "Recevoir des alertes",
+    "alert_dialog_body": "Entrez votre email pour être notifié dès qu'une nouvelle annonce correspond à vos critères actuels.",
+    "alert_email_label": "Votre email",
+    "alert_success": "✅ Inscription enregistrée ! Vous recevrez un email dès qu'une annonce correspond.",
+    "alert_error": "❌ Une erreur est survenue, veuillez réessayer.",
+    "close": "Fermer",
+    "alert_btn": "M'alerter",
+    "yes": "Oui",
+    "no": "Non",
+    "reset": "Réinitialiser",
+    "furnished_label": "Meublé",
+    "period_nightly": "Nuitée",
+    "period_weekly": "Semaine",
+    "period_monthly": "Mois"
   },
   "search": {
     "placeholder": "Ville, quartier, type…",
@@ -35,7 +63,10 @@
     "price_max": "Prix max",
     "area_min": "Superficie min",
     "bedrooms": "Chambres",
-    "no_results": "Aucun résultat pour ces filtres."
+    "no_results": "Aucun résultat pour ces filtres.",
+    "area_max": "Superficie max (m²)",
+    "rent_period": "Période location",
+    "bedrooms_min": "Chambres min"
   },
   "account": {
     "title": "Mon compte",

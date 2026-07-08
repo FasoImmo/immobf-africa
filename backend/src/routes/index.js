@@ -90,6 +90,17 @@ router.delete("/admin/properties/:id",      requireAdmin, asyncHandler(adminCtl.
 router.get  ("/admin/revenues",             requireAdmin, asyncHandler(adminCtl.listRevenues));
 router.get  ("/admin/users/:id/stats",      requireAdmin, asyncHandler(adminCtl.userStats));
 router.post ("/admin/newsletter",           requireAdmin, asyncHandler(adminCtl.sendNewsletter));
+router.get  ("/admin/newsletter/draft",     requireAdmin, asyncHandler(adminCtl.getNewsletterDraft));
+// saveNewsletterDraft : accepte requireAdmin OU X-Draft-Secret (tâche planifiée Cowork)
+router.post ("/admin/newsletter/draft",     asyncHandler(async (req, res, next) => {
+  const secret = process.env.NEWSLETTER_DRAFT_SECRET;
+  if (secret && req.headers["x-draft-secret"] === secret) return next();
+  // Sinon : vérification admin standard
+  requireAuth(req, res, (err) => {
+    if (err) return next(err);
+    requireRole("admin")(req, res, next);
+  });
+}), asyncHandler(adminCtl.saveNewsletterDraft));
 router.get  ("/admin/payment-stats",        requireAdmin, asyncHandler(adminCtl.paymentStats));
 router.patch("/admin/profile",              requireAdmin, asyncHandler(adminCtl.updateAdminProfile));
 router.post ("/admin/test-email",           requireAdmin, asyncHandler(adminCtl.testEmail));

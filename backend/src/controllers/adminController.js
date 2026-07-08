@@ -478,6 +478,54 @@ async function deleteReview(req, res) {
   res.json({ ok: true });
 }
 
+// ─── Brouillon newsletter hebdomadaire ───────────────────────────────────────
+
+/**
+ * GET /admin/newsletter/draft
+ * Retourne le dernier brouillon sauvegardé (FR + EN).
+ */
+async function getNewsletterDraft(req, res) {
+  const PS = require("../models/PlatformSetting");
+  const [subject_fr, html_fr, subject_en, html_en, saved_at] = await Promise.all([
+    PS.get("newsletter_draft_subject_fr"),
+    PS.get("newsletter_draft_html_fr"),
+    PS.get("newsletter_draft_subject_en"),
+    PS.get("newsletter_draft_html_en"),
+    PS.get("newsletter_draft_saved_at"),
+  ]);
+  const hasDraft = Boolean(subject_fr || html_fr || subject_en || html_en);
+  res.json({ hasDraft, subject_fr, html_fr, subject_en, html_en, saved_at });
+}
+
+/**
+ * POST /admin/newsletter/draft
+ * Sauvegarde un brouillon (FR + EN).
+ * Accepte requireAdmin OU l'header X-Draft-Secret (pour la tâche planifiée).
+ */
+const draftSchema = Joi.object({
+  subject_fr: Joi.string().max(300).allow("", null),
+  html_fr:    Joi.string().max(50000).allow("", null),
+  subject_en: Joi.string().max(300).allow("", null),
+  html_en:    Joi.string().max(50000).allow("", null),
+});
+
+async function saveNewsletterDraft(req, res) {
+  const { value, error } = draftSchema.validate(req.body);
+  if (error) throw BadRequest(error.message);
+  const PS = require("../models/PlatformSetting");
+  const now = new Date().toISOString();
+  const ops = [];
+  if (value.subject_fr != null) ops.push(PS.set("newsletter_draft_subject_fr", value.subject_fr));
+  if (value.html_fr    != null) ops.push(PS.set("newsletter_draft_html_fr",    value.html_fr));
+  if (value.subject_en != null) ops.push(PS.set("newsletter_draft_subject_en", value.subject_en));
+  if (value.html_en    != null) ops.push(PS.set("newsletter_draft_html_en",    value.html_en));
+  ops.push(PS.set("newsletter_draft_saved_at", now));
+  await Promise.all(ops);
+  const logger = require("../utils/logger");
+  logger.info({ saved_at: now }, "newsletter draft saved");
+  res.json({ saved: true, saved_at: now });
+}
+
 module.exports = {
   listUsers, setUserBlocked, logoutUser, deleteUser,
   listProperties, deleteProperty, listRevenues,
@@ -487,4 +535,5 @@ module.exports = {
   getPricingAdmin, setPricingAdmin,
   listTransactions,
   listReviews, deleteReview,
+  getNewsletterDraft, saveNewsletterDraft,
 };

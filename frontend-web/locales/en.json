@@ -18,11 +18,39 @@
     "plans": "Subscription plans"
   },
   "browse": {
-    "all": "Sale & Rental",
+    "all": "All",
     "title_all": "Browse listings",
     "title_sale": "Properties for sale",
     "title_rent_long": "Long-term rentals",
-    "title_rent_short": "Short-term rentals / nightly"
+    "title_rent_short": "Short-term rentals / nightly",
+    "be_alerted": "Get alerts",
+    "view_list": "List",
+    "view_map": "Map",
+    "sort_by": "Sort by",
+    "sort_newest": "Newest",
+    "sort_oldest": "Oldest",
+    "sort_price_asc": "Price ↑",
+    "sort_price_desc": "Price ↓",
+    "sort_area_asc": "Area ↑",
+    "sort_area_desc": "Area ↓",
+    "advanced": "Advanced",
+    "results_found_one": "1 listing found",
+    "results_found_other": "{{count}} listings found",
+    "unsubscribed": "You have been unsubscribed from alerts for these criteria.",
+    "alert_dialog_title": "Get email alerts",
+    "alert_dialog_body": "Enter your email to be notified when a new listing matches your current criteria.",
+    "alert_email_label": "Your email",
+    "alert_success": "✅ Registered! You'll receive an email when a matching listing is published.",
+    "alert_error": "❌ An error occurred, please try again.",
+    "close": "Close",
+    "alert_btn": "Notify me",
+    "yes": "Yes",
+    "no": "No",
+    "reset": "Reset",
+    "furnished_label": "Furnished",
+    "period_nightly": "Nightly",
+    "period_weekly": "Weekly",
+    "period_monthly": "Monthly"
   },
   "search": {
     "placeholder": "City, neighborhood, type…",
@@ -35,7 +63,10 @@
     "price_max": "Max price",
     "area_min": "Min area",
     "bedrooms": "Bedrooms",
-    "no_results": "No results for these filters."
+    "no_results": "No results for these filters.",
+    "area_max": "Max area (m²)",
+    "rent_period": "Rental period",
+    "bedrooms_min": "Min bedrooms"
   },
   "account": {
     "title": "My account",
