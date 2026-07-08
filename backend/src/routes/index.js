@@ -48,7 +48,7 @@ router.patch("/auth/me/profile",       requireAuth, asyncHandler(authCtl.updateU
 // --- Properties ---
 router.get ("/properties",              publicLimiter, asyncHandler(propCtl.search));
 router.post("/properties/estimate",     publicLimiter, asyncHandler(propCtl.estimate));
-router.get ("/properties/:id",          publicLimiter, asyncHandler(propCtl.get));
+router.get ("/properties/:id",          publicLimiter, optionalAuth, asyncHandler(propCtl.get));
 router.post("/properties",              requireAuth,   asyncHandler(propCtl.create));
 router.post  ("/properties/:id/publish",             requireAuth, asyncHandler(propCtl.publish));
 router.patch ("/properties/:id",                    requireAuth, asyncHandler(propCtl.update));

@@ -104,6 +104,13 @@ export default function PropertyDetail() {
     if (!id) return;
     Properties.get(id).then((d) => {
       setP(d.property);
+      // commission_paid = vérification côté serveur (utilisateur connecté avec commission payée).
+      // Priorité : API > localStorage (l'API est la source de vérité ; localStorage
+      // sert de cache pour les paiements invités sur le même navigateur).
+      if (d.commission_paid === true) {
+        setCommissionPaid(true);
+        try { localStorage.setItem(`commission_paid_${id}`, "1"); } catch {}
+      }
       // Tracking vue + annonces similaires en parallèle
       Analytics.trackView(id, "view");
       Analytics.similar(id).then((r) => setSimilar(r.items || [])).catch(() => {});

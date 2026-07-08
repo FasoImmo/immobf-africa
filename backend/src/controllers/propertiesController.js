@@ -51,7 +51,37 @@ async function get(req, res) {
   const p = await Property.findById(req.params.id, { lang });
   if (!p) throw NotFound("Annonce introuvable");
   const photos = await Property.photosFor(p.id);
-  res.json({ property: { ...p, photos } });
+
+  // ── Protection coordonnées annonceur pour les locations ──────────────────
+  // Pour les annonces de type location (rent_short / rent_long), les coordonnées
+  // de contact de l'annonceur (WhatsApp, téléphone) ne sont exposées que si le
+  // visiteur a déjà réglé la commission ImmoBF pour cette annonce.
+  // Sans ça, un visiteur peut récupérer le contact via l'API et contourner la
+  // commission — ce que le verrou côté UI (localStorage) ne peut pas empêcher.
+  const isRent = p.transaction_type && p.transaction_type !== "sale";
+  let commissionPaid = false;
+  if (isRent && req.user?.id) {
+    const { query } = require("../config/db");
+    const { rows } = await query(
+      `SELECT 1 FROM transactions
+       WHERE (buyer_id = $1 OR customer_email = $2)
+         AND property_id = $3
+         AND purpose = 'commission'
+         AND status  = 'succeeded'
+       LIMIT 1`,
+      [req.user.id, req.user.email || "", req.params.id]
+    );
+    commissionPaid = rows.length > 0;
+  }
+
+  const property = { ...p, photos };
+  if (isRent && !commissionPaid) {
+    // Masquer les coordonnées — le front doit utiliser le bouton de paiement.
+    delete property.owner_whatsapp;
+    delete property.owner_phone;
+  }
+
+  res.json({ property, commission_paid: isRent ? commissionPaid : undefined });
 }
 
 async function publish(req, res) {
