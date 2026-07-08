@@ -486,7 +486,7 @@ async function extendListing(id, days) {
      SET listing_expires_at = GREATEST(COALESCE(listing_expires_at, NOW()), NOW()) + ($2 || ' days')::interval,
          updated_at = NOW()
      WHERE id = $1
-     RETURNING id, title, listing_expires_at, status`,
+     RETURNING id, title, listing_expires_at, status, owner_id`,
     [id, String(days || 30)]
   );
   return rows[0] || null;

@@ -141,9 +141,9 @@ export default function AdminProperties() {
     setActingId(prop.id);
     setExtendDialog((d) => ({ ...d, open: false }));
     try {
-      const { property } = await Admin.extendListing(prop.id, Number(days), note || undefined);
-      setProperties((prev) => prev.map((p) => p.id === property.id ? { ...p, listing_expires_at: property.listing_expires_at } : p));
-      setActionMsg({ severity: "success", text: `Annonce "${prop.title}" prolongée de ${days} jour(s).` });
+      await Admin.extendListing(prop.id, Number(days), note || undefined);
+      setActionMsg({ severity: "success", text: `Annonce "${prop.title}" prolongée de ${days} jour(s). ✅` });
+      load(); // Recharge la liste pour recalculer days_remaining côté backend
     } catch (e) {
       setError(e?.response?.data?.error?.message || e.message);
     } finally { setActingId(null); }
@@ -180,7 +180,11 @@ export default function AdminProperties() {
     return (
       <TableRow key={p.id}>
         <TableCell sx={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {p.title}
+          <a href={`/properties/${p.id}`} target="_blank" rel="noopener noreferrer"
+             style={{ color: "#0E7C66", fontWeight: 600, textDecoration: "none" }}
+             title="Voir l'annonce publique">
+            {p.title}
+          </a>
         </TableCell>
         {!groupBy || groupBy !== "type" ? (
           <TableCell>{TYPE_LABELS[p.type] || p.type || "—"}</TableCell>
