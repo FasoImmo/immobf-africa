@@ -67,8 +67,14 @@ async function handleSucceededPayment(tx) {
     const buyer    = tx.buyer_id    ? await User.findById(tx.buyer_id)       : null;
     const property = tx.property_id ? await Property.findById(tx.property_id) : null;
 
-    // Génération reçu PDF (best-effort)
-    await generateReceipt(tx, { buyer, property });
+    // Génération reçu PDF (truly best-effort — isolé pour ne pas bloquer l'email)
+    // CORRECTIF : avant ce fix, si generateReceipt échouait (ex. filesystem
+    // Railway, permissions, pdfkit), le catch global était déclenché et l'email
+    // de reçu n'était jamais envoyé — le paiement réussissait mais l'utilisateur
+    // ne recevait aucune confirmation.
+    try { await generateReceipt(tx, { buyer, property }); } catch (pdfErr) {
+      logger.warn({ err: pdfErr.message, transaction_id: tx.id }, "generateReceipt failed (ignoré, email envoyé quand même)");
+    }
 
     // Reçu acheteur/annonceur
     const receiptEmail = tx.customer_email || buyer?.email;
