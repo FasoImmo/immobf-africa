@@ -117,6 +117,10 @@ router.post ("/admin/contacts/newsletter",    requireAdmin, asyncHandler(adminCt
 router.get  ("/admin/reviews",                requireAdmin, asyncHandler(adminCtl.listReviews));
 router.delete("/admin/reviews/:id",           requireAdmin, asyncHandler(adminCtl.deleteReview));
 
+// --- Gestion des fournisseurs de paiement ---
+router.get  ("/admin/payment-providers",      requireAdmin, asyncHandler(adminCtl.listPaymentProviders));
+router.patch("/admin/payment-providers/:id",  requireAdmin, asyncHandler(adminCtl.updatePaymentProvider));
+
 // --- Config publique (promo, etc.) ---
 router.get("/config/promo", publicLimiter, asyncHandler(async (req, res) => {
   const PS = require("../models/PlatformSetting");

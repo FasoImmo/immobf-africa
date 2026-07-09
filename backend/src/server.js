@@ -111,6 +111,19 @@ if (require.main === module) {
     // Démarrer les alertes email de nouvelles annonces (cron quotidien 09h00)
     const { startEmailAlertsCron } = require("./services/emailAlerts");
     startEmailAlertsCron();
+    // Cron toutes les minutes : traiter les activations/désactivations programmées
+    const PaymentProviderModel = require("./models/PaymentProvider");
+    const ppLogger = require("./utils/logger");
+    setInterval(async () => {
+      try {
+        const changed = await PaymentProviderModel.processScheduled();
+        if (changed.length > 0) {
+          ppLogger.info({ changed }, "payment_providers: scheduled status changes applied");
+        }
+      } catch (e) {
+        ppLogger.warn({ err: e.message }, "payment_providers: scheduled cron error");
+      }
+    }, 60_000);
   });
 }
 

@@ -11,6 +11,8 @@ const argon2 = require("argon2");
 const User = require("../models/User");
 const Property = require("../models/Property");
 const Transaction = require("../models/Transaction");
+const PaymentProviderModel = require("../models/PaymentProvider");
+const registry = require("../services/PaymentProviderRegistry");
 const { BadRequest, NotFound, Conflict } = require("../utils/errors");
 
 const listSchema = Joi.object({
@@ -527,6 +529,84 @@ async function saveNewsletterDraft(req, res) {
   res.json({ saved: true, saved_at: now });
 }
 
+// ── Gestion des fournisseurs de paiement ──────────────────────────────────────
+
+/**
+ * GET /admin/payment-providers
+ * Retourne la liste de tous les fournisseurs connus (registry) enrichie
+ * de leur statut DB (enabled, programmations) et de leurs stats récentes.
+ */
+async function listPaymentProviders(req, res) {
+  // Fournisseurs connus côté code
+  const allProviderIds = registry.all();
+
+  // Statuts DB
+  const dbRows = await PaymentProviderModel.list();
+  const dbMap = Object.fromEntries(dbRows.map((r) => [r.id, r]));
+
+  // Stats globales par provider (toutes périodes)
+  const stats = await Transaction.statsByProvider(null, null);
+  const statsMap = Object.fromEntries(stats.map((s) => [s.provider, s]));
+
+  // Stats 30 derniers jours
+  const since30 = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+  const stats30 = await Transaction.statsByProvider(since30, null);
+  const stats30Map = Object.fromEntries(stats30.map((s) => [s.provider, s]));
+
+  const providers = allProviderIds.map((id) => {
+    const db = dbMap[id];
+    return {
+      id,
+      enabled:              db ? db.enabled              : true,
+      scheduled_disable_at: db ? db.scheduled_disable_at : null,
+      scheduled_enable_at:  db ? db.scheduled_enable_at  : null,
+      disabled_reason:      db ? db.disabled_reason       : null,
+      updated_at:           db ? db.updated_at            : null,
+      stats_all:   statsMap[id]   || { nb_succeeded: 0, nb_failed: 0, nb_pending: 0, nb_total: 0, total_revenue: 0 },
+      stats_30d:   stats30Map[id] || { nb_succeeded: 0, nb_failed: 0, nb_pending: 0, nb_total: 0, total_revenue: 0 },
+    };
+  });
+
+  res.json({ providers });
+}
+
+const providerUpdateSchema = Joi.object({
+  enabled:              Joi.boolean(),
+  scheduled_disable_at: Joi.date().iso().allow(null, ""),
+  scheduled_enable_at:  Joi.date().iso().allow(null, ""),
+  disabled_reason:      Joi.string().max(300).allow(null, ""),
+}).min(1);
+
+/**
+ * PATCH /admin/payment-providers/:id
+ * Met à jour le statut (immédiat ou programmé) d'un fournisseur.
+ */
+async function updatePaymentProvider(req, res) {
+  const providerId = req.params.id;
+  if (!registry.all().includes(providerId)) throw BadRequest("Fournisseur inconnu");
+
+  const { value, error } = providerUpdateSchema.validate(req.body);
+  if (error) throw BadRequest(error.message);
+
+  const current = (await PaymentProviderModel.get(providerId)) || {
+    enabled: true,
+    scheduled_disable_at: null,
+    scheduled_enable_at: null,
+    disabled_reason: null,
+  };
+
+  const updated = await PaymentProviderModel.upsert(providerId, {
+    enabled:              value.enabled              !== undefined ? value.enabled              : current.enabled,
+    scheduled_disable_at: value.scheduled_disable_at !== undefined ? value.scheduled_disable_at : current.scheduled_disable_at,
+    scheduled_enable_at:  value.scheduled_enable_at  !== undefined ? value.scheduled_enable_at  : current.scheduled_enable_at,
+    disabled_reason:      value.disabled_reason       !== undefined ? value.disabled_reason       : current.disabled_reason,
+  });
+
+  const logger = require("../utils/logger");
+  logger.info({ provider: providerId, changes: value, admin: req.user?.email }, "payment provider updated by admin");
+  res.json({ provider: updated });
+}
+
 module.exports = {
   listUsers, setUserBlocked, logoutUser, deleteUser,
   listProperties, deleteProperty, listRevenues,
@@ -537,4 +617,5 @@ module.exports = {
   listTransactions,
   listReviews, deleteReview,
   getNewsletterDraft, saveNewsletterDraft,
+  listPaymentProviders, updatePaymentProvider,
 };

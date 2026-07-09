@@ -7,6 +7,7 @@ const Escrow = require("../models/Escrow");
 const Property = require("../models/Property");
 const User = require("../models/User");
 const registry = require("../services/PaymentProviderRegistry");
+const PaymentProviderModel = require("../models/PaymentProvider");
 const { generateReceipt } = require("../services/receipt");
 const { handleSucceededPayment } = require("../services/paymentActions");
 const { BadRequest, NotFound, Forbidden } = require("../utils/errors");
@@ -82,6 +83,12 @@ async function initiate(req, res) {
     const pricing2 = await PS2.getPricing();
     value.amount = Math.max(100, Math.round(totalBookingAmount * pricing2.commission_pct / 100));
     value.currency = property.currency || value.currency;
+  }
+
+  // Vérifier que le fournisseur est activé par l'admin
+  const providerEnabled = await PaymentProviderModel.isEnabled(value.provider);
+  if (!providerEnabled) {
+    throw BadRequest("Ce mode de paiement est temporairement indisponible. Veuillez choisir un autre fournisseur.");
   }
 
   const provider = registry.get(value.provider);
