@@ -18,6 +18,7 @@ import MarkEmailReadIcon       from "@mui/icons-material/MarkEmailRead";
 import StarRoundedIcon         from "@mui/icons-material/StarRounded";
 import TuneIcon                from "@mui/icons-material/Tune";
 import ManageAccountsIcon      from "@mui/icons-material/ManageAccounts";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import HomeRoundedIcon         from "@mui/icons-material/HomeRounded";
 import LogoutIcon              from "@mui/icons-material/Logout";
 import MenuIcon                from "@mui/icons-material/Menu";
@@ -39,8 +40,9 @@ const NAV = [
   { label: "Utilisateurs",     href: "/admin/users",          icon: <PeopleRoundedIcon      fontSize="small" /> },
   { label: "Contacts / CRM",   href: "/admin/contacts",       icon: <ContactMailIcon        fontSize="small" /> },
   { label: "Newsletter",       href: "/admin/newsletter",     icon: <MarkEmailReadIcon      fontSize="small" /> },
-  { label: "Avis & Notes",     href: "/admin/reviews",        icon: <StarRoundedIcon        fontSize="small" /> },
-  { label: "Paramètres",       href: "/admin/settings",       icon: <TuneIcon               fontSize="small" /> },
+  { label: "Avis & Notes",        href: "/admin/reviews",           icon: <StarRoundedIcon           fontSize="small" /> },
+  { label: "Fournisseurs paiement", href: "/admin/payment-providers", icon: <AccountBalanceWalletIcon  fontSize="small" /> },
+  { label: "Paramètres",          href: "/admin/settings",          icon: <TuneIcon                  fontSize="small" /> },
   { label: "Profil",           href: "/admin/profile",        icon: <ManageAccountsIcon     fontSize="small" /> },
 ];
 
