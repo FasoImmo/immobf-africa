@@ -277,4 +277,26 @@ async function updateUserProfile(req, res) {
   res.json({ user: updated });
 }
 
-module.exports = { register, login, verifyPhone, me, refresh, resendOtp, forgotPassword, resetPassword, updateEmail, updateUserProfile };
+// ── Suppression du compte (RGPD — droit à l'effacement) ─────────────────────
+const deleteMeSchema = Joi.object({
+  password: Joi.string().required().messages({ "any.required": "Le mot de passe est requis pour confirmer la suppression." }),
+});
+
+async function deleteMe(req, res) {
+  const { value, error } = deleteMeSchema.validate(req.body);
+  if (error) throw BadRequest(error.details[0].message);
+
+  const user = await User.findByIdWithAuth(req.user.id);
+  if (!user) throw BadRequest("Compte introuvable.");
+
+  if (!user.password_hash) {
+    throw BadRequest("Votre compte n'a pas de mot de passe. Contactez le support.");
+  }
+  const ok = await User.verifyPassword(user, value.password);
+  if (!ok) throw BadRequest("Mot de passe incorrect.");
+
+  await User.deleteById(user.id);
+  res.json({ deleted: true });
+}
+
+module.exports = { register, login, verifyPhone, me, refresh, resendOtp, forgotPassword, resetPassword, updateEmail, updateUserProfile, deleteMe };

@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
 import PropertyCard from "../components/PropertyCard";
 import { Analytics, Auth, Properties } from "../lib/api";
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import { formatFCFA } from "../lib/format";
 import { useFavorites } from "../lib/useFavorites";
 
@@ -604,6 +605,89 @@ export default function AccountPage() {
         </Box>
       )}
 
+      {/* ── Zone de danger — suppression de compte (RGPD) ─────────────── */}
+      <DangerZone />
+
     </Layout>
+  );
+}
+
+function DangerZone() {
+  const router = useRouter();
+  const [open,    setOpen]    = useState(false);
+  const [pwd,     setPwd]     = useState("");
+  const [saving,  setSaving]  = useState(false);
+  const [err,     setErr]     = useState(null);
+
+  async function handleDelete() {
+    if (!pwd) { setErr("Veuillez saisir votre mot de passe."); return; }
+    setSaving(true);
+    setErr(null);
+    try {
+      await Auth.deleteMe(pwd);
+      // Effacer la session locale puis rediriger
+      localStorage.removeItem("immobf_token");
+      localStorage.removeItem("immobf_refresh");
+      localStorage.removeItem("immobf_user");
+      router.push("/?account_deleted=1");
+    } catch (e) {
+      setErr(e?.response?.data?.error?.message || "Erreur lors de la suppression.");
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Box sx={{ mt: 5, mb: 3 }}>
+      <Divider sx={{ mb: 3 }} />
+      <Typography variant="h6" fontWeight={700} color="error.main" sx={{ mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
+        <DeleteForeverIcon /> Zone de danger
+      </Typography>
+      <Typography color="text.secondary" fontSize={14} sx={{ mb: 2 }}>
+        La suppression de votre compte est définitive et irréversible. Toutes vos annonces, messages et données personnelles seront effacés conformément au RGPD. Les transactions financières sont conservées de façon anonymisée à des fins légales.
+      </Typography>
+      <Button
+        variant="outlined"
+        color="error"
+        startIcon={<DeleteForeverIcon />}
+        onClick={() => { setOpen(true); setPwd(""); setErr(null); }}
+        sx={{ textTransform: "none", fontWeight: 600 }}
+      >
+        Supprimer mon compte
+      </Button>
+
+      <Dialog open={open} onClose={() => !saving && setOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, color: "error.main" }}>Confirmer la suppression</DialogTitle>
+        <DialogContent>
+          <Typography fontSize={14} color="text.secondary" sx={{ mb: 2 }}>
+            Cette action est irréversible. Saisissez votre mot de passe pour confirmer.
+          </Typography>
+          <TextField
+            label="Mot de passe"
+            type="password"
+            fullWidth
+            size="small"
+            value={pwd}
+            onChange={(e) => setPwd(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleDelete()}
+            autoFocus
+          />
+          {err && <Alert severity="error" sx={{ mt: 1.5, py: 0.5, fontSize: 13 }}>{err}</Alert>}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setOpen(false)} disabled={saving} sx={{ textTransform: "none" }}>
+            Annuler
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDelete}
+            disabled={saving || !pwd}
+            sx={{ textTransform: "none", fontWeight: 700 }}
+          >
+            {saving ? "Suppression…" : "Supprimer définitivement"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }

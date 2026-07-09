@@ -43,7 +43,8 @@ router.post("/auth/forgot-password",  authLimiter, asyncHandler(authCtl.forgotPa
 router.post("/auth/reset-password",   authLimiter, asyncHandler(authCtl.resetPassword));
 router.get  ("/auth/me",               requireAuth, asyncHandler(authCtl.me));
 router.patch("/auth/me/email",         requireAuth, asyncHandler(authCtl.updateEmail));
-router.patch("/auth/me/profile",       requireAuth, asyncHandler(authCtl.updateUserProfile));
+router.patch ("/auth/me/profile",      requireAuth, asyncHandler(authCtl.updateUserProfile));
+router.delete("/auth/me",              requireAuth, asyncHandler(authCtl.deleteMe));
 
 // --- Properties ---
 router.get ("/properties",              publicLimiter, asyncHandler(propCtl.search));
