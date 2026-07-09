@@ -106,6 +106,8 @@ async function initiate(req, res) {
     customer_email: value.customer_email || null,
     customer_name:  value.customer_name  || null,
     customer_phone: value.customer_phone || null,
+    // Mode de paiement choisi (orange, moov, wave, card…) — stocké pour stats admin
+    operator: value.preferred_operator || null,
   });
 
   // Upsert CRM contact (invité ou connecté) — non-bloquant

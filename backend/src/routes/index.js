@@ -102,7 +102,8 @@ router.post ("/admin/newsletter/draft",     asyncHandler(async (req, res, next) 
     requireRole("admin")(req, res, next);
   });
 }), asyncHandler(adminCtl.saveNewsletterDraft));
-router.get  ("/admin/payment-stats",        requireAdmin, asyncHandler(adminCtl.paymentStats));
+router.get  ("/admin/payment-stats",          requireAdmin, asyncHandler(adminCtl.paymentStats));
+router.get  ("/admin/payment-stats/by-mode", requireAdmin, asyncHandler(adminCtl.paymentStatsByMode));
 router.patch("/admin/profile",              requireAdmin, asyncHandler(adminCtl.updateAdminProfile));
 router.post ("/admin/test-email",           requireAdmin, asyncHandler(adminCtl.testEmail));
 router.get  ("/admin/promo",               requireAdmin, asyncHandler(adminCtl.getPromo));

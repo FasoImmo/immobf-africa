@@ -187,6 +187,7 @@ export const Admin = {
   deleteReview: (id) => api.delete(`/admin/reviews/${id}`).then((r) => r.data),
   listPaymentProviders: () => api.get("/admin/payment-providers").then((r) => r.data.providers),
   updatePaymentProvider: (id, data) => api.patch(`/admin/payment-providers/${id}`, data).then((r) => r.data),
+  paymentStatsByMode: (params) => api.get("/admin/payment-stats/by-mode", { params }).then((r) => r.data),
 };
 
 export const Config = {

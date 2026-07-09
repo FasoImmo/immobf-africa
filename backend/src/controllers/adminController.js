@@ -113,6 +113,29 @@ async function paymentStats(req, res) {
   res.json({ period, byProvider });
 }
 
+const modeStatsSchema = Joi.object({
+  start:    Joi.string().isoDate().allow(null, "").default(null),
+  end:      Joi.string().isoDate().allow(null, "").default(null),
+  provider: Joi.string().allow(null, "").default(null),
+});
+
+/**
+ * GET /admin/payment-stats/by-mode?start=YYYY-MM-DD&end=YYYY-MM-DD&provider=fedapay
+ * Répartition par (provider, operator) sur la période.
+ * Permet à l'admin de voir combien de paiements ont été faits via
+ * Orange Money, Moov Money, Wave, carte bancaire, etc., par fournisseur.
+ */
+async function paymentStatsByMode(req, res) {
+  const { value, error } = modeStatsSchema.validate(req.query);
+  if (error) throw BadRequest(error.message);
+  const rows = await Transaction.statsByOperator(
+    value.start   || null,
+    value.end     || null,
+    value.provider || null,
+  );
+  res.json({ rows });
+}
+
 /**
  * GET /admin/users/:id/stats
  * Stats détaillées d'un annonceur : transactions + interactions sur ses annonces.
@@ -610,7 +633,7 @@ async function updatePaymentProvider(req, res) {
 module.exports = {
   listUsers, setUserBlocked, logoutUser, deleteUser,
   listProperties, deleteProperty, listRevenues,
-  paymentStats, userStats, sendNewsletter, updateAdminProfile, testEmail,
+  paymentStats, paymentStatsByMode, userStats, sendNewsletter, updateAdminProfile, testEmail,
   getPromo, setPromo, extendListing, suspendListing, restoreListing,
   listContacts, sendContactNewsletter,
   getPricingAdmin, setPricingAdmin,

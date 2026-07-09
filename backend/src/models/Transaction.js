@@ -8,15 +8,16 @@ async function create({
   provider, purpose, amount, currency = "XOF",
   reference = null, payment_url = null, ussd_code = null,
   customer_email = null, customer_name = null, customer_phone = null,
+  operator = null,
 }) {
   const ref = reference || `IMO-${Date.now()}-${uuidv4().slice(0, 8).toUpperCase()}`;
   const { rows } = await query(
     `INSERT INTO transactions
       (buyer_id, property_id, agency_id, provider, purpose, amount, currency,
-       reference, payment_url, ussd_code, customer_email, customer_name, customer_phone)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+       reference, payment_url, ussd_code, customer_email, customer_name, customer_phone, operator)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
      RETURNING *`,
-    [buyer_id, property_id, agency_id, provider, purpose, amount, currency, ref, payment_url, ussd_code, customer_email, customer_name, customer_phone]
+    [buyer_id, property_id, agency_id, provider, purpose, amount, currency, ref, payment_url, ussd_code, customer_email, customer_name, customer_phone, operator]
   );
   return rows[0];
 }
@@ -187,6 +188,31 @@ async function statsByPeriod(startDate, endDate) {
 }
 
 /**
+ * Répartition par provider ET par opérateur (mode de paiement) sur la période.
+ * Optionnel : filtrer sur un seul provider via le 3e paramètre.
+ * Retourne une ligne par (provider, operator) : nb_succeeded, nb_failed, total_revenue.
+ */
+async function statsByOperator(startDate, endDate, provider = null) {
+  const { rows } = await query(`
+    SELECT
+      provider,
+      COALESCE(operator, 'unknown')                                          AS operator,
+      COUNT(*) FILTER (WHERE status = 'succeeded')                           AS nb_succeeded,
+      COUNT(*) FILTER (WHERE status = 'failed')                              AS nb_failed,
+      COUNT(*) FILTER (WHERE status = 'pending')                             AS nb_pending,
+      COUNT(*)                                                                AS nb_total,
+      COALESCE(SUM(amount) FILTER (WHERE status = 'succeeded'), 0)::int      AS total_revenue
+    FROM transactions
+    WHERE ($1::date IS NULL OR created_at >= $1::date)
+      AND ($2::date IS NULL OR created_at < ($2::date::date + INTERVAL '1 day'))
+      AND ($3::text IS NULL OR provider = $3)
+    GROUP BY provider, operator
+    ORDER BY provider, total_revenue DESC
+  `, [startDate || null, endDate || null, provider || null]);
+  return rows;
+}
+
+/**
  * Répartition par provider de paiement sur la période donnée.
  * Retourne une ligne par provider : nb_succeeded, nb_failed, total_revenue.
  */
@@ -318,6 +344,7 @@ module.exports = {
   create, findByReference, findByExternalId, findById, updateStatus,
   logEvent, findLatestEvent, listForUser,
   listAllForAdmin, revenuesByUser, globalRevenueStats,
-  statsByPeriod, statsByProvider, listForUserAdmin, interactionStatsByUser,
+  statsByPeriod, statsByProvider, statsByOperator,
+  listForUserAdmin, interactionStatsByUser,
   listFiltered,
 };
