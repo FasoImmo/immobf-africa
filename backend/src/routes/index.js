@@ -119,6 +119,10 @@ router.post ("/admin/contacts/newsletter",    requireAdmin, asyncHandler(adminCt
 router.get  ("/admin/reviews",                requireAdmin, asyncHandler(adminCtl.listReviews));
 router.delete("/admin/reviews/:id",           requireAdmin, asyncHandler(adminCtl.deleteReview));
 
+// --- Qualité des annonces ---
+router.get  ("/admin/listing-quality",        requireAdmin, asyncHandler(adminCtl.listingQualityReport));
+router.post ("/admin/listing-quality/run",    requireAdmin, asyncHandler(adminCtl.runListingQualityAlerts));
+
 // --- Gestion des fournisseurs de paiement ---
 router.get  ("/admin/payment-providers",      requireAdmin, asyncHandler(adminCtl.listPaymentProviders));
 router.patch("/admin/payment-providers/:id",  requireAdmin, asyncHandler(adminCtl.updatePaymentProvider));

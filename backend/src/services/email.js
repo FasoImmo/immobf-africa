@@ -450,6 +450,103 @@ async function sendMessageNotification(recipientEmail, { senderName, propertyTit
   });
 }
 
+/**
+ * Email d'amélioration qualité annonce.
+ * Envoyé automatiquement (cron hebdo) à chaque annonceur ayant ≥1 annonce
+ * avec un score qualité < 80. Liste toutes ses annonces à améliorer avec
+ * des recommandations personnalisées.
+ *
+ * @param {string} email - email de l'annonceur
+ * @param {{ ownerName: string, properties: Array }} data
+ */
+async function sendListingQualityAlert(email, { ownerName, properties }) {
+  const SEVERITY_COLOR = { critical: "#c62828", warning: "#e65100", suggestion: "#1565c0" };
+  const SEVERITY_ICON  = { critical: "🔴", warning: "🟡", suggestion: "💡" };
+
+  const propertyBlocks = properties.map((p) => {
+    const scoreColor = p.score < 40 ? "#c62828" : p.score < 70 ? "#e65100" : "#2e7d32";
+    const issueRows = p.issues.map((issue) => `
+      <tr>
+        <td style="padding:8px 0; border-bottom:1px solid #f0f0f0; vertical-align:top;">
+          <span style="color:${SEVERITY_COLOR[issue.severity] || "#555"}; font-weight:600;">
+            ${SEVERITY_ICON[issue.severity] || "•"} ${issue.label}
+          </span><br/>
+          <span style="color:#666; font-size:13px; line-height:1.5;">${issue.tip}</span>
+        </td>
+      </tr>`).join("");
+
+    return `
+    <div style="background:#fff; border:1px solid #e0e0e0; border-radius:8px; margin:16px 0; overflow:hidden;">
+      <div style="background:#f5f5f5; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #e0e0e0;">
+        <strong style="font-size:15px; color:#0F172A;">${p.title || "Annonce sans titre"}</strong>
+        <span style="background:${scoreColor}; color:#fff; border-radius:20px; padding:3px 12px; font-size:13px; font-weight:700; white-space:nowrap; margin-left:12px;">
+          Score ${p.score}/100
+        </span>
+      </div>
+      <div style="padding:16px 18px;">
+        <p style="margin:0 0 12px; color:#555; font-size:13px;">
+          📍 ${[p.city, p.country_code].filter(Boolean).join(", ") || "Localisation non renseignée"}
+        </p>
+        <table style="width:100%; border-collapse:collapse;">
+          ${issueRows}
+        </table>
+        <div style="margin-top:14px; text-align:center;">
+          <a href="https://immoafrica.online/account"
+             style="background:#0E7C66; color:white; padding:10px 22px; border-radius:6px;
+                    text-decoration:none; font-weight:bold; font-size:14px; display:inline-block;">
+            ✏️ Améliorer cette annonce
+          </a>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  const nbProperties = properties.length;
+  const avgScore = Math.round(properties.reduce((s, p) => s + p.score, 0) / nbProperties);
+
+  const html = baseTemplate(`
+    <h2 style="color:#0F172A; margin-top:0;">📊 Améliorez la visibilité de ${nbProperties > 1 ? "vos annonces" : "votre annonce"}</h2>
+    <p>Bonjour ${ownerName || ""},</p>
+    <p>
+      Notre système a analysé ${nbProperties > 1 ? `vos <strong>${nbProperties} annonces</strong>` : "votre annonce"}
+      et a identifié des améliorations qui pourraient <strong>multiplier vos vues et contacts</strong>.
+    </p>
+
+    <div style="background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:14px 18px; margin:16px 0; text-align:center;">
+      <span style="font-size:32px; font-weight:700; color:${avgScore < 50 ? "#c62828" : avgScore < 70 ? "#e65100" : "#2e7d32"};">${avgScore}/100</span><br/>
+      <span style="color:#555; font-size:14px;">Score qualité moyen de vos annonces</span>
+    </div>
+
+    <p style="color:#555;">
+      Chaque amélioration augmente votre visibilité dans les résultats de recherche et sur la carte.
+      Les annonces avec photo + GPS reçoivent en moyenne <strong>5× plus de vues</strong>.
+    </p>
+
+    ${propertyBlocks}
+
+    <p style="margin-top:24px;">
+      Pour modifier vos annonces, rendez-vous sur votre espace annonceur :
+    </p>
+    <div style="text-align:center; margin:16px 0;">
+      <a href="https://immoafrica.online/account"
+         class="btn">
+        Accéder à mes annonces
+      </a>
+    </div>
+    <p style="color:#999; font-size:12px;">
+      Vous recevez cet email car vous avez des annonces actives sur ImmoBF Africa.
+      Ces conseils sont envoyés au maximum une fois par semaine.
+    </p>
+  `);
+
+  const subject = nbProperties > 1
+    ? `📊 ${nbProperties} annonces à optimiser — augmentez vos vues sur ImmoBF Africa`
+    : `📊 Votre annonce peut attirer plus de clients — conseils ImmoBF Africa`;
+
+  await send({ to: email, subject, html,
+    text: `Bonjour ${ownerName || ""}, votre score qualité moyen est de ${avgScore}/100. Connectez-vous sur immoafrica.online/account pour améliorer vos annonces.` });
+}
+
 module.exports = {
   send,
   sendOtpEmail,
@@ -464,4 +561,5 @@ module.exports = {
   sendListingRestored,
   sendSearchAlert,
   sendMessageNotification,
+  sendListingQualityAlert,
 };

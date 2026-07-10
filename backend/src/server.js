@@ -111,6 +111,9 @@ if (require.main === module) {
     // Démarrer les alertes email de nouvelles annonces (cron quotidien 09h00)
     const { startEmailAlertsCron } = require("./services/emailAlerts");
     startEmailAlertsCron();
+    // Cron hebdo (lundi 08h00 UTC) : alertes qualité annonces
+    const { startListingQualityCron } = require("./services/listingQuality");
+    startListingQualityCron();
     // Cron toutes les minutes : traiter les activations/désactivations programmées
     const PaymentProviderModel = require("./models/PaymentProvider");
     const ppLogger = require("./utils/logger");

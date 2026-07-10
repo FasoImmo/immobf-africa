@@ -552,6 +552,41 @@ async function saveNewsletterDraft(req, res) {
   res.json({ saved: true, saved_at: now });
 }
 
+// ── Qualité des annonces ──────────────────────────────────────────────────────
+
+/**
+ * GET /admin/listing-quality
+ * Retourne toutes les annonces publiées avec leur score qualité et leurs problèmes.
+ * Permet à l'admin de voir d'un coup d'œil quelles annonces sont incomplètes.
+ */
+async function listingQualityReport(req, res) {
+  const { analyzeAllPublished } = require("../services/listingQuality");
+  const properties = await analyzeAllPublished();
+  // Trier : les plus mauvais scores en premier
+  properties.sort((a, b) => a.score - b.score);
+  res.json({
+    total: properties.length,
+    nb_critical: properties.filter((p) => p.score < 40).length,
+    nb_warning:  properties.filter((p) => p.score >= 40 && p.score < 70).length,
+    nb_good:     properties.filter((p) => p.score >= 70).length,
+    properties,
+  });
+}
+
+/**
+ * POST /admin/listing-quality/run
+ * Déclenche manuellement l'envoi des emails d'amélioration qualité.
+ * Body: { force: boolean } — si true, ignore l'anti-spam 7 jours.
+ */
+async function runListingQualityAlerts(req, res) {
+  const { runQualityAlerts } = require("../services/listingQuality");
+  const force = req.body?.force === true;
+  const result = await runQualityAlerts({ force });
+  const logger = require("../utils/logger");
+  logger.info({ ...result, admin: req.user?.email, force }, "admin: listing quality alerts triggered");
+  res.json({ ok: true, ...result });
+}
+
 // ── Gestion des fournisseurs de paiement ──────────────────────────────────────
 
 /**
@@ -641,4 +676,5 @@ module.exports = {
   listReviews, deleteReview,
   getNewsletterDraft, saveNewsletterDraft,
   listPaymentProviders, updatePaymentProvider,
+  listingQualityReport, runListingQualityAlerts,
 };

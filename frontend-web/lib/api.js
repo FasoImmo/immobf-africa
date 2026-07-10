@@ -188,6 +188,8 @@ export const Admin = {
   listPaymentProviders: () => api.get("/admin/payment-providers").then((r) => r.data.providers),
   updatePaymentProvider: (id, data) => api.patch(`/admin/payment-providers/${id}`, data).then((r) => r.data),
   paymentStatsByMode: (params) => api.get("/admin/payment-stats/by-mode", { params }).then((r) => r.data),
+  listingQuality: () => api.get("/admin/listing-quality").then((r) => r.data),
+  runListingQualityAlerts: (force = false) => api.post("/admin/listing-quality/run", { force }).then((r) => r.data),
 };
 
 export const Config = {
