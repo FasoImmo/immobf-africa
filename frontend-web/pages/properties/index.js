@@ -53,13 +53,14 @@ export default function BrowsePage() {
   const [alertStatus, setAlertStatus] = useState(null); // null | "success" | "error"
   const [alertLoading, setAlertLoading] = useState(false);
 
-  // Utilise window.location.search (toujours à jour) + router.asPath comme
-  // dépendance pour relancer la recherche à chaque changement d'URL.
+  // Lit les paramètres directement depuis window.location.search (plus fiable que
+  // router.query avec Next.js i18n) et relance la recherche à chaque changement d'URL.
+  // On n'utilise PAS router.isReady comme garde : il peut rester false trop longtemps
+  // avec i18n, laissant la page vide. window.location.search est toujours disponible
+  // côté client dès le premier render.
   useEffect(() => {
-    if (!router.isReady) return;
-    const params = new URLSearchParams(
-      typeof window !== "undefined" ? window.location.search : ""
-    );
+    if (typeof window === "undefined") return; // SSR guard uniquement
+    const params = new URLSearchParams(window.location.search);
     const f = {
       q:                params.get("q")                 || "",
       country:          params.get("country")           || "",
@@ -79,7 +80,7 @@ export default function BrowsePage() {
     setPage(1);
     setReady(true);
     runSearch(f, 1);
-  }, [router.isReady, router.asPath]); // eslint-disable-line
+  }, [router.asPath]); // eslint-disable-line
 
   async function runSearch(f, p) {
     const current = f || filters;
@@ -93,6 +94,10 @@ export default function BrowsePage() {
       setTotal(d.total || 0);
       // Tracker la recherche pour personnalisation
       Analytics.trackSearch(params, (d.items || []).length);
+    } catch (_) {
+      // En cas d'erreur réseau/serveur : afficher un résultat vide sans bloquer l'UI
+      setItems([]);
+      setTotal(0);
     } finally { setLoading(false); }
   }
 
