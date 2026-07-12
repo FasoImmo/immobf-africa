@@ -155,9 +155,25 @@ export default function PropertyDetail() {
   // DIRECTEMENT au propriétaire en mobile money, seule cette commission
   // transite par la plateforme. Affichage uniquement — le montant exact est
   // recalculé et imposé côté serveur à partir des mêmes données.
+  //
+  // Éligibilité : locations meublées résidentielles (maison, appart, villa)
+  // uniquement. L'admin peut forcer ON (commission_enabled=true) ou OFF
+  // (commission_enabled=false) pour n'importe quelle annonce.
   var units = Math.max(1, Number(bookingUnits) || 1);
   var totalBookingAmount = isRent ? p.price * units : 0;
   var commissionAmount = isRent ? Math.max(100, Math.round(totalBookingAmount * 0.05)) : 0;
+
+  // Décide si la section commission doit être affichée
+  var showCommission = (() => {
+    if (p.commission_enabled === true)  return true;   // admin force ON
+    if (p.commission_enabled === false) return false;  // admin force OFF
+    // Règle par défaut : locations meublées résidentielles uniquement
+    return (
+      isRent &&
+      p.is_furnished === true &&
+      ["house", "apartment", "villa"].includes(p.type)
+    );
+  })();
   var unitLabel = p.rent_period === "monthly" ? t("property.unit_months")
     : p.rent_period === "weekly" ? t("property.unit_weeks")
     : t("property.unit_nights");
@@ -327,7 +343,7 @@ export default function PropertyDetail() {
 
             <Divider sx={{ my: 2 }} />
 
-            {isRent && (
+            {showCommission && (
               <>
                 <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
                   <TextField
@@ -378,7 +394,7 @@ export default function PropertyDetail() {
               </>
             )}
 
-            {p.owner_whatsapp && meId !== p.owner_id && (!isRent || commissionPaid) && (
+            {p.owner_whatsapp && meId !== p.owner_id && (!showCommission || commissionPaid) && (
               <Button
                 fullWidth variant="contained" size="large"
                 sx={{ mt: 1, bgcolor: "#25D366", "&:hover": { bgcolor: "#1ebe5a" }, color: "white" }}
@@ -392,7 +408,7 @@ export default function PropertyDetail() {
                 💬 {t("property.contact_whatsapp")}
               </Button>
             )}
-            {p.owner_whatsapp && meId !== p.owner_id && isRent && !commissionPaid && (
+            {p.owner_whatsapp && meId !== p.owner_id && showCommission && !commissionPaid && (
               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, textAlign: "center" }}>
                 🔒 {t("property.whatsapp_locked")}
               </Typography>
@@ -401,7 +417,7 @@ export default function PropertyDetail() {
             {/* Bouton messagerie interne — masqué pour le propriétaire,
                 verrouillé derrière la commission pour les locations */}
             {meId && p && meId !== p.owner_id && (
-              isRent && !commissionPaid ? (
+              showCommission && !commissionPaid ? (
                 <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, textAlign: "center" }}>
                   🔒 Payez la commission pour contacter l&apos;annonceur
                 </Typography>
@@ -495,7 +511,7 @@ export default function PropertyDetail() {
         </Box>
       )}
 
-      {isRent && (
+      {showCommission && (
         <PaymentDialog
           open={payOpen}
           onClose={function() { setPayOpen(false); }}

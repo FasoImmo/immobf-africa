@@ -665,6 +665,34 @@ async function updatePaymentProvider(req, res) {
   res.json({ provider: updated });
 }
 
+// ── Commission toggle par annonce ─────────────────────────────────────────────
+// PATCH /admin/properties/:id/commission
+// body: { enabled: true|false|null }
+//   null  → revenir à la règle par défaut (meublé résidentiel en location)
+//   true  → forcer commission ON quelle que soit la catégorie
+//   false → forcer commission OFF même si meublé résidentiel
+const commissionToggleSchema = Joi.object({
+  enabled: Joi.boolean().allow(null).required(),
+});
+
+async function setPropertyCommission(req, res) {
+  const id = parseInt(req.params.id, 10);
+  if (!id) throw BadRequest("ID annonce invalide");
+
+  const { value, error } = commissionToggleSchema.validate(req.body);
+  if (error) throw BadRequest(error.message);
+
+  const row = await Property.setCommissionEnabled(id, value.enabled);
+  if (!row) throw NotFound("Annonce introuvable");
+
+  const logger = require("../utils/logger");
+  logger.info(
+    { propertyId: id, commission_enabled: value.enabled, admin: req.user?.email },
+    "commission_enabled updated by admin"
+  );
+  res.json({ property: row });
+}
+
 module.exports = {
   listUsers, setUserBlocked, logoutUser, deleteUser,
   listProperties, deleteProperty, listRevenues,
@@ -677,4 +705,5 @@ module.exports = {
   getNewsletterDraft, saveNewsletterDraft,
   listPaymentProviders, updatePaymentProvider,
   listingQualityReport, runListingQualityAlerts,
+  setPropertyCommission,
 };

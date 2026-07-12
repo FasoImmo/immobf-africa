@@ -78,6 +78,18 @@ async function initiate(req, res) {
   if (value.purpose === "commission" && value.property_id) {
     property = await Property.findById(value.property_id);
     if (!property) throw BadRequest("Annonce introuvable");
+
+    // Vérifier l'éligibilité à la commission : locations meublées résidentielles
+    // uniquement (maison, appartement, villa). Les locations longue durée non
+    // meublées et les biens commerciaux/terrains sont exclus par défaut.
+    // L'admin peut forcer l'activation ou la désactivation via commission_enabled.
+    if (!Property.isCommissionEligible(property)) {
+      throw BadRequest(
+        "La commission de réservation ne s'applique pas à ce type d'annonce. " +
+        "Elle est réservée aux locations meublées (maison, appartement, villa)."
+      );
+    }
+
     totalBookingAmount = property.price * value.booking_units;
     const PS2 = require("../models/PlatformSetting");
     const pricing2 = await PS2.getPricing();

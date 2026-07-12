@@ -162,6 +162,25 @@ export default function AdminProperties() {
     } finally { setActingId(null); }
   }
 
+  async function handleCommissionToggle(p) {
+    // Cycle : null (défaut) → true (forcer ON) → false (forcer OFF) → null
+    const next = p.commission_enabled === null || p.commission_enabled === undefined
+      ? true
+      : p.commission_enabled === true
+        ? false
+        : null;
+    const label = next === true ? "activée (forcer ON)" : next === false ? "désactivée (forcer OFF)" : "réinitialisée (règle par défaut)";
+    if (!window.confirm(`Commission pour "${p.title}" : ${label} ?`)) return;
+    setActingId(p.id);
+    try {
+      await Admin.setPropertyCommission(p.id, next);
+      setProperties((prev) => prev.map((x) => x.id === p.id ? { ...x, commission_enabled: next } : x));
+      setActionMsg({ severity: "success", text: `Commission ${label} pour "${p.title}".` });
+    } catch (e) {
+      setError(e?.response?.data?.error?.message || e.message);
+    } finally { setActingId(null); }
+  }
+
   async function handleRestore(p) {
     setActingId(p.id);
     try {
@@ -225,6 +244,24 @@ export default function AdminProperties() {
                 ▶ Réactiver
               </Button>
             )}
+            {/* Toggle commission : null=défaut, true=ON forcé, false=OFF forcé */}
+            <Button
+              size="small"
+              color={
+                p.commission_enabled === true  ? "success" :
+                p.commission_enabled === false ? "error"   : "inherit"
+              }
+              variant="outlined"
+              disabled={busy}
+              title={
+                p.commission_enabled === true  ? "Commission forcée ON — cliquer pour forcer OFF" :
+                p.commission_enabled === false ? "Commission forcée OFF — cliquer pour réinitialiser" :
+                "Commission : règle par défaut — cliquer pour forcer ON"
+              }
+              onClick={() => handleCommissionToggle(p)}
+            >
+              💰 {p.commission_enabled === true ? "Comm. ON" : p.commission_enabled === false ? "Comm. OFF" : "Comm. ≈"}
+            </Button>
             <Button size="small" color="error" variant="outlined" disabled={busy}
               onClick={() => handleDelete(p)}>
               🗑 Suppr.

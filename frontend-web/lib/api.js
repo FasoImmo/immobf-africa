@@ -190,6 +190,8 @@ export const Admin = {
   paymentStatsByMode: (params) => api.get("/admin/payment-stats/by-mode", { params }).then((r) => r.data),
   listingQuality: () => api.get("/admin/listing-quality").then((r) => r.data),
   runListingQualityAlerts: (force = false) => api.post("/admin/listing-quality/run", { force }).then((r) => r.data),
+  // Commission toggle par annonce : enabled = true | false | null (défaut)
+  setPropertyCommission: (id, enabled) => api.patch(`/admin/properties/${id}/commission`, { enabled }).then((r) => r.data),
 };
 
 export const Config = {
