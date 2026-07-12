@@ -78,9 +78,7 @@ router.post("/webhooks/meta", rawBody,  asyncHandler(metaCtl.receive));
 // --- Admin : suivi des abonnés + délais de publication + blocage/déconnexion ---
 const requireAdmin = [requireAuth, requireRole("admin")];
 
-// DIAGNOSTIC TEMPORAIRE (29/06/2026) — voir paymentsController.js. À retirer
-// une fois le callback PawaPay confirmé stable.
-router.get ("/admin/pawapay/last",                      requireAdmin, asyncHandler(payCtl.adminPawapayLast));
+// Outil de support : renvoyer manuellement le callback d'un dépôt PawaPay coincé
 router.post("/admin/pawapay/resend-callback/:depositId", requireAdmin, asyncHandler(payCtl.adminPawapayResendCallback));
 router.get  ("/admin/users",                requireAdmin, asyncHandler(adminCtl.listUsers));
 router.patch("/admin/users/:id/block",      requireAdmin, asyncHandler(adminCtl.setUserBlocked));
