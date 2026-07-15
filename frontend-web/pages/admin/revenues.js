@@ -83,6 +83,11 @@ export default function AdminRevenues() {
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsErr, setStatsErr] = useState(null);
 
+  // Stats par mode de paiement (opérateur)
+  const [byMode, setByMode] = useState([]);
+  const [byModeProvider, setByModeProvider] = useState("");
+  const [byModeLoading, setByModeLoading] = useState(false);
+
   // Annonceurs
   const [annonceurs, setAnnonceurs] = useState([]);
   const [annLoading, setAnnLoading] = useState(false);
@@ -117,6 +122,22 @@ export default function AdminRevenues() {
   }, [authorized, startDate, endDate]);
 
   useEffect(() => { loadStats(); }, [loadStats]);
+
+  // Load stats by mode/operator (re-runs on period or provider filter change)
+  const loadStatsByMode = useCallback(() => {
+    if (authorized !== true) return;
+    setByModeLoading(true);
+    const params = {};
+    if (startDate)      params.start    = startDate;
+    if (endDate)        params.end      = endDate;
+    if (byModeProvider) params.provider = byModeProvider;
+    Admin.paymentStatsByMode(params)
+      .then((d) => setByMode(d.rows || []))
+      .catch(() => setByMode([]))
+      .finally(() => setByModeLoading(false));
+  }, [authorized, startDate, endDate, byModeProvider]);
+
+  useEffect(() => { loadStatsByMode(); }, [loadStatsByMode]);
 
   if (authorized === null) {
     return (
@@ -360,9 +381,104 @@ export default function AdminRevenues() {
         </>
       )}
 
+      {/* ── Section 4 : répartition par mode de paiement (opérateur) ─────── */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1.5, flexWrap: "wrap" }}>
+        <Typography variant="subtitle1" fontWeight={700} sx={{ flex: 1 }}>
+          Répartition par mode de paiement
+          {byModeLoading && <CircularProgress size={14} sx={{ ml: 1 }} />}
+        </Typography>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          {[{ v: "", l: "Tous" }, { v: "pawapay", l: "PawaPay" }, { v: "fedapay", l: "FedaPay" }, { v: "cinetpay", l: "CinetPay" }].map(({ v, l }) => (
+            <Chip
+              key={v}
+              label={l}
+              size="small"
+              clickable
+              variant={byModeProvider === v ? "filled" : "outlined"}
+              color={byModeProvider === v ? "primary" : "default"}
+              onClick={() => setByModeProvider(v)}
+            />
+          ))}
+        </Box>
+      </Box>
+
+      {byMode.length > 0 ? (
+        <Paper sx={{ overflowX: "auto", mb: 4 }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={{ "& th": { fontWeight: 700, background: "#f5f5f5" } }}>
+                <TableCell>Provider</TableCell>
+                <TableCell>Opérateur</TableCell>
+                <TableCell align="right">CA réussi</TableCell>
+                <TableCell align="right">Réussies</TableCell>
+                <TableCell align="right">Échouées</TableCell>
+                <TableCell align="right">En attente</TableCell>
+                <TableCell align="right">Total</TableCell>
+                <TableCell align="right">Taux succès</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {byMode.map((m, i) => {
+                const rate = Number(m.nb_total) > 0
+                  ? Math.round((Number(m.nb_succeeded) / Number(m.nb_total)) * 100)
+                  : 0;
+                const opLabel = {
+                  orange_money: "Orange Money",
+                  moov_money:   "Moov Money",
+                  wave:         "Wave",
+                  mtn:          "MTN Mobile Money",
+                  airtel:       "Airtel Money",
+                  vodafone:     "Vodafone Cash",
+                  card:         "Carte bancaire",
+                  unknown:      "—",
+                }[m.operator] || m.operator;
+                return (
+                  <TableRow key={`${m.provider}-${m.operator}-${i}`} hover>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ textTransform: "capitalize" }}>{m.provider}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={600}>{opLabel}</Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" fontWeight={700} color={Number(m.total_revenue) > 0 ? "success.main" : "text.secondary"}>
+                        {formatFCFA(m.total_revenue)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" color="success.main">{m.nb_succeeded}</Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" color={Number(m.nb_failed) > 0 ? "error.main" : "text.secondary"}>{m.nb_failed}</Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" color="warning.main">{m.nb_pending}</Typography>
+                    </TableCell>
+                    <TableCell align="right">{m.nb_total}</TableCell>
+                    <TableCell align="right">
+                      <Chip
+                        label={`${rate}%`}
+                        size="small"
+                        color={rate >= 70 ? "success" : rate >= 40 ? "warning" : "error"}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Paper>
+      ) : (
+        !byModeLoading && (
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+            Aucune donnée de mode de paiement pour cette période.
+          </Typography>
+        )
+      )}
+
       <Divider sx={{ mb: 3 }} />
 
-      {/* ── Section 4 : annonceurs (all-time) ───────────────────────────── */}
+      {/* ── Section 5 : annonceurs (all-time) ───────────────────────────── */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, flexWrap: "wrap" }}>
         <Typography variant="h6" fontWeight={700} sx={{ flex: 1 }}>
           Revenus par annonceur (all-time)
