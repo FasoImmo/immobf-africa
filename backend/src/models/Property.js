@@ -11,6 +11,7 @@ const BASE_COLS = `
   p.status, p.verified, p.boosted_until, p.deposit_pct,
   p.is_furnished, p.rent_period,
   p.listing_fee_paid_at, p.listing_expires_at,
+  p.commission_enabled,
   p.features, p.published_at, p.created_at, p.updated_at,
   p.title_translations, p.description_translations
 `;
@@ -23,6 +24,7 @@ const RETURNING_COLS = `
   status, verified, boosted_until, deposit_pct,
   is_furnished, rent_period,
   listing_fee_paid_at,
+  commission_enabled,
   features, published_at, created_at, updated_at,
   title_translations, description_translations
 `;
@@ -522,9 +524,51 @@ async function restoreListing(id) {
   return rows[0] || null;
 }
 
+/**
+ * Détermine si une annonce est éligible à la commission de réservation ImmoBF.
+ *
+ * Règle par défaut : location (non-vente) d'un bien résidentiel MEUBLÉ
+ * (maison, appartement, villa). Les locations longue durée non meublées
+ * (is_furnished = false) sont exclues — la commission ne s'applique pas
+ * à un simple bail nu.
+ *
+ * L'admin peut forcer la règle via commission_enabled :
+ *   true  → éligible quoi qu'il arrive
+ *   false → non éligible quoi qu'il arrive
+ *   null  → règle par défaut ci-dessus
+ *
+ * @param {object} property - ligne properties (champs: type, is_furnished,
+ *                            transaction_type, commission_enabled)
+ * @returns {boolean}
+ */
+function isCommissionEligible(property) {
+  if (property.commission_enabled === true)  return true;
+  if (property.commission_enabled === false) return false;
+  return (
+    property.transaction_type !== "sale" &&
+    property.is_furnished === true &&
+    ["house", "apartment", "villa"].includes(property.type)
+  );
+}
+
+/**
+ * PATCH admin : forcer ou réinitialiser l'éligibilité commission d'une annonce.
+ * @param {string} id - UUID de l'annonce
+ * @param {boolean|null} enabled - true=forcer ON, false=forcer OFF, null=règle par défaut
+ */
+async function setCommissionEnabled(id, enabled) {
+  const { rows } = await query(
+    `UPDATE properties SET commission_enabled = $2, updated_at = NOW()
+     WHERE id = $1 RETURNING id, title, commission_enabled`,
+    [id, enabled]
+  );
+  return rows[0] || null;
+}
+
 module.exports = {
   create, findById, search, publish, markListingFeePaid, updateStatus, boost,
   addPhoto, photosFor, setExpiry, listForOwner, listAllForAdmin, withTransaction,
   update, deletePhoto, deleteForOwner, deleteForAdmin,
   extendListing, suspendListing, restoreListing,
+  isCommissionEligible, setCommissionEnabled,
 };
