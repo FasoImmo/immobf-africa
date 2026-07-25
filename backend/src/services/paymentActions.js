@@ -76,6 +76,19 @@ async function handleSucceededPayment(tx) {
       logger.warn({ err: pdfErr.message, transaction_id: tx.id }, "generateReceipt failed (ignoré, email envoyé quand même)");
     }
 
+    // Pré-chargement booking_details (commission — mutualisé entre reçus + calendrier)
+    let bookingDetails = null;
+    if (tx.purpose === "commission" && tx.id) {
+      try { bookingDetails = await Transaction.findLatestEvent(tx.id, "booking_details"); } catch (_) { /* best-effort */ }
+    }
+    const bkCheckIn  = bookingDetails?.check_in || null;
+    const bkNbDays   = bookingDetails?.booking_units ? Number(bookingDetails.booking_units) : null;
+    const bkCheckOut = bkCheckIn && bkNbDays ? (() => {
+      const d = new Date(bkCheckIn);
+      d.setDate(d.getDate() + bkNbDays);
+      return d.toISOString().split("T")[0];
+    })() : null;
+
     // Reçu acheteur/annonceur
     const receiptEmail = tx.customer_email || buyer?.email;
     if (receiptEmail) {
@@ -91,6 +104,9 @@ async function handleSucceededPayment(tx) {
         months:        Number(months),
         ownerWhatsapp: property?.owner_whatsapp,
         ownerPhone:    property?.owner_phone,
+        checkIn:       bkCheckIn,
+        checkOut:      bkCheckOut,
+        nbDays:        bkNbDays,
       });
     } else {
       logger.warn({ transaction_id: tx.id }, "Aucun email destinataire pour le reçu");
@@ -103,7 +119,6 @@ async function handleSucceededPayment(tx) {
         if (owner?.email) {
           const { sendOwnerCommissionReceipt } = require("./email");
           const PERIOD_LABEL = { monthly: "mois", weekly: "semaine(s)", nightly: "nuit(s)" };
-          const details = await Transaction.findLatestEvent(tx.id, "booking_details");
           await sendOwnerCommissionReceipt(owner.email, {
             amount:        tx.amount,
             currency:      tx.currency,
@@ -112,9 +127,10 @@ async function handleSucceededPayment(tx) {
             buyerName:     buyer?.full_name || tx.customer_name  || null,
             buyerEmail:    buyer?.email    || tx.customer_email || null,
             buyerPhone:    buyer?.phone    || tx.customer_phone || null,
-            units:         details?.booking_units,
-            periodLabel:   PERIOD_LABEL[details?.rent_period] || "",
-            totalAmount:   details?.total_booking_amount,
+            units:         bookingDetails?.booking_units,
+            periodLabel:   PERIOD_LABEL[bookingDetails?.rent_period] || "",
+            totalAmount:   bookingDetails?.total_booking_amount,
+            checkIn:       bkCheckIn,
           });
         }
       } catch (e) {
@@ -125,13 +141,12 @@ async function handleSucceededPayment(tx) {
     // ── 4c. Création réservation calendrier (court séjour) ──────────────────
     if (tx.purpose === "commission" && tx.property_id) {
       try {
-        const details = await Transaction.findLatestEvent(tx.id, "booking_details");
-        if (details?.check_in && details?.booking_units) {
-          const checkIn  = new Date(details.check_in);
-          const checkOut = new Date(checkIn);
-          checkOut.setDate(checkOut.getDate() + Number(details.booking_units));
-          await Booking.create(tx.property_id, tx.id, checkIn, checkOut);
-          logger.info({ property_id: tx.property_id, check_in: details.check_in }, "booking créé");
+        if (bkCheckIn && bkNbDays) {
+          const checkInDate  = new Date(bkCheckIn);
+          const checkOutDate = new Date(checkInDate);
+          checkOutDate.setDate(checkOutDate.getDate() + bkNbDays);
+          await Booking.create(tx.property_id, tx.id, checkInDate, checkOutDate);
+          logger.info({ property_id: tx.property_id, check_in: bkCheckIn }, "booking créé");
         }
       } catch (e) {
         logger.warn({ err: e.message }, "booking creation failed");

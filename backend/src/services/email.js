@@ -91,7 +91,7 @@ async function sendOtpEmail(email, code, purpose = "verification") {
 }
 
 // ─── 2. Reçu de paiement ─────────────────────────────────────────────────────
-async function sendPaymentReceipt(email, { amount, currency = "XOF", reference, purpose, propertyTitle, months, ownerWhatsapp, ownerPhone }) {
+async function sendPaymentReceipt(email, { amount, currency = "XOF", reference, purpose, propertyTitle, months, ownerWhatsapp, ownerPhone, checkIn, checkOut, nbDays }) {
   const subject = "Reçu de paiement — ImmoBF Africa";
   const purposeLabel = purpose === "listing_fee"
     ? `Abonnement annonce (${months || 1} mois)`
@@ -120,6 +120,14 @@ async function sendPaymentReceipt(email, { amount, currency = "XOF", reference, 
       <a href="https://immoafrica.online/account" class="btn">Voir mes annonces</a>
     ` : ""}
     ${purpose === "commission" ? `
+      ${checkIn ? `
+        <div style="background:#f0f9f7; border-radius:8px; padding:14px 20px; margin:16px 0;">
+          <p style="margin:0 0 6px; font-weight:700;">📅 Dates de réservation</p>
+          <p style="margin:0 0 4px;">Arrivée : <strong>${new Date(checkIn).toLocaleDateString("fr-FR")}</strong></p>
+          ${checkOut ? `<p style="margin:0 0 4px;">Départ : <strong>${new Date(checkOut).toLocaleDateString("fr-FR")}</strong></p>` : ""}
+          ${nbDays ? `<p style="margin:0;">Durée : <strong>${nbDays} nuit(s)</strong></p>` : ""}
+        </div>
+      ` : ""}
       <div style="background:#e8f5e9; border-radius:8px; padding:20px; margin:20px 0; text-align:center;">
         <p style="margin:0 0 8px; font-weight:700; color:#1b5e20;">📱 Contacter l'annonceur</p>
         <p style="margin:0 0 16px; color:#555; font-size:14px;">
@@ -146,12 +154,18 @@ async function sendPaymentReceipt(email, { amount, currency = "XOF", reference, 
 async function sendOwnerCommissionReceipt(email, {
   amount, currency = "XOF", reference, propertyTitle,
   buyerName, buyerEmail, buyerPhone,
-  units, periodLabel, totalAmount,
+  units, periodLabel, totalAmount, checkIn,
 }) {
   const subject = `📄 Copie facture — réservation sur "${propertyTitle}"`;
 
   // Lien WhatsApp acheteur cliquable
   const buyerWaNum = buyerPhone ? String(buyerPhone).replace(/[^0-9]/g, "") : null;
+
+  // Dates arrivée/départ
+  const cinFr  = checkIn ? new Date(checkIn).toLocaleDateString("fr-FR") : null;
+  const coutFr = checkIn && units ? (() => {
+    const d = new Date(checkIn); d.setDate(d.getDate() + Number(units)); return d.toLocaleDateString("fr-FR");
+  })() : null;
 
   const html = baseTemplate(`
     <h2>📄 Copie de facture — commission de réservation</h2>
@@ -163,6 +177,8 @@ async function sendOwnerCommissionReceipt(email, {
       <p style="margin:0 0 8px;"><strong>Référence :</strong> ${reference}</p>
       <p style="margin:0 0 8px;"><strong>Annonce :</strong> ${propertyTitle}</p>
       ${units ? `<p style="margin:0 0 8px;"><strong>Durée réservée :</strong> ${units} ${periodLabel || ""}</p>` : ""}
+      ${cinFr  ? `<p style="margin:0 0 8px;"><strong>Arrivée :</strong> ${cinFr}</p>`  : ""}
+      ${coutFr ? `<p style="margin:0 0 8px;"><strong>Départ :</strong> ${coutFr}</p>` : ""}
       ${totalAmount ? `<p style="margin:0 0 8px;"><strong>Montant du séjour/loyer (à percevoir directement) :</strong> ${Number(totalAmount).toLocaleString("fr-FR")} ${currency}</p>` : ""}
       <p style="margin:0;"><strong>Commission ImmoBF perçue :</strong>
         <span class="amount">${Number(amount).toLocaleString("fr-FR")} ${currency}</span>
