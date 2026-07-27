@@ -88,18 +88,22 @@ router.get   ("/admin/properties",          requireAdmin, asyncHandler(adminCtl.
 router.delete("/admin/properties/:id",      requireAdmin, asyncHandler(adminCtl.deleteProperty));
 router.get  ("/admin/revenues",             requireAdmin, asyncHandler(adminCtl.listRevenues));
 router.get  ("/admin/users/:id/stats",      requireAdmin, asyncHandler(adminCtl.userStats));
-router.post ("/admin/newsletter",           requireAdmin, asyncHandler(adminCtl.sendNewsletter));
-router.get  ("/admin/newsletter/draft",     requireAdmin, asyncHandler(adminCtl.getNewsletterDraft));
-// saveNewsletterDraft : accepte requireAdmin OU X-Draft-Secret (tâche planifiée Cowork)
-router.post ("/admin/newsletter/draft",     asyncHandler(async (req, res, next) => {
+// sendNewsletter et saveNewsletterDraft : acceptent requireAdmin OU X-Draft-Secret
+// (envoi automatisé hebdomadaire par la tâche planifiée Cowork + script local).
+// ⚠️ Le secret suffit à déclencher un envoi de masse à tous les abonnés (jusqu'à 500,
+// filtrable par pays) sans authentification admin ni relecture humaine — décision
+// acceptée le 2026-07-27 pour permettre l'automatisation bout-en-bout de la newsletter.
+function requireAdminOrDraftSecret(req, res, next) {
   const secret = process.env.NEWSLETTER_DRAFT_SECRET;
   if (secret && req.headers["x-draft-secret"] === secret) return next();
-  // Sinon : vérification admin standard
   requireAuth(req, res, (err) => {
     if (err) return next(err);
     requireRole("admin")(req, res, next);
   });
-}), asyncHandler(adminCtl.saveNewsletterDraft));
+}
+router.post ("/admin/newsletter",           requireAdminOrDraftSecret, asyncHandler(adminCtl.sendNewsletter));
+router.get  ("/admin/newsletter/draft",     requireAdmin, asyncHandler(adminCtl.getNewsletterDraft));
+router.post ("/admin/newsletter/draft",     requireAdminOrDraftSecret, asyncHandler(adminCtl.saveNewsletterDraft));
 router.get  ("/admin/payment-stats",          requireAdmin, asyncHandler(adminCtl.paymentStats));
 router.get  ("/admin/payment-stats/by-mode", requireAdmin, asyncHandler(adminCtl.paymentStatsByMode));
 router.patch("/admin/profile",              requireAdmin, asyncHandler(adminCtl.updateAdminProfile));
