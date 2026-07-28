@@ -347,7 +347,14 @@ export default function PropertyDetail() {
 
             <Divider sx={{ my: 2 }} />
 
-            {showCommission && (
+            {showCommission && commissionPaid && meId !== p.owner_id && (
+              /* Commission déjà réglée → message de confirmation, pas de bouton RÉSERVER */
+              <Alert severity="success" sx={{ mt: 1 }}>
+                ✅ Commission ImmoBF réglée — vous pouvez maintenant contacter l&apos;annonceur.
+              </Alert>
+            )}
+
+            {showCommission && !commissionPaid && (
               <>
                 <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
                   <TextField
@@ -379,9 +386,8 @@ export default function PropertyDetail() {
                 )}
                 {/* Le bouton est masqué pour le propriétaire lui-même —
                     un annonceur ne peut pas payer la commission de son
-                    propre bien (cela n'a aucun sens et causait des tests
-                    déroutants où l'on ne voyait jamais les coordonnées
-                    de contact après paiement). */}
+                    propre bien. Masqué aussi si commission déjà payée
+                    (commissionPaid = false ici, donc toujours affiché). */}
                 {meId !== p.owner_id && (
                   <Button
                     fullWidth variant="contained" color="primary" size="large"

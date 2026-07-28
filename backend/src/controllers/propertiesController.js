@@ -62,16 +62,15 @@ async function get(req, res) {
   let commissionPaid = false;
   if (isRent && req.user?.id) {
     const { query } = require("../config/db");
+    const userEmail = req.user.email || null; // populated by auth middleware since 28/07/2026
     const { rows } = await query(
       `SELECT 1 FROM transactions
-       WHERE (buyer_id = $1 OR customer_email = $2)
+       WHERE (buyer_id = $1 OR (customer_email IS NOT NULL AND customer_email = $2))
          AND property_id = $3
          AND purpose = 'commission'
          AND status  = 'succeeded'
        LIMIT 1`,
-      // Utiliser un placeholder non-matchable si l'email est absent, pour éviter
-      // qu'une chaîne vide "" ne corresponde à des transactions invités sans email.
-      [req.user.id, req.user.email || "__no_email__", req.params.id]
+      [req.user.id, userEmail, req.params.id]
     );
     commissionPaid = rows.length > 0;
   }
