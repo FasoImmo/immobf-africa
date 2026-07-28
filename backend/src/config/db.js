@@ -6,7 +6,16 @@ const config = require("./index");
 const pool = new Pool({
   connectionString: config.db.url,
   max: 10,
-  idleTimeoutMillis: 30_000,
+  // Garder les connexions ouvertes au moins 10 min — les crons les plus longs
+  // tournent toutes les 5 min (réconciliation). Si idleTimeout < intervalle du
+  // cron, chaque exécution doit ré-établir une connexion SSL (~1s sur Railway),
+  // ce qui génère de faux "Slow query" (~1s) alors que la requête elle-même
+  // est instantanée. 10 min couvre tous les crons sans monopoliser le pool.
+  idleTimeoutMillis: 600_000,
+  // Envoie des paquets TCP keepalive pour maintenir la connexion SSL active
+  // même si Railway ou le load-balancer interrompt les connexions silencieuses.
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10_000,
   // Railway PostgreSQL requires SSL in production
   ...(process.env.NODE_ENV === "production" && {
     ssl: { rejectUnauthorized: false },
