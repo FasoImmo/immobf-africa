@@ -165,7 +165,11 @@ class BarkaPayProvider extends PaymentProvider {
     const body = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      const msg = body.message || `HTTP ${res.status}`;
+      let msg = body.message || `HTTP ${res.status}`;
+      // Erreur "DOWN" = opérateur temporairement indisponible côté BarkaPay
+      if (typeof msg === "string" && msg.includes("(DOWN)")) {
+        msg = `Opérateur mobile money temporairement indisponible. Essayez un autre opérateur ou un autre moyen de paiement.`;
+      }
       logger.error({ reference: payment.reference, status: res.status, body }, "BarkaPay initiate failed");
       throw Object.assign(
         new Error(`BarkaPay: ${msg}`),

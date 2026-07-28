@@ -22,6 +22,30 @@ async function startConversation(req, res) {
   if (!prop) throw NotFound("Annonce introuvable");
   if (prop.owner_id === req.user.id) throw BadRequest("Vous ne pouvez pas vous envoyer un message");
 
+  // ── Protection commission : même logique que propertiesController.get() ──
+  // La messagerie est verrouillée derrière le paiement de la commission
+  // pour les locations meublées résidentielles (ou si commission_enabled forcé ON).
+  const isRent = prop.transaction_type && prop.transaction_type !== "sale";
+  const showCommission = isRent && (
+    prop.commission_enabled === true ||
+    (prop.commission_enabled !== false &&
+      prop.is_furnished === true &&
+      ["house", "apartment", "villa"].includes(prop.type))
+  );
+  if (showCommission) {
+    const { query } = require("../config/db");
+    const { rows } = await query(
+      `SELECT 1 FROM transactions
+       WHERE (buyer_id = $1 OR customer_email = $2)
+         AND property_id = $3
+         AND purpose = 'commission'
+         AND status  = 'succeeded'
+       LIMIT 1`,
+      [req.user.id, req.user.email || "__no_email__", property_id]
+    );
+    if (rows.length === 0) throw Forbidden("Commission ImmoBF non réglée — payez la commission pour contacter l'annonceur");
+  }
+
   const conv = await Conversation.findOrCreate(property_id, req.user.id, prop.owner_id);
   res.status(201).json({ conversation: conv });
 }

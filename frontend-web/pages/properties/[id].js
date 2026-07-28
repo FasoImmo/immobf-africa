@@ -415,22 +415,21 @@ export default function PropertyDetail() {
             )}
 
             {/* Bouton messagerie interne — masqué pour le propriétaire,
-                verrouillé derrière la commission pour les locations */}
-            {meId && p && meId !== p.owner_id && (
-              showCommission && !commissionPaid ? (
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, textAlign: "center" }}>
-                  🔒 Payez la commission pour contacter l&apos;annonceur
-                </Typography>
-              ) : (
-                <Button
-                  fullWidth variant="outlined" size="large"
-                  sx={{ mt: 1 }}
-                  onClick={handleContact}
-                  disabled={contactLoading}
-                >
-                  💬 {contactLoading ? "…" : "Envoyer un message"}
-                </Button>
-              )
+                verrouillé derrière la commission (identique au bouton WhatsApp) */}
+            {meId && p && meId !== p.owner_id && (!showCommission || commissionPaid) && (
+              <Button
+                fullWidth variant="outlined" size="large"
+                sx={{ mt: 1 }}
+                onClick={handleContact}
+                disabled={contactLoading}
+              >
+                💬 {contactLoading ? "…" : "Envoyer un message"}
+              </Button>
+            )}
+            {meId && p && meId !== p.owner_id && showCommission && !commissionPaid && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, textAlign: "center" }}>
+                🔒 {t("property.whatsapp_locked")}
+              </Typography>
             )}
           </Paper>
         </Grid>
