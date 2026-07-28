@@ -34,14 +34,19 @@ async function startConversation(req, res) {
   );
   if (showCommission) {
     const { query } = require("../config/db");
+    const userEmail = req.user.email || null; // populated by auth middleware since 28/07/2026
     const { rows } = await query(
       `SELECT 1 FROM transactions
-       WHERE (buyer_id = $1 OR customer_email = $2)
+       WHERE (buyer_id = $1 OR (customer_email IS NOT NULL AND customer_email = $2))
          AND property_id = $3
          AND purpose = 'commission'
          AND status  = 'succeeded'
        LIMIT 1`,
-      [req.user.id, req.user.email || "__no_email__", property_id]
+      [req.user.id, userEmail, property_id]
+    );
+    logger.info(
+      { userId: req.user.id, userEmail, property_id, commissionFound: rows.length > 0 },
+      "commission check for startConversation"
     );
     if (rows.length === 0) throw Forbidden("Commission ImmoBF non réglée — payez la commission pour contacter l'annonceur");
   }

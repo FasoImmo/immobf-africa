@@ -41,7 +41,7 @@ async function requireAuth(req, _res, next) {
     if (payload.kind === "refresh") return next(Unauthorized("Wrong token type"));
 
     const { rows } = await query(
-      "SELECT role, agency_id, is_blocked, token_version FROM users WHERE id = $1",
+      "SELECT role, agency_id, is_blocked, token_version, email FROM users WHERE id = $1",
       [payload.sub]
     );
     const dbUser = rows[0];
@@ -55,6 +55,7 @@ async function requireAuth(req, _res, next) {
       id: payload.sub,
       role: dbUser.role,
       agency_id: dbUser.agency_id,
+      email: dbUser.email || null,
     };
     next();
   } catch (_e) {
@@ -75,13 +76,13 @@ async function optionalAuth(req, _res, next) {
     const payload = verify(m[1]);
     if (payload.kind === "refresh") return next();
     const { rows } = await query(
-      "SELECT role, agency_id, is_blocked, token_version FROM users WHERE id = $1",
+      "SELECT role, agency_id, is_blocked, token_version, email FROM users WHERE id = $1",
       [payload.sub]
     );
     const dbUser = rows[0];
     if (!dbUser || dbUser.is_blocked) return next();
     if ((payload.tv || 0) !== (dbUser.token_version || 0)) return next();
-    req.user = { id: payload.sub, role: dbUser.role, agency_id: dbUser.agency_id };
+    req.user = { id: payload.sub, role: dbUser.role, agency_id: dbUser.agency_id, email: dbUser.email || null };
   } catch (_e) { /* invalid token — treat as guest */ }
   next();
 }

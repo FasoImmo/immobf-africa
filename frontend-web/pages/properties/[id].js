@@ -60,10 +60,18 @@ export default function PropertyDetail() {
       router.push(`/messages/${conversation.id}`);
     } catch (e) {
       const msg = e?.response?.data?.error?.message || e.message || "";
+      const status = e?.response?.status;
       if (msg.toLowerCase().includes("vous ne pouvez pas")) {
         alert("Vous êtes l'annonceur de cette annonce.");
+      } else if (status === 403 || msg.toLowerCase().includes("commission")) {
+        // Commission non réglée ou refus backend — on réouvre le paiement
+        alert("⚠️ " + (msg || "Vous devez payer la commission pour contacter l'annonceur."));
+        setPayOpen(true);
+      } else if (status === 401) {
+        router.push("/login");
       } else {
-        router.push("/messages");
+        // Erreur inattendue — afficher le message plutôt que rediriger en silence
+        alert("Erreur : " + (msg || "Impossible de démarrer la conversation. Réessayez."));
       }
     } finally {
       setContactLoading(false);
