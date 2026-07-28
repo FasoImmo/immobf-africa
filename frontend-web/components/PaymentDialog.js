@@ -16,13 +16,14 @@ import { useTranslation } from "react-i18next";
 // PawaPay est recommandé par défaut (flux natif push — pas de redirection) ;
 // CinetPay sera remis en avant une fois son intégration Go Live validée (#28).
 const PROVIDER_LABELS = {
-  cinetpay: { label: "CinetPay" },
+  cinetpay:        { label: "CinetPay" },
   orange_money_bf: { label: "Orange Money (*144*4*6#)" },
-  wave: { label: "Wave" },
-  flutterwave: { label: "Flutterwave (carte, Orange Money, Mobicash)" },
-  fedapay: { label: "FedaPay (tous opérateurs)" },
-  moov_money_bf: { label: "Moov Money (*555*6#)" },
-  pawapay: { label: "PawaPay (Moov/Orange/Wave)", recommended: true },
+  wave:            { label: "Wave" },
+  flutterwave:     { label: "Flutterwave (carte, Orange Money, Mobicash)" },
+  fedapay:         { label: "FedaPay (tous opérateurs)" },
+  moov_money_bf:   { label: "Moov Money (*555*6#)" },
+  pawapay:         { label: "PawaPay (Moov/Orange/Wave)", recommended: true },
+  barkapay:        { label: "BarkaPay (Moov, Orange, MTN, Wave…)" },
 };
 
 // Pour FedaPay : choix d'opérateur préféré (affiché dans la modal de FedaPay,
@@ -52,6 +53,10 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
   const [pawapayOperators, setPawapayOperators] = useState([]);
   const [pawapayOperator, setPawapayOperator] = useState("");
   const [pawapayOtp, setPawapayOtp] = useState("");
+  // BarkaPay : idem PawaPay (même structure {value, label, requiresOtp, ussd})
+  const [barkapayOperators, setBarkapayOperators] = useState([]);
+  const [barkapayOperator, setBarkapayOperator] = useState("");
+  const [barkapayOtp, setBarkapayOtp] = useState("");
   const [phone, setPhone] = useState("");
   // Pré-rempli depuis le compte connecté — l'utilisateur peut modifier.
   // Évite les reçus perdus quand le champ est laissé vide (bug historique).
@@ -152,28 +157,45 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
   useEffect(() => {
     if (!open || !buyerCountry) return;
     setPawapayOtp("");
+    setBarkapayOtp("");
     Payments.providers(buyerCountry).then((d) => {
       setProviders(d.providers);
-      // Sélectionne CinetPay par défaut s'il est dispo, sinon Orange Money BF,
-      // sinon PawaPay, sinon Wave, sinon Flutterwave, sinon FedaPay, sinon premier provider.
+      // Sélectionne dans l'ordre : CinetPay → Orange Money BF → PawaPay →
+      // BarkaPay → Wave → Flutterwave → FedaPay → premier dispo.
       const cp  = d.providers.find((p) => p.name === "cinetpay");
       const om  = d.providers.find((p) => p.name === "orange_money_bf");
       const pp  = d.providers.find((p) => p.name === "pawapay");
+      const bp  = d.providers.find((p) => p.name === "barkapay");
       const wv  = d.providers.find((p) => p.name === "wave");
       const flw = d.providers.find((p) => p.name === "flutterwave");
       const fp  = d.providers.find((p) => p.name === "fedapay");
       setProvider(
-        cp ? "cinetpay" : om ? "orange_money_bf" : pp ? "pawapay" : wv ? "wave" : flw ? "flutterwave" : fp ? "fedapay" : d.providers[0]?.name || ""
+        cp  ? "cinetpay"        :
+        om  ? "orange_money_bf" :
+        pp  ? "pawapay"         :
+        bp  ? "barkapay"        :
+        wv  ? "wave"            :
+        flw ? "flutterwave"     :
+        fp  ? "fedapay"         :
+              (d.providers[0]?.name || "")
       );
       // Pré-charger les opérateurs PawaPay pour ce pays
       if (pp?.operators?.length) {
         setPawapayOperators(pp.operators);
-        // Sélectionner le premier opérateur PROVIDER_AUTH par défaut (pas PREAUTH)
         const defaultOp = pp.operators.find((o) => !o.requiresOtp) || pp.operators[0];
         setPawapayOperator(defaultOp?.value || "");
       } else {
         setPawapayOperators([]);
         setPawapayOperator("");
+      }
+      // Pré-charger les opérateurs BarkaPay pour ce pays
+      if (bp?.operators?.length) {
+        setBarkapayOperators(bp.operators);
+        const defaultBpOp = bp.operators.find((o) => !o.requiresOtp) || bp.operators[0];
+        setBarkapayOperator(defaultBpOp?.value || "");
+      } else {
+        setBarkapayOperators([]);
+        setBarkapayOperator("");
       }
     });
   }, [open, buyerCountry]);
@@ -202,13 +224,15 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
         customer_name:  (isGuest && guestName.trim()) ? guestName.trim() : undefined,
         country_code: buyerCountry || "BF",
         preferred_operator:
-          provider === "fedapay" ? preferredOperator || undefined :
-          provider === "pawapay" ? pawapayOperator || undefined :
+          provider === "fedapay"  ? preferredOperator   || undefined :
+          provider === "pawapay"  ? pawapayOperator      || undefined :
+          provider === "barkapay" ? barkapayOperator     || undefined :
           undefined,
-        // OTP requis si l'opérateur sélectionné est en mode PREAUTH
-        pawapay_otp: provider === "pawapay" && pawapayOperators.find((o) => o.value === pawapayOperator)?.requiresOtp
-          ? pawapayOtp || undefined
-          : undefined,
+        // OTP requis selon l'opérateur (PawaPay PREAUTH ou BarkaPay Orange)
+        // Le champ pawapay_otp est réutilisé pour BarkaPay (→ metadata.preAuthorisationCode)
+        pawapay_otp:
+          (provider === "pawapay"  && pawapayOperators.find((o) => o.value === pawapayOperator)?.requiresOtp  ? pawapayOtp   || undefined : undefined) ||
+          (provider === "barkapay" && barkapayOperators.find((o) => o.value === barkapayOperator)?.requiresOtp ? barkapayOtp  || undefined : undefined),
         booking_units: purpose === "commission" ? bookingUnits || 1 : undefined,
         check_in: purpose === "commission" ? checkIn || undefined : undefined,
         description:
@@ -237,10 +261,14 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
     setError(null);
   }
 
-  const isFedapay = provider === "fedapay";
-  const isPawapay = provider === "pawapay";
+  const isFedapay   = provider === "fedapay";
+  const isPawapay   = provider === "pawapay";
+  const isBarkaPay  = provider === "barkapay";
   const selectedPpOp = pawapayOperators.find((o) => o.value === pawapayOperator);
-  const otpMissing = isPawapay && selectedPpOp?.requiresOtp && !pawapayOtp;
+  const selectedBpOp = barkapayOperators.find((o) => o.value === barkapayOperator);
+  const otpMissing =
+    (isPawapay  && selectedPpOp?.requiresOtp && !pawapayOtp) ||
+    (isBarkaPay && selectedBpOp?.requiresOtp && !barkapayOtp);
   // Email recommandé pour le reçu, quel que soit le fournisseur.
   const showEmail = true;
   // CORRECTIF (30/06/2026) : le champ affichait "+226…" en dur, ce qui
@@ -345,6 +373,33 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
               </>
             )}
 
+            {/* ── BarkaPay : sélection opérateur + OTP ── */}
+            {isBarkaPay && barkapayOperators.length > 0 && (
+              <TextField
+                select fullWidth label="Opérateur mobile money" sx={{ mb: 2 }}
+                value={barkapayOperator}
+                onChange={(e) => { setBarkapayOperator(e.target.value); setBarkapayOtp(""); }}
+              >
+                {barkapayOperators.map((op) => (
+                  <MenuItem key={op.value} value={op.value}>{op.label}</MenuItem>
+                ))}
+              </TextField>
+            )}
+
+            {isBarkaPay && selectedBpOp?.requiresOtp && (
+              <>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Composez <strong>{selectedBpOp.ussd || "*144#"}</strong>, entrez votre
+                  code secret pour générer un code OTP temporaire, saisissez-le
+                  ci-dessous, puis cliquez <strong>Payer</strong> — le code expire en ~60 secondes.
+                </Alert>
+                <TextField
+                  fullWidth label="Code OTP BarkaPay" sx={{ mb: 2 }}
+                  value={barkapayOtp} onChange={(e) => setBarkapayOtp(e.target.value)}
+                />
+              </>
+            )}
+
             <TextField
               fullWidth
               label={`Numéro mobile money (${dialCode}…)`}
@@ -406,9 +461,12 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
             avant toute confirmation effective du client. */}
         {status === "pending" && (
           <Alert severity="info" icon={<CircularProgress size={18} />} sx={{ mt: 2 }}>
-            {isPawapay && selectedPpOp && !selectedPpOp.requiresOtp
+            {(
+              (isPawapay  && selectedPpOp && !selectedPpOp.requiresOtp) ||
+              (isBarkaPay && selectedBpOp && !selectedBpOp.requiresOtp)
+            )
               ? <>
-                  Une notification a été envoyée sur votre téléphone Moov/MTN/Wave.
+                  Une notification a été envoyée sur votre téléphone.
                   <strong> Ouvrez l&apos;application de votre opérateur et validez le paiement.</strong>
                   <br/>En attente de confirmation… (réf. {result?.reference})
                 </>

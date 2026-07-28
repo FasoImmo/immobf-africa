@@ -20,7 +20,8 @@ const PROVIDER_LABELS = {
   fedapay:         { name: "FedaPay",         color: "#0E7C66" },
   paydunya:        { name: "PayDunya",        color: "#6C3483" },
   moov_money_bf:   { name: "Moov Money BF",  color: "#008B8B" },
-  pawapay:         { name: "PawaPay",        color: "#2E86AB" },
+  pawapay:         { name: "PawaPay",         color: "#2E86AB" },
+  barkapay:        { name: "BarkaPay",        color: "#7C3AED" },
 };
 
 const C_ACTIVE = "#0E7C66";

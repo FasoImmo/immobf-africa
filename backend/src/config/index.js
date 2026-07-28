@@ -130,6 +130,13 @@ module.exports = {
       // (comparaison directe, pas un HMAC à calculer)
       webhookHash: process.env.FLUTTERWAVE_WEBHOOK_HASH,
     },
+    barkapay: {
+      // Clés générées dans Dashboard BarkaPay > Intégration API > "+ Créer"
+      apiKey:    process.env.BARKAPAY_API_KEY,
+      apiSecret: process.env.BARKAPAY_API_SECRET,
+      // URL du webhook IPN (configurée aussi dans le dashboard BarkaPay)
+      notifyUrl: process.env.BARKAPAY_NOTIFY_URL,
+    },
   },
 
   sms: {

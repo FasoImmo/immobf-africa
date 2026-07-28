@@ -26,6 +26,48 @@ const COUNTRIES = [
   { code: "KE", label: "🇰🇪 Kenya",          dial: "+254" },
 ];
 
+// Opérateurs BarkaPay par pays (value en minuscules = compatible schéma Joi backend)
+const BARKAPAY_OPS = {
+  BF: [
+    { value: "moov",   label: "Moov Money",              otp: false },
+    { value: "orange", label: "Orange Money (OTP requis)", otp: true, ussd: "*144*4*6#" },
+  ],
+  CI: [
+    { value: "mtn",    label: "MTN MoMo",    otp: false },
+    { value: "moov",   label: "Moov Money",  otp: false },
+    { value: "orange", label: "Orange Money", otp: false },
+  ],
+  SN: [
+    { value: "orange", label: "Orange Money", otp: false },
+    { value: "wave",   label: "Wave",         otp: false },
+    { value: "free",   label: "Free Money",   otp: false },
+  ],
+  BJ: [
+    { value: "mtn",  label: "MTN MoMo",   otp: false },
+    { value: "moov", label: "Moov Money", otp: false },
+  ],
+  ML: [
+    { value: "orange", label: "Orange Money", otp: false },
+    { value: "moov",   label: "Moov Money",   otp: false },
+  ],
+  TG: [
+    { value: "moov",   label: "Moov Money", otp: false },
+    { value: "tmoney", label: "T-Money",     otp: false },
+  ],
+  GN: [
+    { value: "orange", label: "Orange Money", otp: false },
+    { value: "mtn",    label: "MTN MoMo",     otp: false },
+  ],
+  NE: [
+    { value: "airtel", label: "Airtel Money", otp: false },
+    { value: "moov",   label: "Moov Money",   otp: false },
+  ],
+  default: [
+    { value: "moov",   label: "Moov Money"  },
+    { value: "orange", label: "Orange Money" },
+  ],
+};
+
 // Opérateurs PawaPay par pays
 // ussd : code à composer pour générer le code OTP (si otp: true)
 // Les codes sont mis à jour selon les instructions officielles de chaque opérateur.
@@ -80,14 +122,15 @@ const PAWAPAY_OPS = {
 
 // Labels d'affichage pour les providers renvoyés par le backend
 const PROVIDER_LABELS = {
-  pawapay:        "PawaPay (Mobile Money)",
-  fedapay:        "FedaPay (Orange, MTN, Wave…)",
-  cinetpay:       "CinetPay",
-  flutterwave:    "Flutterwave",
-  paydunya:       "PayDunya",
+  pawapay:         "PawaPay (Mobile Money)",
+  fedapay:         "FedaPay (Orange, MTN, Wave…)",
+  cinetpay:        "CinetPay",
+  flutterwave:     "Flutterwave",
+  paydunya:        "PayDunya",
   orange_money_bf: "Orange Money BF",
-  moov_money_bf:  "Moov Money BF",
-  wave:           "Wave",
+  moov_money_bf:   "Moov Money BF",
+  wave:            "Wave",
+  barkapay:        "BarkaPay (Moov, Orange, MTN…)",
 };
 
 const T = {
@@ -188,12 +231,15 @@ export default function PaymentScreen({ route }) {
   const [buyerCountry, setBuyerCountry] = useState(defaultCountry);
   const [showCountryModal, setShowCountryModal] = useState(false);
 
-  const ops = PAWAPAY_OPS[buyerCountry.code] || PAWAPAY_OPS.default;
+  const ops   = PAWAPAY_OPS[buyerCountry.code]   || PAWAPAY_OPS.default;
+  const bkOps = BARKAPAY_OPS[buyerCountry.code]  || BARKAPAY_OPS.default;
 
   const [providers, setProviders] = useState([]);
   const [provider, setProvider] = useState("");
   const [pawapayOperator, setPawapayOperator] = useState(ops[0]?.value || "moov");
   const [pawapayOtp, setPawapayOtp] = useState("");
+  const [barkapayOperator, setBarkapayOperator] = useState(bkOps[0]?.value || "moov");
+  const [barkapayOtp, setBarkapayOtp] = useState("");
   const [phoneLocal, setPhoneLocal] = useState(""); // numéro sans indicatif
   const [guestEmail, setGuestEmail] = useState("");
   const [isGuest, setIsGuest] = useState(false);
@@ -222,18 +268,24 @@ export default function PaymentScreen({ route }) {
   // Recharger les opérateurs quand le pays change
   useEffect(() => {
     setProvider("");
-    setPawapayOperator((PAWAPAY_OPS[buyerCountry.code] || PAWAPAY_OPS.default)[0]?.value || "moov");
+    setPawapayOperator((PAWAPAY_OPS[buyerCountry.code]  || PAWAPAY_OPS.default)[0]?.value  || "moov");
     setPawapayOtp("");
+    setBarkapayOperator((BARKAPAY_OPS[buyerCountry.code] || BARKAPAY_OPS.default)[0]?.value || "moov");
+    setBarkapayOtp("");
     Payments.providers(buyerCountry.code).then((d) => {
       setProviders(d.providers || []);
       setProvider(d.providers?.[0]?.name || "");
     }).catch(() => {});
   }, [buyerCountry]);
 
-  const fullPhone = `${buyerCountry.dial}${phoneLocal.replace(/^0+/, "")}`;
-  const currentOp = ops.find((o) => o.value === pawapayOperator);
-  const needsOtp = provider === "pawapay" && currentOp?.otp;
-  const canPay = phoneLocal.length >= 6 && provider && !(needsOtp && !pawapayOtp);
+  const fullPhone   = `${buyerCountry.dial}${phoneLocal.replace(/^0+/, "")}`;
+  const currentOp   = ops.find((o) => o.value === pawapayOperator);
+  const currentBkOp = bkOps.find((o) => o.value === barkapayOperator);
+  const needsOtp    = provider === "pawapay"   && currentOp?.otp;
+  const bkNeedsOtp  = provider === "barkapay"  && currentBkOp?.otp;
+  const canPay = phoneLocal.length >= 6 && provider
+    && !(needsOtp   && !pawapayOtp)
+    && !(bkNeedsOtp && !barkapayOtp);
 
   async function pay() {
     if (!canPay) {
@@ -264,6 +316,10 @@ export default function PaymentScreen({ route }) {
       if (provider === "pawapay") {
         payload.preferred_operator = pawapayOperator;
         if (needsOtp) payload.pawapay_otp = pawapayOtp;
+      }
+      if (provider === "barkapay") {
+        payload.preferred_operator = barkapayOperator;
+        if (bkNeedsOtp) payload.pawapay_otp = barkapayOtp; // champ pawapay_otp réutilisé
       }
       const r = await Payments.initiate(payload);
       setResult(r);
@@ -304,6 +360,43 @@ export default function PaymentScreen({ route }) {
             </TouchableOpacity>
           ))}
         </View>
+      )}
+
+      {/* BarkaPay : choix réseau + OTP */}
+      {provider === "barkapay" && (
+        <>
+          <Text style={s.label}>{t.mobileNet}</Text>
+          <View style={s.row}>
+            {bkOps.map((op) => (
+              <TouchableOpacity
+                key={op.value}
+                style={[s.chip, barkapayOperator === op.value && s.chipActive]}
+                onPress={() => { setBarkapayOperator(op.value); setBarkapayOtp(""); }}
+              >
+                <Text style={[s.chipText, barkapayOperator === op.value && s.chipTextActive]}>
+                  {op.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {bkNeedsOtp && (
+            <>
+              <Text style={s.label}>{t.otpLabel} — {currentBkOp?.label}</Text>
+              {currentBkOp?.ussd && (
+                <View style={[s.infoBox, { marginTop: 6 }]}>
+                  <Text style={[s.infoText, { fontWeight: "700" }]}>
+                    {t.otpHintPrefix} {currentBkOp.ussd} {t.otpHintSuffix}
+                  </Text>
+                </View>
+              )}
+              <TextInput
+                value={barkapayOtp} onChangeText={setBarkapayOtp}
+                style={s.input} keyboardType="numeric" placeholder="Ex: 123456" maxLength={8}
+              />
+            </>
+          )}
+        </>
       )}
 
       {/* FedaPay : hint redirection checkout */}

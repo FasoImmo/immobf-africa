@@ -8,6 +8,7 @@ const FedaPay = require("./FedaPayProvider");
 const PayDunya = require("./PayDunyaProvider");
 const Flutterwave = require("./FlutterwaveProvider");
 const PawaPay = require("./PawaPayProvider");
+const BarkaPay = require("./BarkaPayProvider");
 
 // Ordre = ordre d'affichage côté UI (premier = recommandé par défaut).
 //
@@ -48,6 +49,10 @@ const instances = {
   // doit saisir un code OTP généré via USSD (flux PREAUTH, voir
   // PawaPayProvider.js).
   pawapay:        new PawaPay(),
+  // BarkaPay (28/07/2026) : agrégateur multi-pays (BF, CI, SN, BJ, ML…).
+  // Auth X-Api-Key + X-Api-Secret. Moov BF = push ; Orange BF = OTP USSD.
+  // N'apparaîtra dans listForCountry() que si BARKAPAY_API_KEY est défini.
+  barkapay:       new BarkaPay(),
 };
 
 function get(name) {
