@@ -36,7 +36,7 @@ const FEDAPAY_OPERATORS = [
   { value: "card", label: "Carte Visa/Mastercard" },
 ];
 
-export default function PaymentDialog({ open, onClose, onSuccess, property, amount, purpose = "deposit", bookingUnits, checkIn }) {
+export default function PaymentDialog({ open, onClose, onSuccess, onMessage, property, amount, purpose = "deposit", bookingUnits, checkIn }) {
   const { t } = useTranslation();
   const [providers, setProviders] = useState([]);
   // CORRECTIF (30/06/2026) : avant, on interrogeait toujours les fournisseurs
@@ -520,8 +520,16 @@ export default function PaymentDialog({ open, onClose, onSuccess, property, amou
                   </Button>
                 );
               }
-              // L'annonceur n'a pas de WhatsApp — indiquer la messagerie interne
-              return (
+              // L'annonceur n'a pas de WhatsApp — bouton messagerie directement dans la dialog
+              return onMessage ? (
+                <Button
+                  fullWidth variant="outlined" size="large"
+                  sx={{ mt: 2, fontSize: 15, py: 1.5 }}
+                  onClick={onMessage}
+                >
+                  💬 Envoyer un message à l&apos;annonceur
+                </Button>
+              ) : (
                 <Alert severity="info" sx={{ mt: 2 }}>
                   Cet annonceur n&apos;a pas de numéro WhatsApp renseigné.
                   Fermez cette fenêtre puis utilisez le bouton <strong>« Envoyer un message »</strong> sur la page pour le contacter via la messagerie ImmoBF.

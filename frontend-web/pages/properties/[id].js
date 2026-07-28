@@ -506,6 +506,7 @@ export default function PropertyDetail() {
           open={payOpen}
           onClose={function() { setPayOpen(false); }}
           onSuccess={handleCommissionPaid}
+          onMessage={function() { setPayOpen(false); handleContact(); }}
           property={p}
           amount={commissionAmount}
           purpose="commission"
