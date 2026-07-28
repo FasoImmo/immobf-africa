@@ -138,13 +138,18 @@ class BarkaPayProvider extends PaymentProvider {
 
     // FormData encodé en application/x-www-form-urlencoded (multipart/form-data
     // aussi accepté ; URLSearchParams = plus simple côté Node)
+    // BarkaPay exige un order_id ENTIER NUMÉRIQUE (UUID rejeté).
+    // On utilise Date.now() comme ID court unique ; la réconciliation passe
+    // par external_id (public_id BarkaPay) → findByExternalId() en fallback.
+    const numericOrderId = String(Date.now());
+    // order_id_unicity : 1 = vrai, 0 = faux (BarkaPay rejette "true"/"false").
     const form = new URLSearchParams();
     form.append("sender_country",     opInfo.country);
     form.append("operator",           opInfo.code.toUpperCase()); // BarkaPay API attend UPPERCASE
     form.append("sender_phonenumber", String(payment.customerPhone || "").replace(/\D/g, ""));
     form.append("amount",             String(Math.round(payment.amount)));
-    form.append("order_id",           payment.reference);
-    form.append("order_id_unicity",   "true");
+    form.append("order_id",           numericOrderId);
+    form.append("order_id_unicity",   "1");
     form.append("callback_url",       callbackUrl);
     if (payment.description) {
       form.append("order_data", JSON.stringify({ description: payment.description }));

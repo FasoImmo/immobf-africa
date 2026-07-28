@@ -69,7 +69,9 @@ async function get(req, res) {
          AND purpose = 'commission'
          AND status  = 'succeeded'
        LIMIT 1`,
-      [req.user.id, req.user.email || "", req.params.id]
+      // Utiliser un placeholder non-matchable si l'email est absent, pour éviter
+      // qu'une chaîne vide "" ne corresponde à des transactions invités sans email.
+      [req.user.id, req.user.email || "__no_email__", req.params.id]
     );
     commissionPaid = rows.length > 0;
   }
