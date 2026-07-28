@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import {
   Box, Typography, List, ListItemButton, ListItemAvatar,
-  Avatar, ListItemText, Divider, Badge, CircularProgress, Chip,
+  Avatar, ListItemText, Divider, Badge, CircularProgress, Chip, Alert,
 } from "@mui/material";
 import Layout from "../../components/Layout";
 import { Messages } from "../../lib/api";
@@ -23,13 +23,19 @@ export default function MessagesInbox() {
   const router = useRouter();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState(null);
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("immobf_token") : null;
     if (!token) { router.push("/login"); return; }
     Messages.list()
       .then((d) => setConversations(d.conversations || []))
-      .catch(() => {})
+      .catch((e) => {
+        const msg = e?.response?.data?.error?.message || e.message || "Erreur inconnue";
+        const status = e?.response?.status;
+        if (status === 401) { router.push("/login"); return; }
+        setApiError(`Erreur ${status || ""}: ${msg}`);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -48,7 +54,11 @@ export default function MessagesInbox() {
     <Layout title="Messages — ImmoBF">
       <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>💬 Mes messages</Typography>
 
-      {conversations.length === 0 ? (
+      {apiError && (
+        <Alert severity="error" sx={{ mb: 2 }}>{apiError}</Alert>
+      )}
+
+      {!apiError && conversations.length === 0 ? (
         <Box sx={{ textAlign: "center", mt: 6, color: "text.secondary" }}>
           <Typography>Aucune conversation pour l&apos;instant.</Typography>
           <Link href="/properties" style={{ color: "#0E7C66", marginTop: 8, display: "inline-block" }}>

@@ -61,6 +61,7 @@ async function startConversation(req, res) {
  */
 async function listConversations(req, res) {
   const list = await Conversation.listForUser(req.user.id);
+  logger.info({ userId: req.user.id, count: list.length }, "listConversations result");
   res.json({ conversations: list });
 }
 
