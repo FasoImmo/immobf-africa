@@ -520,20 +520,16 @@ export default function PaymentDialog({ open, onClose, onSuccess, onMessage, pro
                   </Button>
                 );
               }
-              // L'annonceur n'a pas de WhatsApp — bouton messagerie directement dans la dialog
-              return onMessage ? (
+              // L'annonceur n'a pas de WhatsApp — bouton messagerie directement dans la dialog.
+              // onMessage est toujours fourni par [id].js (function() { ... }) donc truthy.
+              return (
                 <Button
                   fullWidth variant="outlined" size="large"
                   sx={{ mt: 2, fontSize: 15, py: 1.5 }}
-                  onClick={onMessage}
+                  onClick={onMessage || undefined}
                 >
                   💬 Envoyer un message à l&apos;annonceur
                 </Button>
-              ) : (
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  Cet annonceur n&apos;a pas de numéro WhatsApp renseigné.
-                  Fermez cette fenêtre puis utilisez le bouton <strong>« Envoyer un message »</strong> sur la page pour le contacter via la messagerie ImmoBF.
-                </Alert>
               );
             })()}
           </Box>

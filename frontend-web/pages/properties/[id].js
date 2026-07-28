@@ -113,11 +113,17 @@ export default function PropertyDetail() {
     Properties.get(id).then((d) => {
       setP(d.property);
       // commission_paid = vérification côté serveur (utilisateur connecté avec commission payée).
-      // Priorité : API > localStorage (l'API est la source de vérité ; localStorage
-      // sert de cache pour les paiements invités sur le même navigateur).
+      // Priorité : API > localStorage (l'API est la source de vérité).
+      // — Si l'API dit TRUE : on confirme et on met en cache.
+      // — Si l'API dit FALSE : on réinitialise (efface le cache localStorage obsolète).
+      // — Si l'API dit undefined : annonce non-locative, on ne touche pas à l'état.
       if (d.commission_paid === true) {
         setCommissionPaid(true);
         try { localStorage.setItem(`commission_paid_${id}`, "1"); } catch {}
+      } else if (d.commission_paid === false) {
+        // L'API dit non payé — on efface le cache localStorage si présent
+        setCommissionPaid(false);
+        try { localStorage.removeItem(`commission_paid_${id}`); } catch {}
       }
       // Tracking vue + annonces similaires en parallèle
       Analytics.trackView(id, "view");
