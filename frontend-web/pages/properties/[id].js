@@ -246,16 +246,6 @@ export default function PropertyDetail() {
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 1 }}>
         <Typography variant="h4">{p.title}</Typography>
         <Box sx={{ display: "flex", gap: 1 }}>
-          {/* WhatsApp */}
-          <Button
-            size="small" variant="outlined"
-            sx={{ color: "#25D366", borderColor: "#25D366", "&:hover": { borderColor: "#1ebe5a", bgcolor: "#f0fdf4" } }}
-            component="a"
-            href={`https://wa.me/?text=${encodeURIComponent(p.title + "\n" + (typeof window !== "undefined" ? window.location.href : ""))}`}
-            target="_blank" rel="noopener noreferrer"
-          >
-            💬 WhatsApp
-          </Button>
           {/* Copier / Share natif */}
           <Tooltip title={copied ? "Lien copié ✓" : "Partager"} placement="top">
             <Button size="small" variant="outlined" onClick={handleShare}>
@@ -426,7 +416,8 @@ export default function PropertyDetail() {
                 💬 {contactLoading ? "…" : "Envoyer un message"}
               </Button>
             )}
-            {meId && p && meId !== p.owner_id && showCommission && !commissionPaid && (
+            {/* Cadenas messagerie : uniquement si pas de WhatsApp (sinon le cadenas WhatsApp ci-dessus suffit) */}
+            {meId && p && meId !== p.owner_id && showCommission && !commissionPaid && !p.owner_whatsapp && (
               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, textAlign: "center" }}>
                 🔒 {t("property.whatsapp_locked")}
               </Typography>
