@@ -53,7 +53,7 @@ export default function PropertyDetail() {
 
   async function handleContact() {
     const token = typeof window !== "undefined" ? localStorage.getItem("immobf_token") : null;
-    if (!token) { router.push("/login"); return; }
+    if (!token) { router.push("/login?redirect=" + encodeURIComponent("/properties/" + id)); return; }
     setContactLoading(true);
     try {
       const { conversation } = await Messages.start(id);
@@ -68,7 +68,7 @@ export default function PropertyDetail() {
         alert("⚠️ " + (msg || "Vous devez payer la commission pour contacter l'annonceur."));
         setPayOpen(true);
       } else if (status === 401) {
-        router.push("/login");
+        router.push("/login?redirect=" + encodeURIComponent("/properties/" + id));
       } else {
         // Erreur inattendue — afficher le message plutôt que rediriger en silence
         alert("Erreur : " + (msg || "Impossible de démarrer la conversation. Réessayez."));
