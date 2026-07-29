@@ -31,7 +31,7 @@ async function listForUser(userId) {
        c.created_at,
        p.title         AS property_title,
        p.city          AS property_city,
-       (SELECT photo_url FROM property_photos pp
+       (SELECT url FROM property_photos pp
         WHERE pp.property_id = c.property_id
         ORDER BY pp.position ASC LIMIT 1) AS property_photo,
        ub.full_name    AS buyer_name,
