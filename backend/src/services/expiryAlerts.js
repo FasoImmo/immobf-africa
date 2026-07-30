@@ -11,6 +11,25 @@ const logger = require("../utils/logger");
  * - 1 jour avant expiration
  * Tourne tous les jours à 8h00 UTC (9h Ouagadougou)
  */
+/**
+ * Passe les annonces dont listing_expires_at est dépassé en status 'expired'.
+ * Appelé en même temps que les alertes (quotidien 08:00 UTC).
+ */
+async function runAutoExpire() {
+  const { rows } = await query(`
+    UPDATE properties
+    SET status = 'expired', updated_at = NOW()
+    WHERE status = 'published'
+      AND listing_expires_at IS NOT NULL
+      AND listing_expires_at <= NOW()
+    RETURNING id, title
+  `);
+  if (rows.length > 0) {
+    logger.info({ count: rows.length, ids: rows.map((r) => r.id) }, "Auto-expired listings");
+  }
+  return rows;
+}
+
 async function runExpiryAlerts() {
   logger.info("Running expiry alerts job");
 
@@ -59,6 +78,7 @@ function startExpiryAlertsCron() {
   // Tous les jours à 8h00 UTC
   cron.schedule("0 8 * * *", async () => {
     try {
+      await runAutoExpire();
       await runExpiryAlerts();
     } catch (e) {
       logger.error({ err: e.message }, "Expiry alerts cron failed");
@@ -67,4 +87,4 @@ function startExpiryAlertsCron() {
   logger.info("Expiry alerts cron scheduled (daily 08:00 UTC)");
 }
 
-module.exports = { startExpiryAlertsCron, runExpiryAlerts };
+module.exports = { startExpiryAlertsCron, runExpiryAlerts, runAutoExpire };

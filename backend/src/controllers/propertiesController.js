@@ -50,6 +50,13 @@ async function get(req, res) {
   const lang = req.query.lang || "fr";
   const p = await Property.findById(req.params.id, { lang });
   if (!p) throw NotFound("Annonce introuvable");
+
+  // Annonce expirée : retourner 404 sauf pour le propriétaire et les admins
+  const isExpired = p.listing_expires_at && new Date(p.listing_expires_at) <= new Date();
+  const isOwnerOrAdmin = req.user && (req.user.id === p.owner_id || req.user.role === "admin");
+  if ((p.status === "expired" || isExpired) && !isOwnerOrAdmin) {
+    throw NotFound("Cette annonce n'est plus disponible");
+  }
   const photos = await Property.photosFor(p.id);
 
   // ── Protection coordonnées annonceur pour les locations ──────────────────
@@ -91,9 +98,9 @@ async function publish(req, res) {
   const promo = await PS.getPromo().catch(() => ({ active: false }));
   const p = await Property.publish(req.params.id, req.user.id, { skipFeeCheck: Boolean(promo.active) });
   if (!p) throw Forbidden("Non autorisé ou annonce introuvable");
-  // Si publication via promo et durée configurée, appliquer l'expiration
-  if (promo.active && promo.duration_days) {
-    await Property.setExpiry(req.params.id, promo.duration_days).catch(() => {});
+  // Publication via promo : appliquer la durée configurée (défaut 30 jours)
+  if (promo.active) {
+    await Property.setExpiry(req.params.id, promo.duration_days || 30).catch(() => {});
   }
   res.json({ property: p });
 }
