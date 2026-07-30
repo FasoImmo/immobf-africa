@@ -202,6 +202,16 @@ async function initiate(req, res) {
     // ne déclenchait aucun reçu — l'UI affichait pourtant déjà "reçu envoyé
     // par email" dans ce cas, ce qui était faux à 100%.
     try {
+      // Dates de séjour (stub path) — calculées une fois, partagées entre les
+      // deux emails (acheteur + annonceur) pour garantir la cohérence.
+      const bkCheckIn  = value.check_in || null;
+      const bkNbDays   = value.booking_units ? Number(value.booking_units) : null;
+      const bkCheckOut = bkCheckIn && bkNbDays ? (() => {
+        const d = new Date(bkCheckIn);
+        d.setDate(d.getDate() + bkNbDays);
+        return d.toISOString().split("T")[0];
+      })() : null;
+
       // On envoie le reçu à l'email saisi à la caisse (customer_email) ou, à
       // défaut, à l'email du compte connecté. Cela couvre le flux mobile où
       // customer_email n'est pas envoyé : l'annonceur reçoit quand même sa facture.
@@ -218,6 +228,9 @@ async function initiate(req, res) {
           purpose: value.purpose,
           propertyTitle: property?.title,
           months: Number(months),
+          checkIn:  bkCheckIn,
+          checkOut: bkCheckOut,
+          nbDays:   bkNbDays,
         }).catch((e) => logger.warn({ err: e.message }, "stub: receipt email failed"));
       } else {
         logger.info({ transaction_id: tx.id, purpose: value.purpose }, "stub: pas d'email reçu (mobile commission ou email absent)");
@@ -241,6 +254,7 @@ async function initiate(req, res) {
               units: value.booking_units,
               periodLabel: PERIOD_LABEL[property.rent_period] || "",
               totalAmount: value.booking_units ? property.price * value.booking_units : null,
+              checkIn: bkCheckIn,
             });
           }
         } catch (e) {
