@@ -236,8 +236,9 @@ async function resetPassword(req, res) {
 
 // ─── Modifier son propre profil (nom, téléphone, mot de passe) ───────────────
 const updateUserProfileSchema = Joi.object({
-  full_name: Joi.string().min(2).max(120).optional(),
-  phone:     Joi.string().pattern(/^\+?[0-9]{8,15}$/).optional(),
+  full_name:       Joi.string().min(2).max(120).optional(),
+  phone:           Joi.string().pattern(/^\+?[0-9]{8,15}$/).optional(),
+  whatsapp_number: Joi.string().pattern(/^\+?[0-9]{8,15}$/).allow("", null).optional(),
   current_password: Joi.string().when("new_password", {
     is: Joi.exist(), then: Joi.required(), otherwise: Joi.optional(),
   }),
@@ -271,6 +272,11 @@ async function updateUserProfile(req, res) {
   // Changement de nom
   if (value.full_name && value.full_name !== user.full_name) {
     await User.updateFullName(user.id, value.full_name);
+  }
+
+  // Changement numéro WhatsApp (peut être vide string pour effacer)
+  if (value.whatsapp_number !== undefined) {
+    await User.updateWhatsapp(user.id, value.whatsapp_number || null);
   }
 
   const updated = await User.findById(user.id);

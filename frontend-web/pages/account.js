@@ -55,6 +55,7 @@ export default function AccountPage() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [phoneInput, setPhoneInput] = useState("");
+  const [waInput, setWaInput] = useState("");
   const [curPwd, setCurPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");
@@ -89,6 +90,7 @@ export default function AccountPage() {
     setUser(u);
     setNameInput(u.full_name || "");
     setPhoneInput(u.phone || "");
+    setWaInput(u.whatsapp_number || "");
 
     if (router.query.draft_saved) setDraftSaved(true);
 
@@ -126,6 +128,7 @@ export default function AccountPage() {
     const payload = {};
     if (nameInput && nameInput !== user.full_name) payload.full_name = nameInput;
     if (phoneInput && phoneInput !== user.phone) payload.phone = phoneInput;
+    if (waInput !== (user.whatsapp_number || "")) payload.whatsapp_number = waInput;
     if (newPwd) {
       if (newPwd !== confirmPwd) {
         setProfileMsg({ type: "error", text: "Les mots de passe ne correspondent pas." });
@@ -153,6 +156,7 @@ export default function AccountPage() {
       localStorage.setItem("immobf_user", JSON.stringify(updated));
       setNameInput(updated.full_name || "");
       setPhoneInput(updated.phone || "");
+      setWaInput(updated.whatsapp_number || "");
       setCurPwd(""); setNewPwd(""); setConfirmPwd("");
       setProfileMsg({ type: "success", text: "Profil mis à jour." });
       setProfileOpen(false);
@@ -282,6 +286,15 @@ export default function AccountPage() {
                   placeholder="+22670000000"
                   sx={{ flex: 1, minWidth: 200, bgcolor: "white" }}
                   helperText="Changer le téléphone change aussi votre identifiant de connexion"
+                />
+              </Box>
+              <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                <TextField
+                  size="small" label="💬 Numéro WhatsApp (visible par les clients)" value={waInput}
+                  onChange={(e) => setWaInput(e.target.value)}
+                  placeholder="+22670000000"
+                  sx={{ flex: 1, minWidth: 200, bgcolor: "white" }}
+                  helperText="Si différent de votre téléphone de connexion. Affiché aux clients après paiement de la commission."
                 />
               </Box>
 

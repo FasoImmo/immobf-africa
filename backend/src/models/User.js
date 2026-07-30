@@ -5,7 +5,7 @@ const argon2 = require("argon2");
 
 const PUBLIC_FIELDS = `
   id, email, phone, full_name, role, agency_id, country_code, locale,
-  phone_verified, created_at
+  phone_verified, created_at, whatsapp_number
 `;
 
 async function create({ email, phone, password, full_name, role = "buyer", country_code = "BF", locale = "fr", agency_id = null }) {
@@ -44,6 +44,14 @@ async function findByIdWithAuth(id) {
   const { rows } = await query(
     `SELECT ${PUBLIC_FIELDS}, password_hash, is_blocked, token_version FROM users WHERE id = $1`,
     [id]
+  );
+  return rows[0] || null;
+}
+
+async function updateWhatsapp(id, whatsappNumber) {
+  const { rows } = await query(
+    `UPDATE users SET whatsapp_number = $1 WHERE id = $2 RETURNING ${PUBLIC_FIELDS}`,
+    [whatsappNumber || null, id]
   );
   return rows[0] || null;
 }
@@ -175,6 +183,6 @@ async function forceLogout(id) {
 module.exports = {
   create, findByPhone, findByEmail, findById, findByIdWithAuth, verifyPassword, markPhoneVerified,
   updatePassword, updatePasswordByEmail, updateEmail, updatePhone, updatePasswordById,
-  updateFullName,
+  updateFullName, updateWhatsapp,
   list, setBlocked, forceLogout, deleteById,
 };
