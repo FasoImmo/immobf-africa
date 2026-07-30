@@ -101,6 +101,7 @@ async function handleSucceededPayment(tx) {
         reference:     tx.reference,
         purpose:       tx.purpose,
         propertyTitle: property?.title,
+        propertyId:    property?.id,
         months:        Number(months),
         ownerWhatsapp: property?.owner_whatsapp,
         ownerPhone:    property?.owner_phone,

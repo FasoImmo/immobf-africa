@@ -255,6 +255,7 @@ export default function AdminTransactions() {
                 <TableCell>Pays</TableCell>
                 <TableCell>Type</TableCell>
                 <TableCell>Fournisseur</TableCell>
+                <TableCell>Source</TableCell>
                 <TableCell align="right">Montant</TableCell>
                 <TableCell>Statut</TableCell>
                 <TableCell>Référence</TableCell>
@@ -263,7 +264,7 @@ export default function AdminTransactions() {
             <TableBody>
               {loading && (
                 <TableRow>
-                  <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={11} align="center" sx={{ py: 4 }}>
                     <CircularProgress size={28} />
                   </TableCell>
                 </TableRow>
@@ -303,6 +304,11 @@ export default function AdminTransactions() {
                         color={tx.purpose === "listing_fee" ? "primary" : "default"} variant="outlined" />
                     </TableCell>
                     <TableCell sx={{ fontSize: 12 }}>{tx.provider}</TableCell>
+                    <TableCell sx={{ fontSize: 11, whiteSpace: "nowrap", color: "text.secondary" }}>
+                      <Tooltip title={`Téléphone : ${tx.customer_phone || "—"}  |  Opérateur : ${tx.operator || "—"}`}>
+                        <span>{tx.customer_phone || tx.operator || "—"}</span>
+                      </Tooltip>
+                    </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>
                       {Number(tx.amount).toLocaleString("fr-FR")} {tx.currency}
                     </TableCell>

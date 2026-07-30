@@ -67,19 +67,36 @@ async function get(req, res) {
   // commission — ce que le verrou côté UI (localStorage) ne peut pas empêcher.
   const isRent = p.transaction_type && p.transaction_type !== "sale";
   let commissionPaid = false;
-  if (isRent && req.user?.id) {
+  if (isRent) {
     const { query } = require("../config/db");
-    const userEmail = req.user.email || null; // populated by auth middleware since 28/07/2026
-    const { rows } = await query(
-      `SELECT 1 FROM transactions
-       WHERE (buyer_id = $1 OR (customer_email IS NOT NULL AND customer_email = $2))
-         AND property_id = $3
-         AND purpose = 'commission'
-         AND status  = 'succeeded'
-       LIMIT 1`,
-      [req.user.id, userEmail, req.params.id]
-    );
-    commissionPaid = rows.length > 0;
+    if (req.user?.id) {
+      // Utilisateur connecté : vérification par buyer_id ou email de compte
+      const userEmail = req.user.email || null;
+      const { rows } = await query(
+        `SELECT 1 FROM transactions
+         WHERE (buyer_id = $1 OR (customer_email IS NOT NULL AND customer_email = $2))
+           AND property_id = $3
+           AND purpose = 'commission'
+           AND status  = 'succeeded'
+         LIMIT 1`,
+        [req.user.id, userEmail, req.params.id]
+      );
+      commissionPaid = rows.length > 0;
+    } else if (req.query.commission_ref) {
+      // Invité : vérifie la référence de transaction fournie après paiement.
+      // Sécurité : un UUID de référence aléatoire est non-devinable ; on
+      // vérifie en plus que la transaction est bien succeeded + même annonce.
+      const { rows } = await query(
+        `SELECT 1 FROM transactions
+         WHERE reference = $1
+           AND property_id = $2
+           AND purpose = 'commission'
+           AND status  = 'succeeded'
+         LIMIT 1`,
+        [req.query.commission_ref, req.params.id]
+      );
+      commissionPaid = rows.length > 0;
+    }
   }
 
   const property = { ...p, photos };

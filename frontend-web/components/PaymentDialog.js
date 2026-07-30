@@ -93,9 +93,11 @@ export default function PaymentDialog({ open, onClose, onSuccess, onMessage, pro
   const MAX_POLL_ATTEMPTS = 60; // ~3 minutes à 3s d'intervalle
 
   // Notifie le parent dès que le paiement commission est confirmé (WhatsApp unlock)
+  // On passe la référence de transaction pour permettre le déverrouillage des
+  // coordonnées annonceur même pour les invités (backend vérifie la référence).
   useEffect(() => {
     if (status === "succeeded" && purpose === "commission" && onSuccess) {
-      onSuccess();
+      onSuccess(result?.reference || null);
     }
   }, [status]); // eslint-disable-line
 
@@ -204,6 +206,11 @@ export default function PaymentDialog({ open, onClose, onSuccess, onMessage, pro
     // Email obligatoire pour les invités
     if (isGuest && !email?.includes("@")) {
       setError("Veuillez saisir votre email pour recevoir le reçu de paiement.");
+      return;
+    }
+    // Date d'arrivée obligatoire pour les locations courte durée
+    if (purpose === "commission" && !checkIn && property?.transaction_type === "rent_short") {
+      setError("Veuillez sélectionner une date d'arrivée dans le calendrier avant de procéder au paiement.");
       return;
     }
     setLoading(true); setError(null); setResult(null); setStatus(null);

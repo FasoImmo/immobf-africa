@@ -324,6 +324,7 @@ async function listFiltered({
   const { rows } = await query(
     `SELECT t.id, t.created_at, t.purpose, t.provider, t.amount, t.currency,
             t.status, t.reference, t.customer_email,
+            t.customer_phone, t.operator,
             u.full_name  AS buyer_name,
             u.phone      AS buyer_phone,
             u.email      AS buyer_email,

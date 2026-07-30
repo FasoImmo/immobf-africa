@@ -71,7 +71,7 @@ function getLang() {
 
 export const Properties = {
   search: (params) => api.get("/properties", { params: { ...params, lang: getLang() } }).then((r) => r.data),
-  get: (id) => api.get(`/properties/${id}`, { params: { lang: getLang() } }).then((r) => r.data),
+  get: (id, extra) => api.get(`/properties/${id}`, { params: { lang: getLang(), ...extra } }).then((r) => r.data),
   availability: (id) => api.get(`/properties/${id}/availability`).then((r) => r.data),
   create: (data) => api.post("/properties", data).then((r) => r.data),
   update: (id, data) => api.patch(`/properties/${id}`, data).then((r) => r.data),

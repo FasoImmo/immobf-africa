@@ -99,11 +99,15 @@ export default function PropertyDetail() {
     Properties.availability(id).then((d) => setBookedRanges([...(d.booked || []), ...(d.blocked || [])])).catch(() => {});
   }, [id]);
 
-  function handleCommissionPaid() {
+  function handleCommissionPaid(txRef) {
     setCommissionPaid(true);
     try { localStorage.setItem(`commission_paid_${id}`, "1"); } catch {}
-    // Re-fetch pour récupérer owner_whatsapp (déverrouillé maintenant que la commission est payée)
-    Properties.get(id).then((d) => { if (d?.property) setP(d.property); }).catch(() => {});
+    // Re-fetch pour récupérer owner_whatsapp déverrouillé.
+    // Pour les invités (non connectés), on passe la référence de transaction :
+    // le backend la valide côté SQL et renvoie les coordonnées si la commission
+    // est bien succeeded pour cette annonce.
+    const extra = txRef ? { commission_ref: txRef } : {};
+    Properties.get(id, extra).then((d) => { if (d?.property) setP(d.property); }).catch(() => {});
     // Ne pas fermer le dialog ici — laisser l'utilisateur lire le message de
     // confirmation (✓ Paiement confirmé + bouton WhatsApp) avant de cliquer Fermer.
   }

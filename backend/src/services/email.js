@@ -91,7 +91,7 @@ async function sendOtpEmail(email, code, purpose = "verification") {
 }
 
 // ─── 2. Reçu de paiement ─────────────────────────────────────────────────────
-async function sendPaymentReceipt(email, { amount, currency = "XOF", reference, purpose, propertyTitle, months, ownerWhatsapp, ownerPhone, checkIn, checkOut, nbDays }) {
+async function sendPaymentReceipt(email, { amount, currency = "XOF", reference, purpose, propertyTitle, propertyId, months, ownerWhatsapp, ownerPhone, checkIn, checkOut, nbDays }) {
   const subject = "Reçu de paiement — ImmoBF Africa";
   const purposeLabel = purpose === "listing_fee"
     ? `Abonnement annonce (${months || 1} mois)`
@@ -135,7 +135,8 @@ async function sendPaymentReceipt(email, { amount, currency = "XOF", reference, 
         </p>
         ${waNum
           ? `<a href="https://wa.me/${waNum}" style="display:inline-block; background:#25D366; color:white; padding:12px 28px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:15px;">💬 Contacter sur WhatsApp</a>`
-          : `<p style="color:#888; font-size:13px;">L'annonceur n'a pas renseigné de numéro WhatsApp. Connectez-vous sur <a href="https://immoafrica.online">immoafrica.online</a> pour lui envoyer un message.</p>`
+          : `<p style="color:#888; font-size:13px;">L'annonceur n'a pas renseigné de numéro WhatsApp.</p>
+             <a href="https://immoafrica.online${propertyId ? '/properties/' + propertyId : ''}" style="display:inline-block; background:#0E7C66; color:white; padding:10px 24px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:14px;">✉️ Envoyer un message via la plateforme</a>`
         }
       </div>
     ` : ""}
