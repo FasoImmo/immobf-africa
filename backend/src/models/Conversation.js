@@ -33,7 +33,7 @@ async function listForUser(userId) {
        p.city          AS property_city,
        (SELECT url FROM property_photos pp
         WHERE pp.property_id = c.property_id
-        ORDER BY pp.position ASC LIMIT 1) AS property_photo,
+        ORDER BY pp.sort_order ASC LIMIT 1) AS property_photo,
        ub.full_name    AS buyer_name,
        us.full_name    AS seller_name,
        last_msg.body   AS last_message,

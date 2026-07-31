@@ -246,7 +246,7 @@ router.get("/sellers/:id", publicLimiter, asyncHandler(async (req, res) => {
     `SELECT p.id, p.type, p.transaction_type, p.title, p.price, p.currency,
             p.city, p.country_code, p.area_m2, p.bedrooms, p.published_at,
             p.lat, p.lng,
-            (SELECT photo_url FROM property_photos pp WHERE pp.property_id = p.id ORDER BY pp.position ASC LIMIT 1) AS cover_photo
+            (SELECT url FROM property_photos pp WHERE pp.property_id = p.id ORDER BY pp.sort_order ASC LIMIT 1) AS cover_photo
        FROM properties p
       WHERE p.owner_id = $1
         AND p.status = 'published'
