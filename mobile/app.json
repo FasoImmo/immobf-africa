@@ -3,7 +3,7 @@
     "name": "ImmoBF Africa",
     "slug": "immobilier-en-afrique",
     "owner": "immobfs-team",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "orientation": "portrait",
     "scheme": "immobf",
     "primaryColor": "#0E7C66",
@@ -18,14 +18,14 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "africa.immobf.app",
-      "buildNumber": "4",
+      "buildNumber": "5",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "ImmoBF utilise votre position pour géolocaliser votre annonce sur la carte."
       }
     },
     "android": {
       "package": "africa.immobf.app",
-      "versionCode": 4,
+      "versionCode": 5,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
