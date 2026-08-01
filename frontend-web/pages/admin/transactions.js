@@ -33,7 +33,6 @@ const STATUS_LABEL = {
   refunded:  "Remboursé",
   cancelled: "Annulé",
 };
-const PROVIDERS = ["barkapay","pawapay","fedapay","cinetpay","flutterwave","stripe","manual"];
 const PAGE_SIZE = 50;
 
 function guard(router, setOk) {
@@ -67,6 +66,7 @@ export default function AdminTransactions() {
   const [total, setTotal]   = useState(0);
   const [loading, setLoading] = useState(false);
   const [page, setPage]     = useState(0);
+  const [providers, setProviders] = useState([]);
 
   // filtres
   const [dateFrom,   setDateFrom]   = useState("");
@@ -109,7 +109,13 @@ export default function AdminTransactions() {
     }
   }, [dateFrom, dateTo, search, country, purpose, provider, status, minAmount, maxAmount]);
 
-  useEffect(() => { if (ok) load(0); }, [ok]);
+  useEffect(() => {
+    if (!ok) return;
+    load(0);
+    Admin.listPaymentProviders()
+      .then((list) => setProviders((list || []).map((p) => p.id)))
+      .catch(() => {});
+  }, [ok]);
 
   // KPIs calculés depuis la page courante
   const succeeded = rows.filter(r => r.status === "succeeded");
@@ -175,7 +181,7 @@ export default function AdminTransactions() {
             <Grid item xs={6} sm={3} md={2}>
               <Select fullWidth size="small" displayEmpty value={provider} onChange={e => setProvider(e.target.value)}>
                 <MenuItem value="">Tous fournisseurs</MenuItem>
-                {PROVIDERS.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+                {providers.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
               </Select>
             </Grid>
 
