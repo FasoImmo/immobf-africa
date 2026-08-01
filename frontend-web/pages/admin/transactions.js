@@ -33,7 +33,7 @@ const STATUS_LABEL = {
   refunded:  "Remboursé",
   cancelled: "Annulé",
 };
-const PROVIDERS = ["fedapay","pawapay","flutterwave","cinetpay","stripe","manual"];
+const PROVIDERS = ["barkapay","pawapay","fedapay","cinetpay","flutterwave","stripe","manual"];
 const PAGE_SIZE = 50;
 
 function guard(router, setOk) {
