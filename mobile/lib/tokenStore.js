@@ -1,36 +1,28 @@
 /**
- * tokenStore — stockage sécurisé des tokens JWT.
+ * tokenStore — stockage des tokens JWT via AsyncStorage.
  *
- * Les tokens d'accès et de rafraîchissement sont des secrets de session :
- * ils permettent d'agir en tant qu'utilisateur jusqu'à leur expiration.
- * On les stocke dans expo-secure-store (chiffré via le keystore Android /
- * Secure Enclave iOS) plutôt que AsyncStorage (non chiffré).
- *
- * Le profil utilisateur (`immobf_user`) n'est PAS un secret — c'est juste
- * du JSON d'affichage. Il reste dans AsyncStorage pour éviter les limites
- * de taille de SecureStore (~2 KB sur certains appareils anciens).
+ * Note: expo-secure-store est incompatible avec Gradle 8.x (EAS/SDK 50).
+ * AsyncStorage est utilisé en attendant la migration SDK 51+.
  */
-import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const KEY_TOKEN   = "immobf_token";
 const KEY_REFRESH = "immobf_refresh";
 const KEY_USER    = "immobf_user";
 
-export const getToken    = ()  => SecureStore.getItemAsync(KEY_TOKEN);
-export const setToken    = (v) => SecureStore.setItemAsync(KEY_TOKEN, v);
+export const getToken    = ()  => AsyncStorage.getItem(KEY_TOKEN);
+export const setToken    = (v) => AsyncStorage.setItem(KEY_TOKEN, v);
 
-export const getRefresh  = ()  => SecureStore.getItemAsync(KEY_REFRESH);
-export const setRefresh  = (v) => SecureStore.setItemAsync(KEY_REFRESH, v);
+export const getRefresh  = ()  => AsyncStorage.getItem(KEY_REFRESH);
+export const setRefresh  = (v) => AsyncStorage.setItem(KEY_REFRESH, v);
 
 /**
- * Efface la session complète : tokens (SecureStore) + profil (AsyncStorage).
- * À appeler à la déconnexion ou quand le refresh échoue (401 non récupérable).
+ * Efface la session complète : tokens + profil utilisateur.
  */
 export const clearSession = async () => {
   await Promise.all([
-    SecureStore.deleteItemAsync(KEY_TOKEN),
-    SecureStore.deleteItemAsync(KEY_REFRESH),
+    AsyncStorage.removeItem(KEY_TOKEN),
+    AsyncStorage.removeItem(KEY_REFRESH),
     AsyncStorage.removeItem(KEY_USER),
   ]);
 };
