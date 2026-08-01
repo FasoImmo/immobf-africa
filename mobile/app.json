@@ -25,12 +25,19 @@
     },
     "android": {
       "package": "africa.immobf.app",
-      "versionCode": 5,
+      "versionCode": 6,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
       ]
     },
+    "plugins": [
+      ["expo-build-properties", {
+        "android": {
+          "targetSdkVersion": 35
+        }
+      }]
+    ],
     "web": { "favicon": "./assets/favicon.png" },
     "extra": {
       "apiUrl": "https://immobf-africa-production.up.railway.app",
