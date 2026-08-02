@@ -6,7 +6,7 @@ import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
 
-const APK_URL = process.env.NEXT_PUBLIC_APK_URL || "https://expo.dev/accounts/immobfs-team/projects/immobilier-en-afrique/builds/11591b13-5a84-423f-8bbe-e65058eedbde";
+const APK_URL = process.env.NEXT_PUBLIC_APK_URL || "https://expo.dev/accounts/immobfs-team/projects/immobilier-en-afrique/builds/b0e95782-9784-45a5-8562-b22b65ce1c87";
 
 export default function DownloadPage() {
   const { t } = useTranslation();
@@ -80,7 +80,7 @@ export default function DownloadPage() {
 
         <Box sx={{ mt: 3, display: "flex", gap: 1, justifyContent: "center", flexWrap: "wrap" }}>
           <Chip label="Android 8+" size="small" sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "white" }} />
-          <Chip label="v1.0.0" size="small" sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "white" }} />
+          <Chip label="v1.5.1" size="small" sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "white" }} />
           <Chip label={t("download.chip_free")} size="small" sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "white" }} />
         </Box>
       </Box>
