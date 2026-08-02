@@ -103,6 +103,12 @@ async function sendPaymentReceipt(email, { amount, currency = "XOF", reference, 
   const contactNum = ownerWhatsapp || ownerPhone;
   const waNum = contactNum ? String(contactNum).replace(/[^0-9]/g, "") : null;
 
+  const listingDays = (months || 1) * 30;
+  const listingStart = new Date();
+  const listingEnd = new Date(listingStart.getTime() + listingDays * 24 * 60 * 60 * 1000);
+  const listingStartFmt = listingStart.toLocaleDateString("fr-FR");
+  const listingEndFmt = listingEnd.toLocaleDateString("fr-FR");
+
   const html = baseTemplate(`
     <h2>✅ Paiement confirmé</h2>
     <p>Bonjour,</p>
@@ -116,7 +122,8 @@ async function sendPaymentReceipt(email, { amount, currency = "XOF", reference, 
       </p>
     </div>
     ${purpose === "listing_fee" ? `
-      <p>Votre annonce est maintenant <span class="badge">✓ Publiée</span> et visible pendant <strong>${(months || 1) * 30} jours</strong>.</p>
+      <p>Votre annonce est maintenant <span class="badge">✓ Publiée</span> et visible pendant <strong>${listingDays} jours</strong>.</p>
+      <p style="color:#555; font-size:14px; margin-top:-8px;">📅 Période : du <strong>${listingStartFmt}</strong> au <strong>${listingEndFmt}</strong>.</p>
       <a href="https://immoafrica.online/account" class="btn">Voir mes annonces</a>
     ` : ""}
     ${purpose === "commission" ? `
