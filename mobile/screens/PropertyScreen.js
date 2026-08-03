@@ -97,7 +97,10 @@ export default function PropertyScreen({ route, navigation }) {
   const { lang } = useLang();
   const t = T[lang] || T.fr;
 
-  const initialProp = route.params?.property;
+  // Accepte soit { property: {...} } (navigation depuis anciens écrans)
+  // soit { id: "..." } (navigation depuis HomeScreen / BrowseScreen redesign)
+  const initialProp = route.params?.property
+    || (route.params?.id ? { id: route.params.id } : null);
   const [prop, setProp] = useState(initialProp);
   const [loading, setLoading] = useState(false);
   const [commissionPaid, setCommissionPaid] = useState(false);

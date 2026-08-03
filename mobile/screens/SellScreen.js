@@ -48,6 +48,7 @@ const PROP_TYPES = {
     { value: "land",       label: "Terrain" },
     { value: "house",      label: "Maison" },
     { value: "apartment",  label: "Appartement" },
+    { value: "villa",      label: "Villa" },
     { value: "office",     label: "Bureau" },
     { value: "commercial", label: "Commerce" },
   ],
@@ -55,6 +56,7 @@ const PROP_TYPES = {
     { value: "land",       label: "Land" },
     { value: "house",      label: "House" },
     { value: "apartment",  label: "Apartment" },
+    { value: "villa",      label: "Villa" },
     { value: "office",     label: "Office" },
     { value: "commercial", label: "Commercial" },
   ],
@@ -126,9 +128,12 @@ const T = {
     dialCode: "Composez",
     toValidate: "pour valider.",
     waitPayment: "En attente de confirmation…",
-    // Superficie
+    // Superficie + caractéristiques
     area: "Superficie (facultatif)",
     areaPh: "Ex: 250",
+    bedrooms: "Nombre de chambres (facultatif)",
+    bedroomsPh: "Ex: 3",
+    furnished: "Bien meublé",
     takePhoto: "Prendre une photo",
     // Photos
     addPhotos: "Ajouter des photos",
@@ -183,6 +188,9 @@ const T = {
     waitPayment: "Waiting for confirmation…",
     area: "Surface area (optional)",
     areaPh: "e.g. 250",
+    bedrooms: "Number of bedrooms (optional)",
+    bedroomsPh: "e.g. 3",
+    furnished: "Furnished property",
     takePhoto: "Take a photo",
     addPhotos: "Add photos",
     photosHint: "Up to 10 photos (recommended: at least 3)",
@@ -262,6 +270,8 @@ export default function SellScreen({ navigation, route }) {
     country_code: "BF",
     city: "",
     area_m2: "",
+    bedrooms: "",
+    is_furnished: false,
     lat: "",
     lng: "",
   });
@@ -286,6 +296,8 @@ export default function SellScreen({ navigation, route }) {
         country_code: initialData.country_code || "BF",
         city: initialData.city || "",
         area_m2: initialData.area_m2 ? String(initialData.area_m2) : "",
+        bedrooms: initialData.bedrooms ? String(initialData.bedrooms) : "",
+        is_furnished: initialData.is_furnished === true,
         lat: initialData.location?.lat ? String(initialData.location.lat) : "",
         lng: initialData.location?.lng ? String(initialData.location.lng) : "",
       });
@@ -304,6 +316,8 @@ export default function SellScreen({ navigation, route }) {
           country_code: p.country_code || "BF",
           city: p.city || "",
           area_m2: p.area_m2 ? String(p.area_m2) : "",
+          bedrooms: p.bedrooms ? String(p.bedrooms) : "",
+          is_furnished: p.is_furnished === true,
           lat: p.location?.lat ? String(p.location.lat) : "",
           lng: p.location?.lng ? String(p.location.lng) : "",
         });
@@ -327,6 +341,8 @@ export default function SellScreen({ navigation, route }) {
         price: Number(form.price),
         rent_period: isRent ? "monthly" : null,
         ...(form.area_m2 ? { area_m2: areaUnit === "ha" ? Number(form.area_m2) * 10000 : Number(form.area_m2) } : { area_m2: null }),
+        ...(form.bedrooms ? { bedrooms: Number(form.bedrooms) } : { bedrooms: null }),
+        is_furnished: form.is_furnished,
       };
 
       if (isEditMode) {
@@ -364,6 +380,8 @@ export default function SellScreen({ navigation, route }) {
         price: Number(form.price),
         rent_period: isRent ? "monthly" : null,
         ...(form.area_m2 ? { area_m2: areaUnit === "ha" ? Number(form.area_m2) * 10000 : Number(form.area_m2) } : { area_m2: null }),
+        ...(form.bedrooms ? { bedrooms: Number(form.bedrooms) } : { bedrooms: null }),
+        is_furnished: form.is_furnished,
       });
       Alert.alert(
         lang === "fr" ? "Brouillon enregistré" : "Draft saved",
@@ -755,6 +773,32 @@ export default function SellScreen({ navigation, route }) {
               ))}
             </View>
           </View>
+
+          {/* Chambres */}
+          <Text style={s.label}>{t.bedrooms}</Text>
+          <TextInput
+            placeholder={t.bedroomsPh}
+            value={form.bedrooms}
+            onChangeText={(v) => setForm({ ...form, bedrooms: v })}
+            style={s.input}
+            keyboardType="numeric"
+          />
+
+          {/* Meublé */}
+          <TouchableOpacity
+            onPress={() => setForm({ ...form, is_furnished: !form.is_furnished })}
+            style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}
+          >
+            <View style={{
+              width: 22, height: 22, borderRadius: 4, borderWidth: 2,
+              borderColor: "#0E7C66",
+              backgroundColor: form.is_furnished ? "#0E7C66" : "transparent",
+              alignItems: "center", justifyContent: "center", marginRight: 10,
+            }}>
+              {form.is_furnished && <Text style={{ color: "#fff", fontSize: 14, fontWeight: "bold" }}>✓</Text>}
+            </View>
+            <Text style={{ fontSize: 15, color: "#333" }}>{t.furnished}</Text>
+          </TouchableOpacity>
 
           {/* Description */}
           <Text style={s.label}>{t.description}</Text>

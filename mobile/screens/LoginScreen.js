@@ -144,7 +144,7 @@ function ProfileView({ me, onLogout, t, navigation }) {
           <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
             <TouchableOpacity
               style={{ flex: 1, padding: 8, backgroundColor: "#0E7C66", borderRadius: 6, alignItems: "center" }}
-              onPress={() => navigation.navigate("Publier", { draft: item })}
+              onPress={() => navigation.navigate("Publier", { editMode: true, propertyId: item.id, initialData: item })}
             >
               <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>✏️ Modifier</Text>
             </TouchableOpacity>
