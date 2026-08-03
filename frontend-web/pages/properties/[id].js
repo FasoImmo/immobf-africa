@@ -185,9 +185,11 @@ export default function PropertyDetail() {
   var showCommission = (() => {
     if (p.commission_enabled === true)  return true;   // admin force ON
     if (p.commission_enabled === false) return false;  // admin force OFF
-    // Règle par défaut : locations meublées résidentielles uniquement
+    // Court séjour : commission toujours activée (réservation de type hôtellerie)
+    if (p.transaction_type === "rent_short") return true;
+    // Location longue durée : meublée résidentielle uniquement
     return (
-      isRent &&
+      p.transaction_type === "rent_long" &&
       p.is_furnished === true &&
       ["house", "apartment", "villa"].includes(p.type)
     );

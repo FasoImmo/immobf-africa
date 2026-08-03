@@ -80,7 +80,7 @@ const T = {
 };
 
 
-function ProfileView({ me, onLogout, t }) {
+function ProfileView({ me, onLogout, t, navigation }) {
   const [listings, setListings] = React.useState([]);
   const [loadingListings, setLoadingListings] = React.useState(false);
   const [showListings, setShowListings] = React.useState(false);
@@ -141,12 +141,20 @@ function ProfileView({ me, onLogout, t }) {
               Expire : {new Date(item.listing_expires_at).toLocaleDateString("fr-FR")}
             </Text>
           )}
-          <TouchableOpacity
-            style={{ marginTop: 8, padding: 8, backgroundColor: "#c0392b", borderRadius: 6, alignItems: "center" }}
-            onPress={() => handleDelete(item.id, item.title || "cette annonce")}
-          >
-            <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>🗑 Supprimer</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+            <TouchableOpacity
+              style={{ flex: 1, padding: 8, backgroundColor: "#0E7C66", borderRadius: 6, alignItems: "center" }}
+              onPress={() => navigation.navigate("Publier", { draft: item })}
+            >
+              <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>✏️ Modifier</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ flex: 1, padding: 8, backgroundColor: "#c0392b", borderRadius: 6, alignItems: "center" }}
+              onPress={() => handleDelete(item.id, item.title || "cette annonce")}
+            >
+              <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>🗑 Supprimer</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ))}
 
@@ -157,7 +165,7 @@ function ProfileView({ me, onLogout, t }) {
   );
 }
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   const { lang } = useLang();
   const t = T[lang] || T.fr;
 
@@ -265,7 +273,7 @@ export default function LoginScreen() {
 
   // ─── Profil connecté ───────────────────────────────────────────────────────
   if (me) {
-    return <ProfileView me={me} onLogout={doLogout} t={t} />;
+    return <ProfileView me={me} onLogout={doLogout} t={t} navigation={navigation} />;
   }
 
   // ─── Mot de passe oublié ───────────────────────────────────────────────────

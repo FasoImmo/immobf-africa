@@ -175,7 +175,7 @@ export default function PropertyScreen({ route, navigation }) {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "white" }}>
+    <ScrollView style={{ flex: 1, backgroundColor: "white" }} contentContainerStyle={{ paddingBottom: 80 }}>
       <FallbackImage source={{ uri: cover }} style={{ width: "100%", height: 240 }} />
       <View style={{ padding: 16 }}>
         {loading && <ActivityIndicator color="#0E7C66" style={{ marginBottom: 8 }} />}

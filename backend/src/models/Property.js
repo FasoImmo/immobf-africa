@@ -544,8 +544,11 @@ async function restoreListing(id) {
 function isCommissionEligible(property) {
   if (property.commission_enabled === true)  return true;
   if (property.commission_enabled === false) return false;
+  // Court séjour : commission toujours activée (réservation de type hôtellerie)
+  if (property.transaction_type === "rent_short") return true;
+  // Location longue durée : meublée résidentielle uniquement
   return (
-    property.transaction_type !== "sale" &&
+    property.transaction_type === "rent_long" &&
     property.is_furnished === true &&
     ["house", "apartment", "villa"].includes(property.type)
   );
