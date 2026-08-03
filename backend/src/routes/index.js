@@ -33,6 +33,13 @@ router.get("/health", (_req, res) => {
   res.json({ ok: true, ts: Date.now() });
 });
 
+// Redirect permanent vers le dernier APK Android
+router.get("/download/apk", (_req, res) => {
+  const url = process.env.APK_DOWNLOAD_URL;
+  if (!url) return res.status(404).json({ error: "APK URL not configured" });
+  res.redirect(302, url);
+});
+
 // --- Auth ---
 router.post("/auth/register",   authLimiter, asyncHandler(authCtl.register));
 router.post("/auth/login",      loginLimiter, asyncHandler(authCtl.login));
