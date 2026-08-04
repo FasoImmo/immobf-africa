@@ -241,7 +241,7 @@ export default function PaymentScreen({ route }) {
   const [barkapayOperator, setBarkapayOperator] = useState(bkOps[0]?.value || "moov");
   const [barkapayOtp, setBarkapayOtp] = useState("");
   const [phoneLocal, setPhoneLocal] = useState(""); // numéro sans indicatif
-  const [guestEmail, setGuestEmail] = useState("");
+  const [receiptEmail, setReceiptEmail] = useState("");
   const [isGuest, setIsGuest] = useState(false);
   const [loggedUserEmail, setLoggedUserEmail] = useState(""); // email du compte connecté
   const [busy, setBusy] = useState(false);
@@ -253,7 +253,11 @@ export default function PaymentScreen({ route }) {
       .then(([tok, userJson]) => {
         setIsGuest(!tok);
         if (tok && userJson) {
-          try { setLoggedUserEmail(JSON.parse(userJson).email || ""); } catch { /* noop */ }
+          try {
+            const email = JSON.parse(userJson).email || "";
+            setLoggedUserEmail(email);
+            setReceiptEmail(email); // pré-remplir le champ email facture
+          } catch { /* noop */ }
         }
       });
   }, []);
@@ -292,7 +296,7 @@ export default function PaymentScreen({ route }) {
       Alert.alert("Champs requis", needsOtp ? t.errOtp : t.errPhone);
       return;
     }
-    if (isGuest && !guestEmail.includes("@")) {
+    if (isGuest && !receiptEmail.includes("@")) {
       Alert.alert("Email requis", t.errEmail);
       return;
     }
@@ -308,11 +312,9 @@ export default function PaymentScreen({ route }) {
         customer_phone: fullPhone,
         buyer_country: buyerCountry.code,
       };
-      // Inclure l'email pour recevoir le reçu :
-      // - Invité : email saisi manuellement
-      // - Connecté : email du compte (fallback backend en cas d'absence)
-      if (isGuest && guestEmail) payload.customer_email = guestEmail.trim();
-      else if (!isGuest && loggedUserEmail) payload.customer_email = loggedUserEmail;
+      // Email facture : champ visible par tous, pré-rempli pour les connectés
+      if (receiptEmail.includes("@")) payload.customer_email = receiptEmail.trim();
+      else if (loggedUserEmail) payload.customer_email = loggedUserEmail;
       if (provider === "pawapay") {
         payload.preferred_operator = pawapayOperator;
         if (needsOtp) payload.pawapay_otp = pawapayOtp;
@@ -325,7 +327,13 @@ export default function PaymentScreen({ route }) {
       setResult(r);
       if (r.payment_url) Linking.openURL(r.payment_url);
     } catch (e) {
-      Alert.alert("Erreur paiement", e?.response?.data?.error?.message || e.message);
+      let msg = e?.response?.data?.error?.message || e?.response?.data?.message || e.message;
+      if (!e.response || msg === "Network Error") {
+        msg = lang === "fr"
+          ? "Impossible de joindre le serveur de paiement. Vérifiez votre connexion internet et réessayez."
+          : "Cannot reach the payment server. Check your internet connection and try again.";
+      }
+      Alert.alert(lang === "fr" ? "Erreur paiement" : "Payment error", msg);
     } finally { setBusy(false); }
   }
 
@@ -443,23 +451,21 @@ export default function PaymentScreen({ route }) {
         </>
       )}
 
-      {/* Email invité */}
+      {/* Email pour la facture — visible pour tous */}
       {isGuest && (
-        <>
-          <View style={s.guestBanner}>
-            <Text style={s.guestBannerText}>🔓 Paiement sans compte — saisissez votre email pour recevoir le reçu.</Text>
-          </View>
-          <Text style={s.label}>{t.guestEmailLabel}</Text>
-          <TextInput
-            value={guestEmail}
-            onChangeText={setGuestEmail}
-            style={s.input}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            placeholder={t.guestEmailPlaceholder}
-          />
-        </>
+        <View style={s.guestBanner}>
+          <Text style={s.guestBannerText}>🔓 Paiement sans compte — saisissez votre email pour recevoir le reçu.</Text>
+        </View>
       )}
+      <Text style={s.label}>{t.guestEmailLabel}</Text>
+      <TextInput
+        value={receiptEmail}
+        onChangeText={setReceiptEmail}
+        style={s.input}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        placeholder={t.guestEmailPlaceholder}
+      />
 
       {/* Numéro de téléphone */}
       <Text style={s.label}>{t.phoneLabel}</Text>
