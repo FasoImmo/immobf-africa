@@ -19,7 +19,10 @@ const msgCtl   = require("../controllers/messagesController");
 const router = express.Router();
 
 // Rate limits
-const authLimiter  = rateLimit({ windowMs: 60_000,      max: 10, standardHeaders: true });
+const authLimiter  = rateLimit({
+  windowMs: 60_000, max: 30, standardHeaders: true,
+  message: { error: { message: "Trop de tentatives. Réessayez dans une minute." } },
+});
 // Login : plus strict — 5 tentatives / 15 min / IP (le lockout Redis prend le relais par compte)
 const loginLimiter = rateLimit({
   windowMs: 15 * 60_000, max: 5, standardHeaders: true,
