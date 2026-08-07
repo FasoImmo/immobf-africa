@@ -84,6 +84,15 @@ function ProfileView({ me, onLogout, t, navigation }) {
   const [listings, setListings] = React.useState([]);
   const [loadingListings, setLoadingListings] = React.useState(false);
   const [showListings, setShowListings] = React.useState(false);
+  const [stats, setStats] = React.useState(null);
+  const [loadingStats, setLoadingStats] = React.useState(true);
+
+  React.useEffect(() => {
+    Properties.myStats()
+      .then((d) => setStats(d))
+      .catch(() => setStats(null))
+      .finally(() => setLoadingStats(false));
+  }, []);
 
   function loadListings() {
     if (showListings) { setShowListings(false); return; }
@@ -123,6 +132,31 @@ function ProfileView({ me, onLogout, t, navigation }) {
         {me.email && <Text style={s.sub}>{me.email}</Text>}
         <Text style={s.sub}>{t.role} : {me.role}</Text>
       </View>
+
+      {/* ── Statistiques annonces ─────────────────────────────── */}
+      {loadingStats ? (
+        <View style={{ alignItems: "center", marginTop: 16 }}>
+          <Text style={{ color: "#888" }}>Chargement des stats…</Text>
+        </View>
+      ) : stats && stats.listings && stats.listings.length > 0 ? (() => {
+        const ls = stats.listings;
+        const totalViews     = ls.reduce((s, l) => s + Number(l.total_views || 0), 0);
+        const views7d        = ls.reduce((s, l) => s + Number(l.views_7d || 0), 0);
+        const waClicks       = ls.reduce((s, l) => s + Number(l.whatsapp_clicks || 0), 0);
+        const activeCount    = ls.filter((l) => l.subscription_status === "active").length;
+        return (
+          <View style={{ backgroundColor: "#f0faf7", borderRadius: 10, padding: 14, marginTop: 16, borderWidth: 1, borderColor: "#b2dfdb" }}>
+            <Text style={{ fontWeight: "700", fontSize: 13, color: "#0E7C66", marginBottom: 10 }}>📊 Mes statistiques</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              <View style={statBox}><Text style={statNum}>{ls.length}</Text><Text style={statLbl}>Annonces</Text></View>
+              <View style={statBox}><Text style={statNum}>{activeCount}</Text><Text style={statLbl}>Actives</Text></View>
+              <View style={statBox}><Text style={statNum}>{totalViews}</Text><Text style={statLbl}>Vues totales</Text></View>
+              <View style={statBox}><Text style={statNum}>{views7d}</Text><Text style={statLbl}>Vues (7j)</Text></View>
+              <View style={statBox}><Text style={statNum}>{waClicks}</Text><Text style={statLbl}>Clics WA</Text></View>
+            </View>
+          </View>
+        );
+      })() : null}
 
       <TouchableOpacity style={[s.btn, { backgroundColor: "#0E7C66", marginTop: 16 }]} onPress={loadListings}>
         <Text style={s.btnText}>{loadingListings ? "…" : (showListings ? "Masquer mes annonces" : "Mes annonces")}</Text>
@@ -407,6 +441,11 @@ export default function LoginScreen({ navigation }) {
     </KeyboardAvoidingView>
   );
 }
+
+// Styles boîtes stats (hors StyleSheet pour usage inline)
+const statBox = { backgroundColor: "#fff", borderRadius: 8, padding: 10, alignItems: "center", minWidth: 70, borderWidth: 1, borderColor: "#b2dfdb" };
+const statNum = { fontSize: 18, fontWeight: "700", color: "#0E7C66" };
+const statLbl = { fontSize: 11, color: "#555", marginTop: 2 };
 
 const s = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "white" },

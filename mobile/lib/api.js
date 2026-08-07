@@ -56,6 +56,7 @@ export const Properties = {
   trackView: (id, payload = {}) => api.post(`/properties/${id}/view`, payload).then((r) => r.data),
   myListings: () => api.get("/my/listings").then((r) => r.data),
   deleteListing: (id) => api.delete(`/my/listings/${id}`).then((r) => r.data),
+  myStats: () => api.get("/my/stats").then((r) => r.data),
 };
 
 export const Admin = {

@@ -282,10 +282,13 @@ export default function SellScreen({ navigation, route }) {
   const [formBusy, setFormBusy] = useState(false);
 
   // Mode édition ou reprise de brouillon via navigation params
+  // IMPORTANT : ne pas laisser [] comme dépendances — SellScreen est toujours montée
+  // (bottom tab), donc useEffect ne se redéclenche pas sinon quand on navigue avec
+  // de nouveaux params. On surveille editMode + propertyId + resumeId.
   useEffect(() => {
     const { editMode, initialData, resumeId } = routeParams;
     if (editMode && initialData) {
-      // Mode édition : pré-remplir le formulaire, sauter le paiement
+      // Mode édition : pré-remplir le formulaire, revenir à l'étape 1
       setForm({
         transaction_type: initialData.transaction_type || "sale",
         type: initialData.type || "house",
@@ -302,6 +305,7 @@ export default function SellScreen({ navigation, route }) {
         lng: initialData.location?.lng ? String(initialData.location.lng) : "",
       });
       setPropertyId(routeParams.propertyId);
+      setStep(1); // toujours revenir à l'étape formulaire
     } else if (resumeId) {
       // Reprise brouillon : charger depuis l'API puis aller au paiement
       Properties.get(resumeId).then((d) => {
@@ -325,7 +329,7 @@ export default function SellScreen({ navigation, route }) {
         setStep(2);
       }).catch(() => {});
     }
-  }, []); // eslint-disable-line
+  }, [routeParams.editMode, routeParams.propertyId, routeParams.resumeId]); // eslint-disable-line
 
   const isEditMode = Boolean(routeParams.editMode && routeParams.propertyId);
 
