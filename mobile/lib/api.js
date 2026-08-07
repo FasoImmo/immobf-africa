@@ -57,6 +57,11 @@ export const Properties = {
   myListings: () => api.get("/my/listings").then((r) => r.data),
   deleteListing: (id) => api.delete(`/my/listings/${id}`).then((r) => r.data),
   myStats: () => api.get("/my/stats").then((r) => r.data),
+  getBlocks: (propertyId) => api.get(`/my/listings/${propertyId}/block-dates`).then((r) => r.data),
+  addBlock: (propertyId, check_in, check_out, note) =>
+    api.post(`/my/listings/${propertyId}/block-dates`, { check_in, check_out, note }).then((r) => r.data),
+  removeBlock: (propertyId, blockId) =>
+    api.delete(`/my/listings/${propertyId}/block-dates/${blockId}`).then((r) => r.data),
 };
 
 export const Admin = {

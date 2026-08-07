@@ -1,12 +1,169 @@
 import React, { useState, useEffect } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  Alert, ScrollView, KeyboardAvoidingView, Platform,
+  Alert, ScrollView, KeyboardAvoidingView, Platform, Modal, FlatList, ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as tokenStore from "../lib/tokenStore";
 import { Auth, Properties } from "../lib/api";
 import { useLang } from "../lib/lang";
+
+// ─── Helpers dates ────────────────────────────────────────────────────────────
+function addDaysLogin(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+function fmtDateLogin(date) {
+  return date.toISOString().slice(0, 10); // YYYY-MM-DD
+}
+function displayDate(str) {
+  // "2026-08-10" → "10/08/2026"
+  if (!str) return "";
+  const [y, m, d] = str.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+// ─── Modal blocage dates annonceur ───────────────────────────────────────────
+function BlockDatesModal({ visible, propertyId, propertyTitle, onClose }) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const [blocks, setBlocks] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [blockStart, setBlockStart] = React.useState(today);
+  const [blockEnd, setBlockEnd] = React.useState(addDaysLogin(today, 1));
+
+  React.useEffect(() => {
+    if (!visible || !propertyId) return;
+    setLoading(true);
+    Properties.getBlocks(propertyId)
+      .then((d) => setBlocks(d.blocks || []))
+      .catch(() => Alert.alert("Erreur", "Impossible de charger les dates bloquées."))
+      .finally(() => setLoading(false));
+  }, [visible, propertyId]);
+
+  async function handleAdd() {
+    if (blockEnd <= blockStart) {
+      return Alert.alert("Erreur", "La date de fin doit être après la date de début.");
+    }
+    setSaving(true);
+    try {
+      const d = await Properties.addBlock(
+        propertyId,
+        fmtDateLogin(blockStart),
+        fmtDateLogin(blockEnd),
+        null
+      );
+      setBlocks((prev) => [...prev, d.block]);
+      setBlockStart(today);
+      setBlockEnd(addDaysLogin(today, 1));
+    } catch (e) {
+      Alert.alert("Erreur", e?.response?.data?.error?.message || "Impossible d'ajouter le bloc.");
+    } finally { setSaving(false); }
+  }
+
+  async function handleRemove(blockId) {
+    try {
+      await Properties.removeBlock(propertyId, blockId);
+      setBlocks((prev) => prev.filter((b) => b.id !== blockId));
+    } catch (e) {
+      Alert.alert("Erreur", e?.response?.data?.error?.message || "Impossible de supprimer.");
+    }
+  }
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={bdStyles.overlay} activeOpacity={1} onPress={onClose} />
+      <View style={bdStyles.sheet}>
+        <View style={bdStyles.header}>
+          <Text style={bdStyles.title} numberOfLines={1}>📅 Bloquer des dates</Text>
+          <TouchableOpacity onPress={onClose}><Text style={bdStyles.close}>✕</Text></TouchableOpacity>
+        </View>
+        <Text style={bdStyles.sub} numberOfLines={1}>{propertyTitle}</Text>
+
+        {/* Sélecteur nouvelle période */}
+        <View style={bdStyles.row}>
+          <View style={bdStyles.dateBox}>
+            <Text style={bdStyles.dateLabel}>Début</Text>
+            <View style={bdStyles.stepper}>
+              <TouchableOpacity style={bdStyles.stepBtn} onPress={() => { const d = addDaysLogin(blockStart, -1); if (d >= today) setBlockStart(d); }}>
+                <Text style={bdStyles.stepTxt}>‹</Text>
+              </TouchableOpacity>
+              <Text style={bdStyles.dateVal}>{displayDate(fmtDateLogin(blockStart))}</Text>
+              <TouchableOpacity style={bdStyles.stepBtn} onPress={() => setBlockStart(addDaysLogin(blockStart, 1))}>
+                <Text style={bdStyles.stepTxt}>›</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <View style={bdStyles.dateBox}>
+            <Text style={bdStyles.dateLabel}>Fin</Text>
+            <View style={bdStyles.stepper}>
+              <TouchableOpacity style={bdStyles.stepBtn} onPress={() => { const d = addDaysLogin(blockEnd, -1); if (d > blockStart) setBlockEnd(d); }}>
+                <Text style={bdStyles.stepTxt}>‹</Text>
+              </TouchableOpacity>
+              <Text style={bdStyles.dateVal}>{displayDate(fmtDateLogin(blockEnd))}</Text>
+              <TouchableOpacity style={bdStyles.stepBtn} onPress={() => setBlockEnd(addDaysLogin(blockEnd, 1))}>
+                <Text style={bdStyles.stepTxt}>›</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        <TouchableOpacity style={bdStyles.addBtn} onPress={handleAdd} disabled={saving}>
+          <Text style={bdStyles.addBtnText}>{saving ? "…" : "➕ Ajouter ce blocage"}</Text>
+        </TouchableOpacity>
+
+        {/* Liste des blocages existants */}
+        <Text style={bdStyles.listTitle}>Dates bloquées</Text>
+        {loading ? (
+          <ActivityIndicator color="#0E7C66" style={{ marginTop: 8 }} />
+        ) : blocks.length === 0 ? (
+          <Text style={{ color: "#888", fontSize: 13, marginTop: 6 }}>Aucune date bloquée.</Text>
+        ) : (
+          <FlatList
+            data={blocks}
+            keyExtractor={(b) => String(b.id)}
+            style={{ maxHeight: 180 }}
+            renderItem={({ item }) => (
+              <View style={bdStyles.blockRow}>
+                <Text style={bdStyles.blockText}>
+                  {displayDate(item.check_in ? item.check_in.slice(0,10) : "")} → {displayDate(item.check_out ? item.check_out.slice(0,10) : "")}
+                  {item.note ? `  (${item.note})` : ""}
+                </Text>
+                <TouchableOpacity onPress={() => handleRemove(item.id)}>
+                  <Text style={{ color: "#c0392b", fontSize: 18, paddingHorizontal: 6 }}>🗑</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          />
+        )}
+      </View>
+    </Modal>
+  );
+}
+
+const bdStyles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)" },
+  sheet: { backgroundColor: "#fff", borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, paddingBottom: 32, maxHeight: "80%" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  title: { fontWeight: "700", fontSize: 16, flex: 1 },
+  close: { fontSize: 20, paddingLeft: 12, color: "#555" },
+  sub: { color: "#666", fontSize: 12, marginTop: 2, marginBottom: 12 },
+  row: { flexDirection: "row", gap: 12, marginBottom: 12 },
+  dateBox: { flex: 1 },
+  dateLabel: { fontSize: 12, color: "#555", marginBottom: 4 },
+  stepper: { flexDirection: "row", alignItems: "center", backgroundColor: "#f5f5f5", borderRadius: 8, paddingVertical: 6 },
+  stepBtn: { paddingHorizontal: 12 },
+  stepTxt: { fontSize: 20, color: "#0E7C66", fontWeight: "700" },
+  dateVal: { flex: 1, textAlign: "center", fontSize: 13, fontWeight: "600" },
+  addBtn: { backgroundColor: "#0E7C66", borderRadius: 8, padding: 12, alignItems: "center", marginBottom: 14 },
+  addBtnText: { color: "#fff", fontWeight: "700" },
+  listTitle: { fontWeight: "700", fontSize: 13, marginBottom: 6, color: "#333" },
+  blockRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: "#eee" },
+  blockText: { fontSize: 13, color: "#333", flex: 1 },
+});
 
 const T = {
   fr: {
@@ -86,6 +243,7 @@ function ProfileView({ me, onLogout, t, navigation }) {
   const [showListings, setShowListings] = React.useState(false);
   const [stats, setStats] = React.useState(null);
   const [loadingStats, setLoadingStats] = React.useState(true);
+  const [blockModal, setBlockModal] = React.useState(null); // { id, title }
 
   React.useEffect(() => {
     Properties.myStats()
@@ -175,18 +333,26 @@ function ProfileView({ me, onLogout, t, navigation }) {
               Expire : {new Date(item.listing_expires_at).toLocaleDateString("fr-FR")}
             </Text>
           )}
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+          <View style={{ flexDirection: "row", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
             <TouchableOpacity
-              style={{ flex: 1, padding: 8, backgroundColor: "#0E7C66", borderRadius: 6, alignItems: "center" }}
+              style={{ flex: 1, minWidth: 90, padding: 8, backgroundColor: "#0E7C66", borderRadius: 6, alignItems: "center" }}
               onPress={() => navigation.navigate("Publier", { editMode: true, propertyId: item.id, initialData: item })}
             >
-              <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>✏️ Modifier</Text>
+              <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>✏️ Modifier</Text>
             </TouchableOpacity>
+            {(item.transaction_type === "rent_short" || item.transaction_type === "rent_long") && (
+              <TouchableOpacity
+                style={{ flex: 1, minWidth: 90, padding: 8, backgroundColor: "#1565c0", borderRadius: 6, alignItems: "center" }}
+                onPress={() => setBlockModal({ id: item.id, title: item.title || "Annonce" })}
+              >
+                <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>📅 Dates</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
-              style={{ flex: 1, padding: 8, backgroundColor: "#c0392b", borderRadius: 6, alignItems: "center" }}
+              style={{ flex: 1, minWidth: 90, padding: 8, backgroundColor: "#c0392b", borderRadius: 6, alignItems: "center" }}
               onPress={() => handleDelete(item.id, item.title || "cette annonce")}
             >
-              <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>🗑 Supprimer</Text>
+              <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>🗑 Supprimer</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -195,6 +361,13 @@ function ProfileView({ me, onLogout, t, navigation }) {
       <TouchableOpacity style={[s.btn, { backgroundColor: "#c0392b", marginTop: 24 }]} onPress={onLogout}>
         <Text style={s.btnText}>{t.logout}</Text>
       </TouchableOpacity>
+
+      <BlockDatesModal
+        visible={!!blockModal}
+        propertyId={blockModal?.id}
+        propertyTitle={blockModal?.title}
+        onClose={() => setBlockModal(null)}
+      />
     </ScrollView>
   );
 }

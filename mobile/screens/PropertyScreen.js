@@ -116,11 +116,11 @@ export default function PropertyScreen({ route, navigation }) {
       .catch(() => {});
   }, [initialProp?.id]));
 
-  // Charge les dates réservées de l'annonce
+  // Charge les dates réservées + bloquées par l'annonceur
   useEffect(() => {
     if (!initialProp?.id) return;
     Properties.availability(initialProp.id)
-      .then((d) => setBookedRanges(d.booked || []))
+      .then((d) => setBookedRanges([...(d.booked || []), ...(d.blocked || [])]))
       .catch(() => {});
   }, [initialProp?.id]);
 
@@ -197,7 +197,14 @@ export default function PropertyScreen({ route, navigation }) {
         </View>
 
         {/* ── COURT SÉJOUR : sélecteur dates + commission + paiement ── */}
-        {isShort && (
+        {isShort && (() => {
+          // Calcul conflit ici pour usage dans le JSX ci-dessous
+          const hasConflict = bookedRanges.some((b) => {
+            const bStart = new Date(b.check_in);
+            const bEnd   = new Date(b.check_out);
+            return arrival < bEnd && departure > bStart;
+          });
+          return (
           <>
             <View style={styles.durationBox}>
               <DateStepper
@@ -219,6 +226,16 @@ export default function PropertyScreen({ route, navigation }) {
               </View>
             </View>
 
+            {/* Avertissement visuel dates occupées */}
+            {hasConflict && (
+              <View style={{ backgroundColor: "#fee2e2", borderRadius: 8, padding: 10, marginTop: 6, flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Text style={{ fontSize: 16 }}>⛔</Text>
+                <Text style={{ color: "#c0392b", fontSize: 13, flex: 1 }}>
+                  {lang === "fr" ? "Ces dates sont déjà réservées ou bloquées. Choisissez d'autres dates." : "These dates are already booked or blocked. Please choose different dates."}
+                </Text>
+              </View>
+            )}
+
             <View style={styles.recap}>
               <View style={styles.recapRow}>
                 <Text style={styles.recapLabel}>{t.total}</Text>
@@ -233,21 +250,9 @@ export default function PropertyScreen({ route, navigation }) {
             </View>
 
             <TouchableOpacity
-              style={styles.btn}
+              style={[styles.btn, hasConflict && { backgroundColor: "#aaa" }]}
+              disabled={hasConflict}
               onPress={() => {
-                // Vérifier conflit avant navigation
-                const conflicts = bookedRanges.some((b) => {
-                  const bStart = new Date(b.check_in);
-                  const bEnd   = new Date(b.check_out);
-                  return arrival < bEnd && departure > bStart;
-                });
-                if (conflicts) {
-                  Alert.alert(
-                    lang === "fr" ? "Dates indisponibles" : "Dates unavailable",
-                    lang === "fr" ? "Ces dates sont déjà réservées. Veuillez choisir d'autres dates." : "These dates are already booked. Please choose different dates."
-                  );
-                  return;
-                }
                 navigation.navigate("Payment", {
                   property: p,
                   amount: commission,
@@ -261,7 +266,8 @@ export default function PropertyScreen({ route, navigation }) {
               <Text style={styles.btnText}>{t.payBtn}</Text>
             </TouchableOpacity>
           </>
-        )}
+          );
+        })()}
 
         {/* ── COURT SÉJOUR : WhatsApp affiché si commission déjà payée ── */}
         {isShort && commissionPaid && ownerWa && (
