@@ -146,6 +146,16 @@ export default function PaymentDialog({ open, onClose, onSuccess, onMessage, pro
 
   useEffect(() => {
     if (!open) return;
+    // Réinitialiser l'état de paiement à chaque ouverture du dialog.
+    // Sans ce reset, si le dialog était déjà ouvert une première fois (paiement
+    // terminé, échoué ou en cours), rouvrir le dialog montre l'ancien statut
+    // au lieu d'un formulaire vierge ("page de l'ancien paiement").
+    setResult(null);
+    setStatus(null);
+    setLoading(false);
+    setError(null);
+    setPhone("");
+    stopPolling();
     setBuyerCountry(property?.country_code || "BF");
     // Rafraîchit l'email et détecte si l'utilisateur est invité.
     try {
