@@ -36,6 +36,10 @@ export default function PropertyDetail() {
   const [bookingUnits, setBookingUnits] = useState(1);
   const [checkIn, setCheckIn] = useState("");
   const [commissionPaid, setCommissionPaid] = useState(false);
+  // true uniquement si le paiement a été effectué dans cette session de navigation.
+  // Pour rent_short : chaque séjour exige un paiement — l'ancienne commission ne débloque
+  // pas le contact pour un nouveau séjour.
+  const [sessionCommissionPaid, setSessionCommissionPaid] = useState(false);
   const [bookedRanges, setBookedRanges] = useState([]);
   const [copied, setCopied] = useState(false);
   const [contactLoading, setContactLoading] = useState(false);
@@ -101,6 +105,7 @@ export default function PropertyDetail() {
 
   function handleCommissionPaid(txRef) {
     setCommissionPaid(true);
+    setSessionCommissionPaid(true); // débloque WhatsApp pour ce séjour
     try { localStorage.setItem(`commission_paid_${id}`, "1"); } catch {}
     // Re-fetch pour récupérer owner_whatsapp déverrouillé.
     // Pour les invités (non connectés), on passe la référence de transaction :
@@ -417,7 +422,7 @@ export default function PropertyDetail() {
               </>
             )}
 
-            {p.owner_whatsapp && meId !== p.owner_id && (!showCommission || commissionPaid) && (
+            {p.owner_whatsapp && meId !== p.owner_id && (!showCommission || (commissionPaid && (p.transaction_type !== "rent_short" || sessionCommissionPaid))) && (
               <Button
                 fullWidth variant="contained" size="large"
                 sx={{ mt: 1, bgcolor: "#25D366", "&:hover": { bgcolor: "#1ebe5a" }, color: "white" }}
@@ -433,7 +438,7 @@ export default function PropertyDetail() {
                 💬 {t("property.contact_whatsapp")}
               </Button>
             )}
-            {p.owner_whatsapp && meId !== p.owner_id && showCommission && !commissionPaid && (
+            {p.owner_whatsapp && meId !== p.owner_id && showCommission && (!commissionPaid || (p.transaction_type === "rent_short" && !sessionCommissionPaid)) && (
               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, textAlign: "center" }}>
                 🔒 {t("property.whatsapp_locked")}
               </Typography>
@@ -441,7 +446,7 @@ export default function PropertyDetail() {
 
             {/* Bouton messagerie interne — masqué pour le propriétaire,
                 verrouillé derrière la commission (identique au bouton WhatsApp) */}
-            {meId && p && meId !== p.owner_id && (!showCommission || commissionPaid) && (
+            {meId && p && meId !== p.owner_id && (!showCommission || (commissionPaid && (p.transaction_type !== "rent_short" || sessionCommissionPaid))) && (
               <Button
                 fullWidth variant="outlined" size="large"
                 sx={{ mt: 1 }}
@@ -452,7 +457,7 @@ export default function PropertyDetail() {
               </Button>
             )}
             {/* Cadenas messagerie : uniquement si pas de WhatsApp (sinon le cadenas WhatsApp ci-dessus suffit) */}
-            {meId && p && meId !== p.owner_id && showCommission && !commissionPaid && !p.owner_whatsapp && (
+            {meId && p && meId !== p.owner_id && showCommission && (!commissionPaid || (p.transaction_type === "rent_short" && !sessionCommissionPaid)) && !p.owner_whatsapp && (
               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, textAlign: "center" }}>
                 🔒 {t("property.whatsapp_locked")}
               </Typography>
