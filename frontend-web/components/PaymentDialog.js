@@ -90,7 +90,7 @@ export default function PaymentDialog({ open, onClose, onSuccess, onMessage, pro
   const [status, setStatus] = useState(null);
   const pollRef = useRef(null);
   const pollAttemptsRef = useRef(0);
-  const MAX_POLL_ATTEMPTS = 60; // ~3 minutes à 3s d'intervalle
+  const MAX_POLL_ATTEMPTS = 200; // ~10 minutes à 3s d'intervalle (Moov BF peut être lent)
 
   // Notifie le parent dès que le paiement commission est confirmé (WhatsApp unlock)
   // On passe la référence de transaction pour permettre le déverrouillage des
