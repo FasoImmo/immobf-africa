@@ -354,10 +354,40 @@ export default function PropertyDetail() {
             <Divider sx={{ my: 2 }} />
 
             {showCommission && commissionPaid && meId !== p.owner_id && (
-              /* Commission déjà réglée → message de confirmation, pas de bouton RÉSERVER */
-              <Alert severity="success" sx={{ mt: 1 }}>
-                ✅ Commission ImmoBF réglée — vous pouvez maintenant contacter l&apos;annonceur.
-              </Alert>
+              /* Commission déjà réglée — pour rent_short : réafficher le calendrier
+                 pour permettre une nouvelle réservation via WhatsApp (dates pré-remplies).
+                 Pour rent_long : message simple suffit, pas besoin de calendrier. */
+              <>
+                {p.transaction_type === "rent_short" && (
+                  <>
+                    <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                      <TextField
+                        label={unitLabel} type="number" size="small"
+                        inputProps={{ min: 1, max: 365 }}
+                        value={bookingUnits}
+                        onChange={(e) => setBookingUnits(e.target.value)}
+                        sx={{ width: 110 }}
+                      />
+                    </Box>
+                    <Typography variant="body2" sx={{ mt: 1.5, mb: 0.5 }}>
+                      {t("property.check_in")}
+                    </Typography>
+                    <BookingCalendar
+                      value={checkIn}
+                      onChange={setCheckIn}
+                      bookedRanges={bookedRanges}
+                    />
+                    {conflict && (
+                      <Alert severity="error" sx={{ mt: 1 }}>
+                        ⛔ {t("property.dates_conflict")}
+                      </Alert>
+                    )}
+                  </>
+                )}
+                <Alert severity="success" sx={{ mt: 1 }}>
+                  ✅ Commission ImmoBF réglée — contactez l&apos;annonceur pour confirmer votre réservation.
+                </Alert>
+              </>
             )}
 
             {showCommission && !commissionPaid && (
@@ -416,7 +446,9 @@ export default function PropertyDetail() {
                 sx={{ mt: 1, bgcolor: "#25D366", "&:hover": { bgcolor: "#1ebe5a" }, color: "white" }}
                 onClick={() => Analytics.trackView(id, "whatsapp_click")}
                 href={`https://wa.me/${p.owner_whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(
-                  `Bonjour, je suis intéressé(e) par votre annonce "${p.title}" sur ImmoBF Africa.`
+                  commissionPaid && checkIn && p.transaction_type === "rent_short"
+                    ? `Bonjour, j'ai réglé la commission ImmoBF pour votre annonce "${p.title}". Je souhaite réserver à partir du ${checkIn} pour ${Math.max(1, Number(bookingUnits) || 1)} nuit(s). Est-ce disponible ?`
+                    : `Bonjour, je suis intéressé(e) par votre annonce "${p.title}" sur ImmoBF Africa.`
                 )}`}
                 target="_blank" rel="noopener noreferrer"
                 component="a"
