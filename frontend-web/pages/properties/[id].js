@@ -353,45 +353,22 @@ export default function PropertyDetail() {
 
             <Divider sx={{ my: 2 }} />
 
-            {showCommission && commissionPaid && meId !== p.owner_id && (
-              /* Commission déjà réglée — pour rent_short : réafficher le calendrier
-                 pour permettre une nouvelle réservation via WhatsApp (dates pré-remplies).
-                 Pour rent_long : message simple suffit, pas besoin de calendrier. */
-              <>
-                {p.transaction_type === "rent_short" && (
-                  <>
-                    <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
-                      <TextField
-                        label={unitLabel} type="number" size="small"
-                        inputProps={{ min: 1, max: 365 }}
-                        value={bookingUnits}
-                        onChange={(e) => setBookingUnits(e.target.value)}
-                        sx={{ width: 110 }}
-                      />
-                    </Box>
-                    <Typography variant="body2" sx={{ mt: 1.5, mb: 0.5 }}>
-                      {t("property.check_in")}
-                    </Typography>
-                    <BookingCalendar
-                      value={checkIn}
-                      onChange={setCheckIn}
-                      bookedRanges={bookedRanges}
-                    />
-                    {conflict && (
-                      <Alert severity="error" sx={{ mt: 1 }}>
-                        ⛔ {t("property.dates_conflict")}
-                      </Alert>
-                    )}
-                  </>
-                )}
-                <Alert severity="success" sx={{ mt: 1 }}>
-                  ✅ Commission ImmoBF réglée — contactez l&apos;annonceur pour confirmer votre réservation.
-                </Alert>
-              </>
+            {/* Pour rent_long : commission payée une fois = accès permanent au contact */}
+            {showCommission && commissionPaid && p.transaction_type !== "rent_short" && meId !== p.owner_id && (
+              <Alert severity="success" sx={{ mt: 1 }}>
+                ✅ Commission ImmoBF réglée — vous pouvez maintenant contacter l&apos;annonceur.
+              </Alert>
             )}
 
-            {showCommission && !commissionPaid && (
+            {/* Pour rent_short : commission par séjour — toujours afficher le formulaire,
+                même si une commission a déjà été payée pour un séjour précédent. */}
+            {showCommission && (!commissionPaid || p.transaction_type === "rent_short") && (
               <>
+                {commissionPaid && p.transaction_type === "rent_short" && (
+                  <Alert severity="info" sx={{ mt: 1, mb: 1 }}>
+                    ✅ Réservation précédente confirmée — sélectionnez de nouvelles dates pour un autre séjour.
+                  </Alert>
+                )}
                 <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
                   <TextField
                     label={unitLabel} type="number" size="small"
