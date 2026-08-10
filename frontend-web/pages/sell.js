@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
-import { Properties, Photos, Payments, Config } from "../lib/api";
+import { Properties, Photos, Videos, Payments, Config } from "../lib/api";
 
 // Les 55 États membres de l'Union africaine — utilisé pour le sélecteur pays
 // et l'indicatif mobile money. Tri alphabétique (nom français).
@@ -263,6 +263,18 @@ export default function SellPage() {
   const [uploadedCount, setUploadedCount] = useState(0);
   const [uploadErr, setUploadErr] = useState(null);
   const [uploadBusy, setUploadBusy] = useState(false);
+
+  // ─── Étape 3 : vidéos ─────────────────────────────────────────────────────
+  const [videoFiles, setVideoFiles] = useState([]);
+  const [videoUploadBusy, setVideoUploadBusy] = useState(false);
+  const [videoUploadErr, setVideoUploadErr] = useState(null);
+  const [videoUploadedCount, setVideoUploadedCount] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
+  const [webcamActive, setWebcamActive] = useState(false);
+  const webcamVideoRef = useRef(null);
+  const webcamStreamRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const recordingChunksRef = useRef([]);
 
   // ─── Garde : redirection si non connecté ─────────────────────────────────
   useEffect(function() {
@@ -579,6 +591,84 @@ export default function SellPage() {
         ? err.response.data.error.message : err.message);
     } finally { setUploadBusy(false); }
   }
+
+  // ─── Vidéos : fonctions ───────────────────────────────────────────────────
+  var onVideoPick = useCallback(function(e) {
+    var picked = Array.from(e.target.files || []).filter(function(f) {
+      return f.type.startsWith("video/");
+    });
+    setVideoFiles(function(prev) { return prev.concat(picked).slice(0, 3); });
+    e.target.value = "";
+  }, []);
+
+  function removeVideo(i) { setVideoFiles(function(v) { return v.filter(function(_, idx) { return idx !== i; }); }); }
+
+  async function startWebcam() {
+    try {
+      var stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      webcamStreamRef.current = stream;
+      if (webcamVideoRef.current) webcamVideoRef.current.srcObject = stream;
+      setWebcamActive(true);
+    } catch (err) {
+      setVideoUploadErr("Impossible d'accéder à la caméra : " + err.message);
+    }
+  }
+
+  function stopWebcam() {
+    if (webcamStreamRef.current) {
+      webcamStreamRef.current.getTracks().forEach(function(t) { t.stop(); });
+      webcamStreamRef.current = null;
+    }
+    if (webcamVideoRef.current) webcamVideoRef.current.srcObject = null;
+    setWebcamActive(false);
+    setIsRecording(false);
+  }
+
+  function startRecording() {
+    if (!webcamStreamRef.current) return;
+    recordingChunksRef.current = [];
+    var mr = new MediaRecorder(webcamStreamRef.current, { mimeType: "video/webm" });
+    mr.ondataavailable = function(e) { if (e.data.size > 0) recordingChunksRef.current.push(e.data); };
+    mr.onstop = function() {
+      var blob = new Blob(recordingChunksRef.current, { type: "video/webm" });
+      var filename = "webcam_" + Date.now() + ".webm";
+      var file = new File([blob], filename, { type: "video/webm" });
+      setVideoFiles(function(prev) { return prev.concat([file]).slice(0, 3); });
+    };
+    mr.start();
+    mediaRecorderRef.current = mr;
+    setIsRecording(true);
+  }
+
+  function stopRecording() {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+  }
+
+  async function uploadVideos() {
+    if (!videoFiles.length) { router.push("/properties/" + propertyId + "?published=1"); return; }
+    setVideoUploadErr(null); setVideoUploadBusy(true);
+    try {
+      var count = 0;
+      for (var i = 0; i < videoFiles.length; i++) {
+        await Videos.upload(propertyId, videoFiles[i]);
+        count++;
+      }
+      setVideoUploadedCount(count);
+      stopWebcam();
+      setTimeout(function() { router.push("/properties/" + propertyId + "?published=1"); }, 1200);
+    } catch (err) {
+      setVideoUploadErr(err && err.response && err.response.data && err.response.data.error
+        ? err.response.data.error.message : err.message);
+    } finally { setVideoUploadBusy(false); }
+  }
+
+  // Nettoyage webcam si l'utilisateur quitte la page
+  useEffect(function() {
+    return function() { stopWebcam(); };
+  }, []); // eslint-disable-line
 
   // ─── Stepper header ───────────────────────────────────────────────────────
   var steps = [
@@ -1077,6 +1167,87 @@ export default function SellPage() {
             <Button variant="contained" onClick={uploadFiles} disabled={uploadBusy}>
               {files.length ? t("sell.upload_btn") : t("sell.finish_btn")}
             </Button>
+          </Box>
+
+          {/* ── Section vidéos ─────────────────────────────────────── */}
+          <Divider sx={{ my: 3 }} />
+          <Typography variant="h6" gutterBottom>🎬 Vidéos de présentation (optionnel)</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Ajoutez jusqu'à 3 vidéos courtes (MP4, MOV, WebM — 200 Mo max). Filmez directement avec votre webcam ou téléchargez depuis votre appareil.
+          </Typography>
+
+          {/* Sélecteur de fichier vidéo */}
+          <Stack direction="row" spacing={2} flexWrap="wrap" sx={{ mb: 2 }}>
+            <Button variant="outlined" component="label" disabled={videoUploadBusy || videoFiles.length >= 3}>
+              📂 Choisir une vidéo
+              <input type="file" accept="video/*" hidden onChange={onVideoPick} />
+            </Button>
+            {!webcamActive ? (
+              <Button variant="outlined" onClick={startWebcam} disabled={videoUploadBusy || videoFiles.length >= 3}>
+                📷 Activer la webcam
+              </Button>
+            ) : (
+              <>
+                {!isRecording ? (
+                  <Button variant="outlined" color="error" onClick={startRecording} disabled={videoFiles.length >= 3}>
+                    ⏺ Démarrer l'enregistrement
+                  </Button>
+                ) : (
+                  <Button variant="contained" color="error" onClick={stopRecording}>
+                    ⏹ Arrêter
+                  </Button>
+                )}
+                <Button variant="text" onClick={stopWebcam}>Fermer la caméra</Button>
+              </>
+            )}
+          </Stack>
+
+          {/* Prévisualisation webcam */}
+          {webcamActive && (
+            <Box sx={{ mb: 2 }}>
+              <video
+                ref={webcamVideoRef}
+                autoPlay
+                muted
+                playsInline
+                style={{ width: "100%", maxWidth: 480, borderRadius: 8, border: "2px solid #0E7C66", background: "#000" }}
+              />
+              {isRecording && (
+                <Typography color="error" variant="body2" sx={{ mt: 0.5 }}>
+                  ● Enregistrement en cours…
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {/* Liste des vidéos sélectionnées */}
+          {videoFiles.length > 0 && (
+            <Stack spacing={1} sx={{ mb: 2 }}>
+              {videoFiles.map(function(f, i) {
+                return (
+                  <Stack key={i} direction="row" alignItems="center" spacing={1}>
+                    <Typography variant="body2" sx={{ flex: 1 }}>🎥 {f.name} ({(f.size / 1024 / 1024).toFixed(1)} Mo)</Typography>
+                    <Button size="small" color="error" onClick={function() { removeVideo(i); }} disabled={videoUploadBusy}>✕</Button>
+                  </Stack>
+                );
+              })}
+            </Stack>
+          )}
+
+          {videoUploadedCount > 0 && (
+            <Alert severity="success" sx={{ mb: 1 }}>{videoUploadedCount} vidéo(s) uploadée(s) — redirection…</Alert>
+          )}
+          {videoUploadErr && <Alert severity="error" sx={{ mb: 1 }}>{videoUploadErr}</Alert>}
+
+          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
+            <Button variant="text" onClick={function() { stopWebcam(); router.push("/properties/" + propertyId + "?published=1"); }} disabled={videoUploadBusy}>
+              Ignorer les vidéos
+            </Button>
+            {videoFiles.length > 0 && (
+              <Button variant="contained" onClick={uploadVideos} disabled={videoUploadBusy}>
+                {videoUploadBusy ? "Upload en cours…" : `Envoyer ${videoFiles.length} vidéo(s)`}
+              </Button>
+            )}
           </Box>
         </Paper>
       )}

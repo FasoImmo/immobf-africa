@@ -85,6 +85,24 @@ export const Photos = {
     api.delete(`/properties/${propertyId}/photos/${photoId}`).then((r) => r.data),
 };
 
+export const Videos = {
+  upload: (propertyId, asset) => {
+    const form = new FormData();
+    const filename = asset.uri.split("/").pop();
+    const ext = (filename.split(".").pop() || "mp4").toLowerCase();
+    const typeMap = { mp4: "video/mp4", mov: "video/quicktime", webm: "video/webm", "3gp": "video/3gpp" };
+    const type = typeMap[ext] || "video/mp4";
+    form.append("video", { uri: asset.uri, name: filename, type });
+    return api.post(`/properties/${propertyId}/videos`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }).then((r) => r.data);
+  },
+  list: (propertyId) =>
+    api.get(`/properties/${propertyId}/videos`).then((r) => r.data),
+  delete: (propertyId, videoId) =>
+    api.delete(`/properties/${propertyId}/videos/${videoId}`).then((r) => r.data),
+};
+
 export const Auth = {
   register: (data) => api.post("/auth/register", data).then((r) => r.data),
   login: (data) => api.post("/auth/login", data).then((r) => r.data),

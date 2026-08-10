@@ -310,6 +310,28 @@ export default function PropertyDetail() {
             </Stack>
           )}
 
+          {/* ── Vidéos de présentation ──────────────────────────────────── */}
+          {p.videos && p.videos.length > 0 && (
+            <Paper elevation={0} sx={{ p: 2, mt: 2 }}>
+              <Typography variant="h6" gutterBottom>🎬 Vidéos de présentation</Typography>
+              <Stack spacing={2}>
+                {p.videos.map(function(v, i) {
+                  return (
+                    <Box key={v.id || i}>
+                      <video
+                        src={v.url}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        style={{ width: "100%", borderRadius: 8, maxHeight: 360, background: "#000" }}
+                      />
+                    </Box>
+                  );
+                })}
+              </Stack>
+            </Paper>
+          )}
+
           <Paper elevation={0} sx={{ p: 2, mt: 2 }}>
             <Typography variant="h6">Description</Typography>
             <Typography sx={{ whiteSpace: "pre-line" }}>{p.description}</Typography>

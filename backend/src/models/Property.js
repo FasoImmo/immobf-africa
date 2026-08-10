@@ -136,7 +136,11 @@ async function findById(id, opts) {
      WHERE p.id = $1`,
     [id]
   );
-  return withTranslation(hydrate(rows[0]), options.lang);
+  const property = withTranslation(hydrate(rows[0]), options.lang);
+  if (property) {
+    property.videos = await videosFor(id);
+  }
+  return property;
 }
 
 async function search(filters, opts) {
@@ -321,6 +325,41 @@ async function photosFor(property_id) {
     [property_id]
   );
   return rows;
+}
+
+// ─── Vidéos ──────────────────────────────────────────────────────────────────
+
+async function addVideo(property_id, url, cloudinary_id, opts) {
+  var options = opts || {};
+  const { rows } = await query(
+    "INSERT INTO property_videos (property_id, url, cloudinary_id, duration_s, sort_order) VALUES ($1,$2,$3,$4,$5) RETURNING *",
+    [property_id, url, cloudinary_id || null, options.duration_s || null, options.sort_order || 0]
+  );
+  return rows[0];
+}
+
+async function videosFor(property_id) {
+  const { rows } = await query(
+    "SELECT id, url, cloudinary_id, duration_s, sort_order FROM property_videos WHERE property_id = $1 ORDER BY sort_order ASC, created_at ASC",
+    [property_id]
+  );
+  return rows;
+}
+
+async function deleteVideo(videoId, propertyId, ownerId) {
+  // Vérifier ownership (admin peut passer ownerId=null)
+  if (ownerId) {
+    const { rows: own } = await query(
+      "SELECT 1 FROM properties WHERE id = $1 AND owner_id = $2",
+      [propertyId, ownerId]
+    );
+    if (!own.length) return null;
+  }
+  const { rows } = await query(
+    "DELETE FROM property_videos WHERE id = $1 AND property_id = $2 RETURNING *",
+    [videoId, propertyId]
+  );
+  return rows[0] || null;
 }
 
 // Définir la date d'expiration (30 jours à partir d'aujourd'hui ou renouvellement)
@@ -574,4 +613,5 @@ module.exports = {
   update, deletePhoto, deleteForOwner, deleteForAdmin,
   extendListing, suspendListing, restoreListing,
   isCommissionEligible, setCommissionEnabled,
+  addVideo, videosFor, deleteVideo,
 };

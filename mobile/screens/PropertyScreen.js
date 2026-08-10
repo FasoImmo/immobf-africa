@@ -190,6 +190,34 @@ export default function PropertyScreen({ route, navigation }) {
         <Text style={styles.city}>{p.city}, {p.country_code}</Text>
         <Text style={styles.body}>{p.description}</Text>
 
+        {/* ── Vidéos de présentation ───────────────────────────────────── */}
+        {p.videos && p.videos.length > 0 && (
+          <View style={{ marginTop: 16, borderTopWidth: 1, borderTopColor: "#eee", paddingTop: 12 }}>
+            <Text style={[styles.sectionTitle || styles.title, { fontSize: 15, fontWeight: "700", marginBottom: 8 }]}>
+              🎬 {lang === "fr" ? "Vidéos de présentation" : "Property videos"}
+            </Text>
+            {p.videos.map((v, i) => (
+              <TouchableOpacity
+                key={v.id || i}
+                onPress={() => Linking.openURL(v.url)}
+                style={{
+                  flexDirection: "row", alignItems: "center",
+                  backgroundColor: "#f5f5f5", borderRadius: 8,
+                  padding: 12, marginBottom: 8,
+                }}
+              >
+                <Text style={{ fontSize: 24, marginRight: 12 }}>▶️</Text>
+                <Text style={{ color: "#0E7C66", fontWeight: "600", flex: 1 }}>
+                  {lang === "fr" ? `Vidéo ${i + 1}` : `Video ${i + 1}`}
+                </Text>
+                <Text style={{ color: "#888", fontSize: 12 }}>
+                  {lang === "fr" ? "Ouvrir" : "Open"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         {/* Prix unitaire */}
         <View style={styles.priceRow}>
           <Text style={styles.priceLabel}>{priceLabel}</Text>

@@ -150,6 +150,20 @@ export const Photos = {
     api.delete(`/properties/${propertyId}/photos/${photoId}`).then((r) => r.data),
 };
 
+export const Videos = {
+  upload: (propertyId, file) => {
+    const form = new FormData();
+    form.append("video", file);
+    return api.post(`/properties/${propertyId}/videos`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }).then((r) => r.data);
+  },
+  list: (propertyId) =>
+    api.get(`/properties/${propertyId}/videos`).then((r) => r.data),
+  delete: (propertyId, videoId) =>
+    api.delete(`/properties/${propertyId}/videos/${videoId}`).then((r) => r.data),
+};
+
 export const Payments = {
   providers: (country = "BF") => api.get("/payments/providers", { params: { country } }).then((r) => r.data),
   initiate: (data) => api.post("/payments/initiate", data).then((r) => r.data),

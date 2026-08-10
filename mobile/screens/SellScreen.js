@@ -7,7 +7,7 @@ import {
 import * as tokenStore from "../lib/tokenStore";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
-import { Properties, Photos, Payments, Admin } from "../lib/api";
+import { Properties, Photos, Videos, Payments, Admin } from "../lib/api";
 import { useLang } from "../lib/lang";
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
@@ -540,6 +540,10 @@ export default function SellScreen({ navigation, route }) {
   const [uploadBusy, setUploadBusy] = useState(false);
   const [done, setDone] = useState(false);
 
+  // ─── Étape 3 : vidéos ─────────────────────────────────────────────────────
+  const [videoAssets, setVideoAssets] = useState([]);
+  const [videoUploadBusy, setVideoUploadBusy] = useState(false);
+
   async function pickPhotos() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
@@ -586,6 +590,58 @@ export default function SellScreen({ navigation, route }) {
     } catch (e) {
       Alert.alert("Erreur", e?.response?.data?.error?.message || e.message);
     } finally { setUploadBusy(false); }
+  }
+
+  async function pickVideos() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        lang === "fr" ? "Permission requise" : "Permission required",
+        lang === "fr" ? "Autorisez l'accès à la galerie dans les paramètres." : "Allow gallery access in settings."
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      allowsMultipleSelection: false,
+      quality: 1,
+    });
+    if (!result.canceled && result.assets?.length) {
+      setVideoAssets((prev) => [...prev, ...result.assets].slice(0, 3));
+    }
+  }
+
+  async function recordVideo() {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        lang === "fr" ? "Permission requise" : "Permission required",
+        lang === "fr" ? "Autorisez l'accès à la caméra dans les paramètres." : "Allow camera access in settings."
+      );
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      videoMaxDuration: 120, // 2 minutes max
+      quality: ImagePicker.UIImagePickerControllerQualityType?.Medium || 0.5,
+    });
+    if (!result.canceled && result.assets?.length) {
+      setVideoAssets((prev) => [...prev, ...result.assets].slice(0, 3));
+    }
+  }
+
+  async function uploadVideosAndFinish() {
+    setVideoUploadBusy(true);
+    try {
+      for (const asset of videoAssets) {
+        await Videos.upload(propertyId, asset);
+      }
+    } catch (e) {
+      Alert.alert("Erreur vidéo", e?.response?.data?.error?.message || e.message);
+    } finally {
+      setVideoUploadBusy(false);
+      setDone(true);
+    }
   }
 
   // ─── Garde : non connecté ─────────────────────────────────────────────────
@@ -1014,6 +1070,72 @@ export default function SellScreen({ navigation, route }) {
               : <Text style={s.btnText}>{t.uploadBtn}</Text>
             }
           </TouchableOpacity>
+
+          {/* ── Vidéos ──────────────────────────────────────────────────────── */}
+          <View style={{ marginTop: 20, borderTopWidth: 1, borderTopColor: "#e0e0e0", paddingTop: 16 }}>
+            <Text style={[s.label, { fontSize: 15, fontWeight: "700", marginBottom: 4 }]}>
+              🎬 {lang === "fr" ? "Vidéos (optionnel, max 3)" : "Videos (optional, max 3)"}
+            </Text>
+            <Text style={[s.hint, { marginBottom: 8 }]}>
+              {lang === "fr"
+                ? "Filmez directement ou choisissez depuis la galerie."
+                : "Record directly or pick from gallery."}
+            </Text>
+
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity
+                style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]}
+                onPress={pickVideos}
+                disabled={videoAssets.length >= 3}
+              >
+                <Text style={s.photoPickText}>
+                  🎞️ {lang === "fr" ? `Galerie (${videoAssets.length}/3)` : `Gallery (${videoAssets.length}/3)`}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]}
+                onPress={recordVideo}
+                disabled={videoAssets.length >= 3}
+              >
+                <Text style={s.photoPickText}>🎥 {lang === "fr" ? "Filmer" : "Record"}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {videoAssets.length > 0 && (
+              <View style={{ marginTop: 8 }}>
+                {videoAssets.map((a, i) => (
+                  <View key={i} style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+                    <Text style={{ flex: 1, fontSize: 13, color: "#555" }} numberOfLines={1}>
+                      🎬 {a.uri.split("/").pop()}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setVideoAssets((prev) => prev.filter((_, idx) => idx !== i))}
+                      style={{ paddingHorizontal: 10 }}
+                    >
+                      <Text style={{ color: "#e53935", fontWeight: "700" }}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {videoAssets.length > 0 && (
+              <TouchableOpacity
+                style={[s.btn, videoUploadBusy && s.btnDisabled, { marginTop: 10 }]}
+                onPress={uploadVideosAndFinish}
+                disabled={videoUploadBusy}
+              >
+                {videoUploadBusy
+                  ? <ActivityIndicator color="white" />
+                  : <Text style={s.btnText}>
+                      {lang === "fr"
+                        ? `Envoyer ${videoAssets.length} vidéo(s) & Terminer`
+                        : `Upload ${videoAssets.length} video(s) & Finish`}
+                    </Text>
+                }
+              </TouchableOpacity>
+            )}
+          </View>
 
           <TouchableOpacity style={s.skipBtn} onPress={() => setDone(true)}>
             <Text style={s.skipText}>{t.skipBtn}</Text>

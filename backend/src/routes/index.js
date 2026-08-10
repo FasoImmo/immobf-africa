@@ -11,6 +11,7 @@ const authCtl  = require("../controllers/authController");
 const propCtl  = require("../controllers/propertiesController");
 const payCtl   = require("../controllers/paymentsController");
 const photoCtl = require("../controllers/photosController");
+const videoCtl = require("../controllers/videosController");
 const analytics = require("../controllers/analyticsController");
 const adminCtl = require("../controllers/adminController");
 const metaCtl  = require("../controllers/metaWebhookController");
@@ -65,6 +66,9 @@ router.post  ("/properties/:id/publish",             requireAuth, asyncHandler(p
 router.patch ("/properties/:id",                    requireAuth, asyncHandler(propCtl.update));
 router.post  ("/properties/:id/photos",             requireAuth, asyncHandler(photoCtl.uploadPhotos));
 router.delete("/properties/:id/photos/:photoId",    requireAuth, asyncHandler(photoCtl.deletePhoto));
+router.post  ("/properties/:id/videos",             requireAuth, asyncHandler(videoCtl.uploadVideo));
+router.get   ("/properties/:id/videos",             asyncHandler(videoCtl.listVideos));
+router.delete("/properties/:id/videos/:videoId",    requireAuth, asyncHandler(videoCtl.deleteVideo));
 router.get   ("/my/listings",                       requireAuth, asyncHandler(propCtl.myListings));
 router.delete("/my/listings/:id",                   requireAuth, asyncHandler(propCtl.deleteListing));
 router.post  ("/my/listings/:id/renew",             requireAuth, asyncHandler(propCtl.renewListing));
