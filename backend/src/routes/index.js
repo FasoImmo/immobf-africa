@@ -308,6 +308,16 @@ router.get("/properties/:id/review/me", requireAuth, asyncHandler(async (req, re
   res.json({ review: review || null });
 }));
 
+// GET /properties/:id/reviews — tous les avis d'une annonce (public)
+router.get("/properties/:id/reviews", publicLimiter, asyncHandler(async (req, res) => {
+  const Review = require("../models/Review");
+  const page   = Math.max(1, parseInt(req.query.page)  || 1);
+  const limit  = Math.min(50, parseInt(req.query.limit) || 20);
+  const offset = (page - 1) * limit;
+  const reviews = await Review.listForProperty(req.params.id, { limit, offset });
+  res.json({ reviews, page, limit });
+}));
+
 // GET /sellers/:id/reviews — avis reçus par un vendeur (public)
 router.get("/sellers/:id/reviews", publicLimiter, asyncHandler(async (req, res) => {
   const Review = require("../models/Review");

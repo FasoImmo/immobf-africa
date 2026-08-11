@@ -316,7 +316,14 @@ function ProfileView({ me, onLogout, t, navigation }) {
         );
       })() : null}
 
-      <TouchableOpacity style={[s.btn, { backgroundColor: "#0E7C66", marginTop: 16 }]} onPress={loadListings}>
+      <TouchableOpacity
+        style={[s.btn, { backgroundColor: "#1565c0", marginTop: 16 }]}
+        onPress={() => navigation.navigate("Messages")}
+      >
+        <Text style={s.btnText}>💬 Mes messages</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={[s.btn, { backgroundColor: "#0E7C66", marginTop: 10 }]} onPress={loadListings}>
         <Text style={s.btnText}>{loadingListings ? "…" : (showListings ? "Masquer mes annonces" : "Mes annonces")}</Text>
       </TouchableOpacity>
 

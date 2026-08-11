@@ -111,6 +111,17 @@ export const Auth = {
   resetPassword: (data) => api.post("/auth/reset-password", data).then((r) => r.data),
 };
 
+export const Messages = {
+  list:        ()        => api.get("/conversations").then((r) => r.data),
+  unread:      ()        => api.get("/conversations/unread").then((r) => r.data),
+  getMessages: (id)      => api.get(`/conversations/${id}/messages`).then((r) => r.data),
+  send:        (id, body) => api.post(`/conversations/${id}/messages`, { body }).then((r) => r.data),
+};
+
+export const Reviews = {
+  forProperty: (propertyId) => api.get(`/properties/${propertyId}/reviews`).then((r) => r.data),
+};
+
 export const Payments = {
   providers: (country = "BF") => api.get("/payments/providers", { params: { country } }).then((r) => r.data),
   initiate: (data) => api.post("/payments/initiate", data).then((r) => r.data),

@@ -50,6 +50,7 @@ export default function PropertyDetail() {
   const [reviewComment, setReviewComment] = useState("");
   const [reviewSaving, setReviewSaving] = useState(false);
   const [reviewDone, setReviewDone]     = useState(false);
+  const [propertyReviews, setPropertyReviews] = useState([]);
   const meId = (() => {
     if (typeof window === "undefined") return null;
     try { return JSON.parse(localStorage.getItem("immobf_user") || "{}")?.id; } catch { return null; }
@@ -137,6 +138,8 @@ export default function PropertyDetail() {
       // Tracking vue + annonces similaires en parallèle
       Analytics.trackView(id, "view");
       Analytics.similar(id).then((r) => setSimilar(r.items || [])).catch(() => {});
+      // Charger tous les avis de l'annonce (public)
+      Reviews.forProperty(id).then((r) => setPropertyReviews(r.reviews || [])).catch(() => {});
       // Charger l'avis existant si connecté
       if (meId) {
         Reviews.myReview(id).then((r) => {
@@ -488,6 +491,32 @@ export default function PropertyDetail() {
         </Grid>
       </Grid>
 
+      {/* ─── Avis reçus (visibles par tous) ────────────────────────────────── */}
+      {propertyReviews.length > 0 && (
+        <Box sx={{ mt: 5 }}>
+          <Divider sx={{ mb: 3 }} />
+          <Typography variant="h5" gutterBottom>
+            ⭐ Avis ({propertyReviews.length})
+          </Typography>
+          <Stack spacing={2}>
+            {propertyReviews.map((rv) => (
+              <Paper key={rv.id} elevation={0} sx={{ p: 2, border: "1px solid #e0e0e0", borderRadius: 2 }}>
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+                  <Rating value={rv.rating} readOnly size="small" />
+                  <Typography variant="body2" fontWeight={600}>{rv.reviewer_name || "Utilisateur"}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {new Date(rv.created_at).toLocaleDateString("fr-FR")}
+                  </Typography>
+                </Stack>
+                {rv.comment && (
+                  <Typography variant="body2" color="text.secondary">{rv.comment}</Typography>
+                )}
+              </Paper>
+            ))}
+          </Stack>
+        </Box>
+      )}
+
       {/* ─── Notation / avis ─────────────────────────────────────────────── */}
       {(() => {
         const isOwner  = meId && p && meId === p.owner_id;
@@ -503,6 +532,8 @@ export default function PropertyDetail() {
             const { review } = await Reviews.submit(id, { rating: reviewRating, comment: reviewComment || null });
             setMyReview(review);
             setReviewDone(true);
+            // Rafraîchir la liste des avis
+            Reviews.forProperty(id).then((r) => setPropertyReviews(r.reviews || [])).catch(() => {});
           } catch (_) {}
           finally { setReviewSaving(false); }
         }

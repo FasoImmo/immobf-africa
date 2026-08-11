@@ -3,7 +3,7 @@ import { ScrollView, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLang } from "../lib/lang";
-import { Properties } from "../lib/api";
+import { Properties, Reviews } from "../lib/api";
 import FallbackImage from "../components/FallbackImage";
 
 const T = {
@@ -105,6 +105,7 @@ export default function PropertyScreen({ route, navigation }) {
   const [loading, setLoading] = useState(false);
   const [commissionPaid, setCommissionPaid] = useState(false);
   const [bookedRanges, setBookedRanges] = useState([]);
+  const [propertyReviews, setPropertyReviews] = useState([]);
 
   // Recharge l'état "commission payée" depuis AsyncStorage chaque fois que l'écran est visible
   // (notamment au retour depuis PaymentScreen)
@@ -134,6 +135,10 @@ export default function PropertyScreen({ route, navigation }) {
       .finally(() => setLoading(false));
     // Enregistrer la vue (fire-and-forget — ne bloque pas l'affichage)
     Properties.trackView(initialProp.id, { event_type: "view" }).catch(() => {});
+    // Charger les avis de l'annonce
+    Reviews.forProperty(initialProp.id)
+      .then((d) => setPropertyReviews(d.reviews || []))
+      .catch(() => {});
   }, [lang, initialProp?.id]);
 
   const today = new Date();
@@ -189,6 +194,29 @@ export default function PropertyScreen({ route, navigation }) {
         <Text style={styles.title}>{p.title}</Text>
         <Text style={styles.city}>{p.city}, {p.country_code}</Text>
         <Text style={styles.body}>{p.description}</Text>
+
+        {/* ── Avis des utilisateurs ────────────────────────────────────── */}
+        {propertyReviews.length > 0 && (
+          <View style={{ marginTop: 16, borderTopWidth: 1, borderTopColor: "#eee", paddingTop: 12 }}>
+            <Text style={[styles.title, { fontSize: 15, marginBottom: 10 }]}>
+              ⭐ {lang === "fr" ? `Avis (${propertyReviews.length})` : `Reviews (${propertyReviews.length})`}
+            </Text>
+            {propertyReviews.map((rv) => (
+              <View key={rv.id} style={reviewStyles.card}>
+                <View style={reviewStyles.header}>
+                  <Text style={reviewStyles.stars}>{"⭐".repeat(Math.min(5, Math.max(1, Number(rv.rating) || 1)))}</Text>
+                  <Text style={reviewStyles.name}>{rv.reviewer_name || "Utilisateur"}</Text>
+                  <Text style={reviewStyles.date}>
+                    {new Date(rv.created_at).toLocaleDateString("fr-FR")}
+                  </Text>
+                </View>
+                {rv.comment ? (
+                  <Text style={reviewStyles.comment}>{rv.comment}</Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* ── Vidéos de présentation ───────────────────────────────────── */}
         {p.videos && p.videos.length > 0 && (
@@ -413,4 +441,16 @@ const styles = StyleSheet.create({
   waBtnText: { color: "white", fontWeight: "700", fontSize: 14, flex: 1 },
   noContact: { color: "#999", fontStyle: "italic" },
   lockMsg: { color: "#888", fontSize: 12, marginTop: 8, textAlign: "center" },
+});
+
+const reviewStyles = StyleSheet.create({
+  card: {
+    backgroundColor: "#fafafa", borderRadius: 10, padding: 12,
+    marginBottom: 8, borderWidth: 1, borderColor: "#e8e8e8",
+  },
+  header: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 },
+  stars: { fontSize: 12 },
+  name: { fontWeight: "700", fontSize: 13, flex: 1 },
+  date: { color: "#aaa", fontSize: 11 },
+  comment: { fontSize: 13, color: "#444", lineHeight: 19 },
 });

@@ -13,6 +13,7 @@ import PropertyScreen from "./screens/PropertyScreen";
 import LoginScreen from "./screens/LoginScreen";
 import PaymentScreen from "./screens/PaymentScreen";
 import SellScreen from "./screens/SellScreen";
+import MessagesScreen from "./screens/MessagesScreen";
 import { init as initOffline } from "./lib/offline";
 import { LangProvider, useLang } from "./lib/lang";
 
@@ -117,6 +118,7 @@ function AppNavigator() {
       <Stack.Screen name="ImmoBF Africa" component={HomeTabs} />
       <Stack.Screen name="Property" component={PropertyScreen} options={{ title: "Annonce" }} />
       <Stack.Screen name="Payment" component={PaymentScreen} options={{ title: "Paiement" }} />
+      <Stack.Screen name="Messages" component={MessagesScreen} options={{ title: "💬 Messages" }} />
     </Stack.Navigator>
   );
 }

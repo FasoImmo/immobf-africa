@@ -49,6 +49,22 @@ const Review = {
     return rows;
   },
 
+  /** Liste des avis pour une annonce spécifique (public). */
+  async listForProperty(propertyId, { limit = 20, offset = 0 } = {}) {
+    const { rows } = await query(
+      `SELECT
+         r.id, r.rating, r.comment, r.created_at,
+         u.full_name AS reviewer_name
+       FROM reviews r
+       JOIN users u ON u.id = r.reviewer_id
+       WHERE r.property_id = $1
+       ORDER BY r.created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [propertyId, limit, offset]
+    );
+    return rows;
+  },
+
   /** Score moyen + nombre d'avis pour un vendeur. */
   async statsForSeller(sellerId) {
     const { rows } = await query(

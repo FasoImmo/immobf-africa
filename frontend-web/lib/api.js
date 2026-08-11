@@ -214,7 +214,8 @@ export const Config = {
 };
 
 export const Reviews = {
-  submit:    (propertyId, data) => api.post(`/properties/${propertyId}/review`, data).then((r) => r.data),
-  myReview:  (propertyId)       => api.get(`/properties/${propertyId}/review/me`).then((r) => r.data),
-  forSeller: (sellerId, params) => api.get(`/sellers/${sellerId}/reviews`, { params }).then((r) => r.data),
+  submit:      (propertyId, data) => api.post(`/properties/${propertyId}/review`, data).then((r) => r.data),
+  myReview:    (propertyId)       => api.get(`/properties/${propertyId}/review/me`).then((r) => r.data),
+  forProperty: (propertyId)       => api.get(`/properties/${propertyId}/reviews`).then((r) => r.data),
+  forSeller:   (sellerId, params) => api.get(`/sellers/${sellerId}/reviews`, { params }).then((r) => r.data),
 };
