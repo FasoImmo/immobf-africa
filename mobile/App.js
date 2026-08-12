@@ -2,6 +2,7 @@ import "react-native-gesture-handler";
 import React, { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import { TouchableOpacity, Text } from "react-native";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -36,6 +37,7 @@ function LangToggle() {
 
 function HomeTabs() {
   const { lang } = useLang();
+  const insets = useSafeAreaInsets();
   const TAB_ICONS = {
     Accueil:  { active: "home",        inactive: "home-outline" },
     Parcourir:{ active: "search",      inactive: "search-outline" },
@@ -52,8 +54,8 @@ function HomeTabs() {
           backgroundColor: "#fff",
           borderTopColor: "#eee",
           borderTopWidth: 1,
-          height: 62,
-          paddingBottom: 8,
+          height: 62 + insets.bottom,
+          paddingBottom: 8 + insets.bottom,
           paddingTop: 4,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
@@ -126,11 +128,13 @@ function AppNavigator() {
 export default function App() {
   useEffect(() => { try { initOffline(); } catch {} }, []);
   return (
-    <LangProvider>
-      <NavigationContainer>
-        <StatusBar style="light" />
-        <AppNavigator />
-      </NavigationContainer>
-    </LangProvider>
+    <SafeAreaProvider>
+      <LangProvider>
+        <NavigationContainer>
+          <StatusBar style="light" />
+          <AppNavigator />
+        </NavigationContainer>
+      </LangProvider>
+    </SafeAreaProvider>
   );
 }
