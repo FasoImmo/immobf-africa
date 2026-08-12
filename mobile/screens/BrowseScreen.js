@@ -7,12 +7,10 @@ import {
 import { Properties } from "../lib/api";
 import { cacheProperty, listCached } from "../lib/offline";
 import { useLang } from "../lib/lang";
-import FallbackImage from "../components/FallbackImage";
+import PropertyCard from "../components/PropertyCard";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-function formatFCFA(n) {
-  if (n == null) return "—";
-  return `${Number(n).toLocaleString("fr-FR")} FCFA`;
-}
+const RECENT_KEY = "immobf_recent";
 
 const T = {
   fr: {
@@ -24,9 +22,6 @@ const T = {
     sale: "🏷️ Vente",
     rentLong: "🔑 Location longue durée",
     rentShort: "🌙 Court séjour",
-    labelSale: "Vente",
-    labelRentLong: "Location",
-    labelRentShort: "Court séjour",
     empty: "Aucune annonce trouvée.",
   },
   en: {
@@ -38,9 +33,6 @@ const T = {
     sale: "🏷️ For sale",
     rentLong: "🔑 Long-term rental",
     rentShort: "🌙 Short stay",
-    labelSale: "For sale",
-    labelRentLong: "Rental",
-    labelRentShort: "Short stay",
     empty: "No listings found.",
   },
 };
@@ -94,7 +86,7 @@ function DropdownModal({ visible, title, allLabel, options, selected, onSelect, 
   );
 }
 
-export default function BrowseScreen({ navigation }) {
+export default function BrowseScreen({ navigation, route }) {
   const { lang } = useLang();
   const t = T[lang] || T.fr;
 
@@ -112,22 +104,35 @@ export default function BrowseScreen({ navigation }) {
   const [showCountry, setShowCountry] = useState(false);
   const [showType, setShowType] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (extraFilters = {}) => {
     setRefreshing(true);
     try {
       const params = { limit: 30, lang };
-      if (country) params.country = country;
-      if (city.trim()) params.q = city.trim();
+      if (country) params.country_code = country;
+      if (city.trim()) params.city = city.trim();
       if (txType) params.transaction_type = txType;
+      Object.assign(params, extraFilters);
       const d = await Properties.search(params);
-      setItems(d.items || []);
-      for (const p of d.items || []) await cacheProperty(p);
+      const results = d.results || d.items || [];
+      setItems(results);
+      for (const p of results) await cacheProperty(p).catch(() => {});
     } catch {
       setItems(await listCached());
     } finally { setRefreshing(false); }
-  }, [country, city, txType]);
+  }, [country, city, txType, lang]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Accept filters passed from HomeScreen search
+  useEffect(() => {
+    const filters = route?.params?.filters;
+    if (filters) {
+      if (filters.country_code) setCountry(filters.country_code);
+      if (filters.city) setCity(filters.city);
+      if (filters.transaction_type) setTxType(filters.transaction_type);
+      load(filters);
+    }
+  }, [route?.params?.filters]);
 
   const countryLabel = country
     ? (COUNTRIES.find((c) => c.code === country)?.label || country)
@@ -136,69 +141,58 @@ export default function BrowseScreen({ navigation }) {
     ? (TX_TYPES.find((tp) => tp.value === txType)?.label || txType)
     : t.allTypes;
 
-  function txBadgeLabel(type) {
-    if (type === "sale") return t.labelSale;
-    if (type === "rent_long") return t.labelRentLong;
-    if (type === "rent_short") return t.labelRentShort;
-    return type;
+  function goToProperty(id) {
+    navigation.navigate("Property", { id });
+    AsyncStorage.getItem(RECENT_KEY).then((raw) => {
+      const ids = raw ? JSON.parse(raw) : [];
+      const updated = [String(id), ...ids.filter((x) => x !== String(id))].slice(0, 10);
+      AsyncStorage.setItem(RECENT_KEY, JSON.stringify(updated));
+    });
   }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#f7f7f7" }}>
       {/* Filtres */}
       <View style={s.filters}>
-        {/* Pays */}
         <TouchableOpacity style={s.drop} onPress={() => setShowCountry(true)}>
           <Text style={s.dropText} numberOfLines={1}>{countryLabel}</Text>
           <Text style={s.arrow}>▾</Text>
         </TouchableOpacity>
 
-        {/* Ville */}
         <TextInput
           value={city}
           onChangeText={setCity}
           placeholder={t.cityPlaceholder}
-          onSubmitEditing={load}
+          onSubmitEditing={() => load()}
           returnKeyType="search"
           style={s.cityInput}
         />
 
-        {/* Type */}
         <TouchableOpacity style={s.drop} onPress={() => setShowType(true)}>
           <Text style={s.dropText} numberOfLines={1}>{typeLabel}</Text>
           <Text style={s.arrow}>▾</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Liste */}
+      {/* Liste avec PropertyCard */}
       <FlatList
         data={items}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         contentContainerStyle={{ padding: 12 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load()} colors={["#0E7C66"]} />}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={s.card}
-            onPress={() => navigation.navigate("Property", { property: item })}
-          >
-            <FallbackImage
-              source={{ uri: item.photos?.[0]?.url }}
-              style={s.cover}
-            />
-            <View style={{ padding: 12 }}>
-              <Text style={s.title} numberOfLines={1}>{item.title}</Text>
-              <Text style={s.sub}>{item.city}{item.country_code ? `, ${item.country_code}` : ""}</Text>
-              <Text style={s.price}>{formatFCFA(item.price)}</Text>
-              {item.transaction_type && (
-                <Text style={s.badge}>{txBadgeLabel(item.transaction_type)}</Text>
-              )}
-            </View>
-          </TouchableOpacity>
+          <PropertyCard
+            property={item}
+            lang={lang}
+            onPress={() => goToProperty(item.id)}
+          />
         )}
         ListEmptyComponent={
-          <Text style={{ textAlign: "center", color: "#888", marginTop: 40 }}>
-            {t.empty}
-          </Text>
+          !refreshing && (
+            <Text style={{ textAlign: "center", color: "#888", marginTop: 40 }}>
+              {t.empty}
+            </Text>
+          )
         }
       />
 
@@ -247,12 +241,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 8, fontSize: 12,
     backgroundColor: "#fafafa",
   },
-  card: { backgroundColor: "white", borderRadius: 10, marginBottom: 12, overflow: "hidden" },
-  cover: { width: "100%", height: 160 },
-  title: { fontSize: 16, fontWeight: "600" },
-  sub: { color: "#666", marginTop: 2 },
-  price: { color: "#0E7C66", fontWeight: "700", marginTop: 6, fontSize: 16 },
-  badge: { fontSize: 11, color: "#0E7C66", marginTop: 4 },
   // Modal
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
   sheet: {
