@@ -2,11 +2,17 @@ import React, { useEffect, useState } from "react";
 import {
   View, Text, TextInput, StyleSheet, TouchableOpacity,
   ActivityIndicator, Alert, Linking, ScrollView, Modal, FlatList,
+  KeyboardAvoidingView, Platform,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as tokenStore from "../lib/tokenStore";
 import { Payments } from "../lib/api";
 import { useLang } from "../lib/lang";
+
+function fmtNum(n) {
+  return String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
 
 const COUNTRIES = [
   { code: "BF", label: "🇧🇫 Burkina Faso", dial: "+226" },
@@ -223,6 +229,7 @@ function CountryModal({ visible, selected, onSelect, onClose, title }) {
 export default function PaymentScreen({ route }) {
   const { lang } = useLang();
   const t = T[lang] || T.fr;
+  const insets = useSafeAreaInsets();
 
   const { property, amount, purpose = "commission" } = route.params;
 
@@ -338,9 +345,17 @@ export default function PaymentScreen({ route }) {
   }
 
   return (
-    <ScrollView style={s.container} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+    <ScrollView
+      style={s.container}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+    >
       <Text style={s.h1}>{property.title}</Text>
-      <Text style={s.amount}>{amount.toLocaleString("fr-FR")} {property.currency || "XOF"}</Text>
+      <Text style={s.amount}>{fmtNum(amount)} {property.currency || "XOF"}</Text>
 
       {/* Pays de l'acheteur */}
       <Text style={s.label}>{t.buyerCountry}</Text>
@@ -483,7 +498,7 @@ export default function PaymentScreen({ route }) {
       <TouchableOpacity style={[s.btn, !canPay && s.btnDisabled]} onPress={pay} disabled={busy || !canPay}>
         {busy
           ? <ActivityIndicator color="white" />
-          : <Text style={s.btnText}>{t.payBtn} {amount.toLocaleString("fr-FR")} {property.currency || "XOF"}</Text>
+          : <Text style={s.btnText}>{t.payBtn} {fmtNum(amount)} {property.currency || "XOF"}</Text>
         }
       </TouchableOpacity>
 
@@ -535,6 +550,7 @@ export default function PaymentScreen({ route }) {
         title={t.chooseCountry}
       />
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

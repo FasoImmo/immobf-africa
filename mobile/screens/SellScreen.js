@@ -419,22 +419,17 @@ export default function SellScreen({ navigation, route }) {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(
-          lang === "fr" ? "Permission refusée" : "Permission denied",
-          lang === "fr"
-            ? "Autorisez l'accès à la localisation dans les paramètres de l'application."
-            : "Allow location access in app settings."
-        );
+        // Permission refusée : on continue sans bloquer, la géolocalisation est optionnelle
         return;
       }
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       setForm((f) => ({
         ...f,
         lat: String(pos.coords.latitude.toFixed(6)),
         lng: String(pos.coords.longitude.toFixed(6)),
       }));
-    } catch (e) {
-      Alert.alert("Erreur", e.message);
+    } catch {
+      // Échec silencieux — la localisation est facultative, l'annonce peut être soumise sans
     } finally {
       setGeoLoading(false);
     }

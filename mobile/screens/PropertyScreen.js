@@ -4,6 +4,10 @@ import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLang } from "../lib/lang";
 import { Properties, Reviews } from "../lib/api";
+
+function fmtNum(n) {
+  return String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
 import FallbackImage from "../components/FallbackImage";
 
 const T = {
@@ -54,6 +58,14 @@ const T = {
 // Formate une date en DD/MM/YYYY
 function fmtDate(d) {
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+}
+
+function fmtDateStr(isoStr) {
+  // Parse "YYYY-MM-DD" or ISO datetime safely without timezone shift
+  const s = isoStr ? String(isoStr).slice(0, 10) : "";
+  if (!s) return "—";
+  const [y, m, d] = s.split("-");
+  return `${d}/${m}/${y}`;
 }
 
 function addDays(date, n) {
@@ -249,7 +261,7 @@ export default function PropertyScreen({ route, navigation }) {
         {/* Prix unitaire */}
         <View style={styles.priceRow}>
           <Text style={styles.priceLabel}>{priceLabel}</Text>
-          <Text style={styles.price}>{unitPrice.toLocaleString("fr-FR")} {cur}</Text>
+          <Text style={styles.price}>{fmtNum(unitPrice)} {cur}</Text>
         </View>
 
         {/* ── COURT SÉJOUR : sélecteur dates + commission + paiement ── */}
@@ -282,6 +294,25 @@ export default function PropertyScreen({ route, navigation }) {
               </View>
             </View>
 
+            {/* Périodes indisponibles — liste des dates bloquées/réservées */}
+            {bookedRanges.length > 0 && (
+              <View style={{ marginTop: 10, backgroundColor: "#fff8f0", borderRadius: 8, padding: 10, borderWidth: 1, borderColor: "#fcd8aa" }}>
+                <Text style={{ fontSize: 12, fontWeight: "700", color: "#c0392b", marginBottom: 6 }}>
+                  🔒 {lang === "fr" ? "Dates indisponibles" : "Unavailable dates"}
+                </Text>
+                {bookedRanges
+                  .filter((b) => new Date(b.check_out) >= today)
+                  .sort((a, b) => new Date(a.check_in) - new Date(b.check_in))
+                  .slice(0, 6)
+                  .map((b, i) => (
+                    <Text key={i} style={{ fontSize: 12, color: "#c0392b", marginBottom: 2 }}>
+                      • {fmtDateStr(b.check_in)} → {fmtDateStr(b.check_out)}
+                    </Text>
+                  ))
+                }
+              </View>
+            )}
+
             {/* Avertissement visuel dates occupées */}
             {hasConflict && (
               <View style={{ backgroundColor: "#fee2e2", borderRadius: 8, padding: 10, marginTop: 6, flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -295,12 +326,12 @@ export default function PropertyScreen({ route, navigation }) {
             <View style={styles.recap}>
               <View style={styles.recapRow}>
                 <Text style={styles.recapLabel}>{t.total}</Text>
-                <Text style={styles.recapValue}>{totalAmount.toLocaleString("fr-FR")} {cur}</Text>
+                <Text style={styles.recapValue}>{fmtNum(totalAmount)} {cur}</Text>
               </View>
               <View style={styles.recapRow}>
                 <Text style={styles.recapLabel}>{t.commission}</Text>
                 <Text style={[styles.recapValue, { color: "#0E7C66", fontWeight: "700" }]}>
-                  {commission.toLocaleString("fr-FR")} {cur}
+                  {fmtNum(commission)} {cur}
                 </Text>
               </View>
             </View>
@@ -352,7 +383,7 @@ export default function PropertyScreen({ route, navigation }) {
                     total: unitPrice,
                   })}
                 >
-                  <Text style={styles.btnText}>{t.payBtn} — {commissionLong.toLocaleString("fr-FR")} {cur}</Text>
+                  <Text style={styles.btnText}>{t.payBtn} — {fmtNum(commissionLong)} {cur}</Text>
                 </TouchableOpacity>
                 {ownerWa && <Text style={styles.lockMsg}>{t.lockMsg}</Text>}
               </>

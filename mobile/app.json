@@ -3,7 +3,7 @@
     "name": "ImmoBF Africa",
     "slug": "immobilier-en-afrique",
     "owner": "immobfs-team",
-    "version": "1.6.2",
+    "version": "1.6.3",
     "orientation": "portrait",
     "scheme": "immobf",
     "primaryColor": "#0E7C66",
@@ -25,7 +25,7 @@
     },
     "android": {
       "package": "africa.immobf.app",
-      "versionCode": 10,
+      "versionCode": 11,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"

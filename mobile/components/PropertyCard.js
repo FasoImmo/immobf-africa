@@ -7,14 +7,18 @@ import FallbackImage from "./FallbackImage";
 
 const FAVS_KEY = "immobf_favorites";
 
+function fmtNum(n) {
+  return String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+
 function formatFCFA(n) {
   if (n == null) return "—";
-  return `${Number(n).toLocaleString("fr-FR")} FCFA`;
+  return `${fmtNum(n)} FCFA`;
 }
 
 function formatArea(m2) {
   if (m2 == null) return null;
-  return `${Number(m2).toLocaleString("fr-FR")} m²`;
+  return `${fmtNum(m2)} m²`;
 }
 
 const TX_COLORS = {
