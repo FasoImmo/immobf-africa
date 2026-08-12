@@ -21,6 +21,8 @@ jobs:
   build:
     name: EAS Android build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # required to create/update GitHub Releases
 
     steps:
       - name: Checkout
@@ -44,5 +46,71 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: EAS Build
+        id: eas
         working-directory: mobile
-        run: eas build --platform android --profile ${{ github.event.inputs.profile || 'preview' }} --non-interactive
+        run: |
+          PROFILE="${{ github.event.inputs.profile || 'preview' }}"
+          OUTPUT=$(eas build \
+            --platform android \
+            --profile "$PROFILE" \
+            --non-interactive \
+            --json 2>/dev/null)
+          APK_URL=$(echo "$OUTPUT" | jq -r \
+            '.[0].artifacts.buildUrl // .[0].artifacts.applicationArchiveUrl // empty')
+          if [ -z "$APK_URL" ]; then
+            echo "ERROR: could not extract APK URL from EAS output"
+            echo "$OUTPUT"
+            exit 1
+          fi
+          echo "apk_url=$APK_URL" >> "$GITHUB_OUTPUT"
+          echo "APK URL: $APK_URL"
+
+      - name: Download APK from EAS
+        run: curl -fsSL -o app-release.apk "${{ steps.eas.outputs.apk_url }}"
+
+      - name: Read app version
+        id: ver
+        run: |
+          VERSION=$(node -p "require('./mobile/app.json').expo.version")
+          CODE=$(node -p "require('./mobile/app.json').expo.android.versionCode")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE"     >> "$GITHUB_OUTPUT"
+
+      # Publish to GitHub Releases under the fixed tag "mobile-latest".
+      # This gives a permanent, stable download URL that never expires:
+      # https://github.com/FasoImmo/immobf-africa/releases/latest/download/app-release.apk
+      - name: Publish GitHub Release (mobile-latest)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          CODE="${{ steps.ver.outputs.code }}"
+          TAG="mobile-latest"
+          NOTES="**ImmoBF Africa v${VERSION} (build ${CODE})**
+
+          Construit automatiquement depuis le commit \`${{ github.sha }}\`.
+          Télécharger et installer sur Android (autoriser les sources inconnues si nécessaire)."
+
+          # Remove existing release + tag so we can recreate it fresh
+          gh release delete "$TAG" --yes 2>/dev/null || true
+          git push origin ":refs/tags/$TAG"     2>/dev/null || true
+
+          gh release create "$TAG" app-release.apk \
+            --title "ImmoBF Africa — Latest APK (v${VERSION})" \
+            --notes "$NOTES" \
+            --latest
+
+      # Optional: keep Vercel env var in sync automatically.
+      # Add VERCEL_TOKEN to GitHub repo secrets to enable this step.
+      - name: Update NEXT_PUBLIC_APK_URL in Vercel
+        if: ${{ env.VERCEL_TOKEN != '' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          PERM_URL="https://github.com/FasoImmo/immobf-africa/releases/latest/download/app-release.apk"
+          HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+            "https://api.vercel.com/v9/projects/immobf-frontend/env/rp4R13OZWIFJERIf?teamId=faso-immo" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"value\": \"$PERM_URL\"}")
+          echo "Vercel PATCH → HTTP $HTTP"
