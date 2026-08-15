@@ -347,12 +347,13 @@ export default function PaymentScreen({ route }) {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior="padding"
+      keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 64}
     >
     <ScrollView
       style={s.container}
       keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
     >
       <Text style={s.h1}>{property.title}</Text>
       <Text style={s.amount}>{fmtNum(amount)} {property.currency || "XOF"}</Text>

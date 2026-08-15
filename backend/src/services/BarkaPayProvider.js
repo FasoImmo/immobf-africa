@@ -156,13 +156,28 @@ class BarkaPayProvider extends PaymentProvider {
     }
     if (otp) form.append("otp", otp);
 
-    const res = await fetch(`${BASE_URL}/api/client/payment/mobile/api`, {
-      method:  "POST",
-      headers: { ...this._headers(), "Content-Type": "application/x-www-form-urlencoded" },
-      body:    form.toString(),
-    });
-
-    const body = await res.json().catch(() => ({}));
+    const ctrl  = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 22000);
+    let res, body;
+    try {
+      res  = await fetch(`${BASE_URL}/api/client/payment/mobile/api`, {
+        method:  "POST",
+        headers: { ...this._headers(), "Content-Type": "application/x-www-form-urlencoded" },
+        body:    form.toString(),
+        signal:  ctrl.signal,
+      });
+      body = await res.json().catch(() => ({}));
+    } catch (fetchErr) {
+      if (fetchErr.name === "AbortError") {
+        throw Object.assign(
+          new Error("BarkaPay API timeout — aucune réponse en 22s. Réessayez dans quelques instants."),
+          { status: 504, code: "barkapay_timeout" }
+        );
+      }
+      throw fetchErr;
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (!res.ok) {
       let msg = body.message || `HTTP ${res.status}`;

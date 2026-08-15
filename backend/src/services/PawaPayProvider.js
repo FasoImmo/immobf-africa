@@ -281,15 +281,31 @@ class PawaPayProvider extends PaymentProvider {
       payload.preAuthorisationCode = preAuthorisationCode;
     }
 
-    const res = await fetch(`${this._baseUrl()}/v2/deposits`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiToken}`,
-      },
-      body: JSON.stringify(payload),
-    });
-    const body = await res.json();
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 22000); // 22s < mobile timeout 30s
+    let res, body;
+    try {
+      res  = await fetch(`${this._baseUrl()}/v2/deposits`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiToken}`,
+        },
+        body: JSON.stringify(payload),
+        signal: ctrl.signal,
+      });
+      body = await res.json();
+    } catch (fetchErr) {
+      if (fetchErr.name === "AbortError") {
+        throw Object.assign(
+          new Error("PawaPay API timeout — aucune réponse en 22s. Réessayez dans quelques instants."),
+          { status: 504, code: "pawapay_timeout" }
+        );
+      }
+      throw fetchErr;
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (body.status !== "ACCEPTED") {
       const logger = require("../utils/logger");
