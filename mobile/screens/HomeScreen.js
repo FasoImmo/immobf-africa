@@ -131,7 +131,7 @@ function RecentCard({ property, onPress, lang }) {
     <TouchableOpacity style={rc.card} onPress={onPress} activeOpacity={0.88}>
       <FallbackImage source={coverUri} style={rc.cover} resizeMode="cover" />
       <View style={rc.info}>
-        <Text style={rc.title} numberOfLines={1}>{p.title || "—"}</Text>
+        <Text style={rc.title} numberOfLines={1}>{(lang === "en" && p.title_en) ? p.title_en : (p.title || "—")}</Text>
         <Text style={rc.price}>{p.price ? `${Number(p.price).toLocaleString("fr-FR")} FCFA` : "—"}</Text>
       </View>
     </TouchableOpacity>
@@ -177,19 +177,19 @@ export default function HomeScreen({ navigation }) {
   const fetchListings = useCallback(async (params = {}) => {
     try {
       setLoading(true);
-      const res = await Properties.search({ page: 1, limit: 10, ...params });
+      const res = await Properties.search({ page: 1, limit: 10, lang, ...params });
       setListings(res.items || res.results || []);
     } catch {
       setListings([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [lang]);
 
   useEffect(() => {
     fetchListings();
     loadRecents();
-  }, []);
+  }, [lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Refresh on pull-to-refresh
   const onRefresh = useCallback(async () => {

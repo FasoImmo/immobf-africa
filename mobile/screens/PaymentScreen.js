@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View, Text, TextInput, StyleSheet, TouchableOpacity,
   ActivityIndicator, Alert, Linking, ScrollView, Modal, FlatList,
@@ -253,6 +253,11 @@ export default function PaymentScreen({ route }) {
   const [loggedUserEmail, setLoggedUserEmail] = useState(""); // email du compte connecté
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
+  const [polling, setPolling] = useState(false);
+  const pollRef = useRef(null);
+
+  // Arrêter le polling au démontage
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
   // Détecter si l'utilisateur est invité (pas de token) + récupérer son email
   useEffect(() => {
@@ -298,6 +303,30 @@ export default function PaymentScreen({ route }) {
     && !(needsOtp   && !pawapayOtp)
     && !(bkNeedsOtp && !barkapayOtp);
 
+  function startPolling(txId) {
+    if (pollRef.current) clearInterval(pollRef.current);
+    setPolling(true);
+    let attempts = 0;
+    const MAX = 40; // 40 × 4 s = 2 min 40 s
+    pollRef.current = setInterval(async () => {
+      attempts++;
+      if (attempts > MAX) {
+        clearInterval(pollRef.current);
+        setPolling(false);
+        return;
+      }
+      try {
+        const data = await Payments.get(txId);
+        const st = data.transaction?.status;
+        if (st === "succeeded" || st === "failed") {
+          clearInterval(pollRef.current);
+          setPolling(false);
+          setResult((prev) => ({ ...prev, status: st }));
+        }
+      } catch (_) { /* ignore les erreurs réseau passagères */ }
+    }, 4000);
+  }
+
   async function pay() {
     if (!canPay) {
       Alert.alert("Champs requis", needsOtp ? t.errOtp : t.errPhone);
@@ -333,6 +362,11 @@ export default function PaymentScreen({ route }) {
       const r = await Payments.initiate(payload);
       setResult(r);
       if (r.payment_url) Linking.openURL(r.payment_url);
+      // Paiements asynchrones (push USSD) : statut = "pending" à l'initiation
+      // → poll GET /payments/:id toutes les 4 s jusqu'à confirmation ou timeout
+      if (r.status === "pending" && r.transaction_id) {
+        startPolling(r.transaction_id);
+      }
     } catch (e) {
       let msg = e?.response?.data?.error?.message || e?.response?.data?.message || e.message;
       if (!e.response || msg === "Network Error") {
@@ -502,6 +536,17 @@ export default function PaymentScreen({ route }) {
           : <Text style={s.btnText}>{t.payBtn} {fmtNum(amount)} {property.currency || "XOF"}</Text>
         }
       </TouchableOpacity>
+
+      {polling && (
+        <View style={[s.info, { backgroundColor: "#e8f5e9", marginTop: 16, flexDirection: "row", alignItems: "center", gap: 8 }]}>
+          <ActivityIndicator color="#0E7C66" size="small" />
+          <Text style={{ color: "#2e7d32", fontSize: 14 }}>
+            {lang === "fr"
+              ? "En attente de confirmation de paiement…"
+              : "Waiting for payment confirmation…"}
+          </Text>
+        </View>
+      )}
 
       {result?.ussd_code && (
         <View style={s.info}>
