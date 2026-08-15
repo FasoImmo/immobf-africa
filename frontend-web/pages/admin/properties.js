@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import {
   Box, Paper, Typography, Table, TableHead, TableRow, TableCell, TableBody,
   Button, CircularProgress, Chip, Alert, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, Stack, Grid, MenuItem,
+  DialogActions, TextField, Stack, Grid, MenuItem, InputAdornment, Tooltip,
 } from "@mui/material";
 import AdminLayout from "../../components/AdminLayout";
 import { Admin } from "../../lib/api";
@@ -41,6 +41,9 @@ export default function AdminProperties() {
   const [filterStatus,  setFilterStatus]  = useState("");
   const [filterDays,    setFilterDays]    = useState("");
   const [groupBy,       setGroupBy]       = useState("");
+
+  // Taux de commission personnalisé par annonce (draft en cours d'édition)
+  const [commissionRates, setCommissionRates] = useState({});
 
   // Dialogs
   const [extendDialog,  setExtendDialog]  = useState({ open: false, prop: null, days: 30, note: "" });
@@ -162,6 +165,26 @@ export default function AdminProperties() {
     } finally { setActingId(null); }
   }
 
+  async function handleSaveCommissionRate(p) {
+    const raw = commissionRates[p.id];
+    // Chaîne vide ou non définie → reset au taux global
+    const pct = (raw === "" || raw == null) ? null : Number(raw);
+    if (pct !== null && (isNaN(pct) || pct < 0 || pct > 100)) {
+      setError("Le taux doit être entre 0 et 100 (%)");
+      return;
+    }
+    setActingId(p.id);
+    try {
+      await Admin.setPropertyCommissionRate(p.id, pct);
+      setProperties((prev) => prev.map((x) => x.id === p.id ? { ...x, deposit_pct: pct } : x));
+      setCommissionRates((prev) => { const n = { ...prev }; delete n[p.id]; return n; });
+      const label = pct != null ? `${pct}%` : "taux global";
+      setActionMsg({ severity: "success", text: `Commission de "${p.title}" → ${label}` });
+    } catch (e) {
+      setError(e?.response?.data?.error?.message || e.message);
+    } finally { setActingId(null); }
+  }
+
   async function handleCommissionToggle(p) {
     // Cycle : null (défaut) → true (forcer ON) → false (forcer OFF) → null
     const next = p.commission_enabled === null || p.commission_enabled === undefined
@@ -262,6 +285,32 @@ export default function AdminProperties() {
             >
               💰 {p.commission_enabled === true ? "Comm. ON" : p.commission_enabled === false ? "Comm. OFF" : "Comm. ≈"}
             </Button>
+            {/* Taux de commission personnalisé par annonce */}
+            <Tooltip title={p.deposit_pct != null ? `Taux actuel : ${p.deposit_pct}% (personnalisé)` : "Taux actuel : global (paramètres). Saisir un chiffre pour personnaliser, vider pour revenir au global."}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
+                <TextField
+                  size="small"
+                  type="number"
+                  placeholder={p.deposit_pct != null ? String(p.deposit_pct) : "Global"}
+                  value={commissionRates[p.id] !== undefined ? commissionRates[p.id] : (p.deposit_pct != null ? String(p.deposit_pct) : "")}
+                  onChange={(e) => setCommissionRates((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                  disabled={busy}
+                  sx={{ width: 80 }}
+                  inputProps={{ min: 0, max: 100, step: 0.5 }}
+                  InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
+                />
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  disabled={busy || commissionRates[p.id] === undefined}
+                  onClick={() => handleSaveCommissionRate(p)}
+                  sx={{ minWidth: 32, px: 0.5 }}
+                >
+                  ✓
+                </Button>
+              </Box>
+            </Tooltip>
             <Button size="small" color="error" variant="outlined" disabled={busy}
               onClick={() => handleDelete(p)}>
               🗑 Suppr.

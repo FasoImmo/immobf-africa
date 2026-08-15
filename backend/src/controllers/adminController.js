@@ -675,6 +675,37 @@ const commissionToggleSchema = Joi.object({
   enabled: Joi.boolean().allow(null).required(),
 });
 
+/**
+ * PATCH /admin/properties/:id/commission-rate
+ * Définit un taux de commission personnalisé (deposit_pct) pour une annonce.
+ * Body : { commission_pct: number | null }
+ *   null → réinitialise au taux global (platform_settings)
+ *   0..100 → taux personnalisé en %
+ */
+async function setPropertyCommissionRate(req, res) {
+  const id = parseInt(req.params.id, 10);
+  if (!id) throw BadRequest("ID annonce invalide");
+
+  const raw = req.body?.commission_pct;
+  let rate = null;
+  if (raw !== null && raw !== undefined && raw !== "") {
+    rate = Number(raw);
+    if (isNaN(rate) || rate < 0 || rate > 100) {
+      throw BadRequest("Le taux de commission doit être entre 0 et 100 (%)");
+    }
+  }
+
+  const row = await Property.setDepositPct(id, rate);
+  if (!row) throw NotFound("Annonce introuvable");
+
+  const logger = require("../utils/logger");
+  logger.info(
+    { propertyId: id, deposit_pct: rate, admin: req.user?.email },
+    "deposit_pct updated by admin"
+  );
+  res.json({ property: row });
+}
+
 async function setPropertyCommission(req, res) {
   const id = parseInt(req.params.id, 10);
   if (!id) throw BadRequest("ID annonce invalide");
@@ -706,4 +737,5 @@ module.exports = {
   listPaymentProviders, updatePaymentProvider,
   listingQualityReport, runListingQualityAlerts,
   setPropertyCommission,
+  setPropertyCommissionRate,
 };

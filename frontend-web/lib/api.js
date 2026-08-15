@@ -206,6 +206,8 @@ export const Admin = {
   runListingQualityAlerts: (force = false) => api.post("/admin/listing-quality/run", { force }).then((r) => r.data),
   // Commission toggle par annonce : enabled = true | false | null (défaut)
   setPropertyCommission: (id, enabled) => api.patch(`/admin/properties/${id}/commission`, { enabled }).then((r) => r.data),
+  // Taux de commission personnalisé par annonce : commission_pct = 0..100 | null (global)
+  setPropertyCommissionRate: (id, commission_pct) => api.patch(`/admin/properties/${id}/commission-rate`, { commission_pct }).then((r) => r.data),
 };
 
 export const Config = {

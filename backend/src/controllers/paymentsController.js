@@ -93,7 +93,11 @@ async function initiate(req, res) {
     totalBookingAmount = property.price * value.booking_units;
     const PS2 = require("../models/PlatformSetting");
     const pricing2 = await PS2.getPricing();
-    value.amount = Math.max(100, Math.round(totalBookingAmount * pricing2.commission_pct / 100));
+    // Taux effectif : taux personnalisé de l'annonce si défini, sinon taux global
+    const effectivePct = (property.deposit_pct != null)
+      ? Number(property.deposit_pct)
+      : pricing2.commission_pct;
+    value.amount = Math.max(100, Math.round(totalBookingAmount * effectivePct / 100));
     value.currency = property.currency || value.currency;
   }
 

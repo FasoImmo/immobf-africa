@@ -607,11 +607,25 @@ async function setCommissionEnabled(id, enabled) {
   return rows[0] || null;
 }
 
+/**
+ * Définit le taux de commission spécifique à une annonce (deposit_pct).
+ * pct = null → réinitialise au taux global (platform_settings).
+ * pct = 0..100 → taux personnalisé en %.
+ */
+async function setDepositPct(id, pct) {
+  const { rows } = await query(
+    `UPDATE properties SET deposit_pct = $2, updated_at = NOW()
+     WHERE id = $1 RETURNING id, title, deposit_pct`,
+    [id, pct]
+  );
+  return rows[0] || null;
+}
+
 module.exports = {
   create, findById, search, publish, markListingFeePaid, updateStatus, boost,
   addPhoto, photosFor, setExpiry, listForOwner, listAllForAdmin, withTransaction,
   update, deletePhoto, deleteForOwner, deleteForAdmin,
   extendListing, suspendListing, restoreListing,
-  isCommissionEligible, setCommissionEnabled,
+  isCommissionEligible, setCommissionEnabled, setDepositPct,
   addVideo, videosFor, deleteVideo,
 };

@@ -138,7 +138,8 @@ router.delete("/admin/reviews/:id",           requireAdmin, asyncHandler(adminCt
 // --- Qualité des annonces ---
 router.get  ("/admin/listing-quality",                requireAdmin, asyncHandler(adminCtl.listingQualityReport));
 router.post ("/admin/listing-quality/run",          requireAdmin, asyncHandler(adminCtl.runListingQualityAlerts));
-router.patch("/admin/properties/:id/commission",    requireAdmin, asyncHandler(adminCtl.setPropertyCommission));
+router.patch("/admin/properties/:id/commission",      requireAdmin, asyncHandler(adminCtl.setPropertyCommission));
+router.patch("/admin/properties/:id/commission-rate", requireAdmin, asyncHandler(adminCtl.setPropertyCommissionRate));
 
 // --- Gestion des fournisseurs de paiement ---
 router.get  ("/admin/payment-providers",      requireAdmin, asyncHandler(adminCtl.listPaymentProviders));
