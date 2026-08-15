@@ -48,7 +48,7 @@ async function listProviders(req, res) {
 }
 
 async function initiate(req, res) {
-  const { value, error } = initiateSchema.validate(req.body);
+  const { value, error } = initiateSchema.validate(req.body, { stripUnknown: true });
   if (error) throw BadRequest(error.message);
 
   // Guest (non-authentifié) : email obligatoire pour envoyer le reçu

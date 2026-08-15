@@ -317,7 +317,7 @@ export default function PaymentScreen({ route }) {
         property_id: property.id,
         purpose,
         customer_phone: fullPhone,
-        buyer_country: buyerCountry.code,
+        country_code: buyerCountry.code,
       };
       // Email facture : champ visible par tous, pré-rempli pour les connectés
       if (receiptEmail.includes("@")) payload.customer_email = receiptEmail.trim();
