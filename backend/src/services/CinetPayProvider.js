@@ -41,10 +41,13 @@ class CinetPayProvider extends PaymentProvider {
   get countries()  { return ["BF", "CI", "SN", "CM", "ML", "GN", "TG", "BJ"]; }
   get currencies() { return ["XOF", "XAF", "GNF"]; }
 
-  isAvailable() {
+  isConfigured() {
     const { apiKey, apiPassword } = config.providers.cinetpay;
     return Boolean(apiKey && apiPassword);
   }
+
+  // Alias conservé pour compatibilité avec les appels internes (initiate, etc.)
+  isAvailable() { return this.isConfigured(); }
 
   /**
    * La nouvelle API "1.0 Aurore" n'utilise plus de signature HMAC sur les webhooks.

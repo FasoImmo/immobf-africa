@@ -16,14 +16,14 @@ import { useTranslation } from "react-i18next";
 // PawaPay est recommandé par défaut (flux natif push — pas de redirection) ;
 // CinetPay sera remis en avant une fois son intégration Go Live validée (#28).
 const PROVIDER_LABELS = {
-  cinetpay:        { label: "CinetPay" },
+  barkapay:        { label: "BarkaPay (Moov, Orange, MTN, Wave…)", recommended: true },
+  cinetpay:        { label: "CinetPay (Orange/Moov/Wave)" },
   orange_money_bf: { label: "Orange Money (*144*4*6#)" },
   wave:            { label: "Wave" },
   flutterwave:     { label: "Flutterwave (carte, Orange Money, Mobicash)" },
   fedapay:         { label: "FedaPay (tous opérateurs)" },
   moov_money_bf:   { label: "Moov Money (*555*6#)" },
-  pawapay:         { label: "PawaPay (Moov/Orange/Wave)", recommended: true },
-  barkapay:        { label: "BarkaPay (Moov, Orange, MTN, Wave…)" },
+  pawapay:         { label: "PawaPay (Moov/Orange/Wave)" },
 };
 
 // Pour FedaPay : choix d'opérateur préféré (affiché dans la modal de FedaPay,
@@ -182,10 +182,10 @@ export default function PaymentDialog({ open, onClose, onSuccess, onMessage, pro
       const flw = d.providers.find((p) => p.name === "flutterwave");
       const fp  = d.providers.find((p) => p.name === "fedapay");
       setProvider(
+        bp  ? "barkapay"        :
         cp  ? "cinetpay"        :
         om  ? "orange_money_bf" :
         pp  ? "pawapay"         :
-        bp  ? "barkapay"        :
         wv  ? "wave"            :
         flw ? "flutterwave"     :
         fp  ? "fedapay"         :
@@ -334,7 +334,7 @@ export default function PaymentDialog({ open, onClose, onSuccess, onMessage, pro
           <>
             <TextField
               select fullWidth label={t("payment.choose_provider")} sx={{ mb: 2 }}
-              value={provider} onChange={(e) => setProvider(e.target.value)}
+              value={provider} onChange={(e) => { setProvider(e.target.value); setError(null); }}
             >
               {providers.map((p) => {
                 const meta = PROVIDER_LABELS[p.name] || { label: p.name };
