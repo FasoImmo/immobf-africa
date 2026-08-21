@@ -69,6 +69,11 @@ export default function PaymentDialog({ open, onClose, onSuccess, onMessage, pro
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  // Ref pour détecter la transition false→true de `open` et n'exécuter le reset
+  // QUE lors d'une nouvelle ouverture — pas quand `property` change (re-fetch
+  // owner_whatsapp après commission) ce qui réinitialisait status→null et
+  // faisait disparaître le bouton WhatsApp juste après le paiement (#260).
+  const prevOpenRef = useRef(false);
   const [guestName, setGuestName] = useState("");
   // Vrai si l'utilisateur n'est pas connecté (paiement invité)
   const [isGuest, setIsGuest] = useState(false);
@@ -145,11 +150,13 @@ export default function PaymentDialog({ open, onClose, onSuccess, onMessage, pro
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
-    // Réinitialiser l'état de paiement à chaque ouverture du dialog.
-    // Sans ce reset, si le dialog était déjà ouvert une première fois (paiement
-    // terminé, échoué ou en cours), rouvrir le dialog montre l'ancien statut
-    // au lieu d'un formulaire vierge ("page de l'ancien paiement").
+    const justOpened = open && !prevOpenRef.current;
+    prevOpenRef.current = open;
+    // Ne reset que lors d'une nouvelle ouverture (false → true).
+    // Un changement de `property` pendant que le dialog est déjà ouvert
+    // (re-fetch owner_whatsapp après commission) ne doit PAS reset le statut
+    // — sinon le bouton WhatsApp disparaît juste après le paiement (#260).
+    if (!justOpened) return;
     setResult(null);
     setStatus(null);
     setLoading(false);
@@ -157,7 +164,6 @@ export default function PaymentDialog({ open, onClose, onSuccess, onMessage, pro
     setPhone("");
     stopPolling();
     setBuyerCountry(property?.country_code || "BF");
-    // Rafraîchit l'email et détecte si l'utilisateur est invité.
     try {
       const token = localStorage.getItem("immobf_token");
       const u = JSON.parse(localStorage.getItem("immobf_user") || "{}");

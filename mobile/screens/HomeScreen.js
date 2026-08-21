@@ -21,6 +21,9 @@ const T = {
     allCities: "Ville",
     allTxTypes: "Transaction",
     allPropTypes: "Type de bien",
+    allFurnished: "Meublé / Non meublé",
+    furnished: "Meublé",
+    unfurnished: "Non meublé",
     btnSearch: "PARCOURIR",
     recentTitle: "Récemment consultés",
     newTitle: "Nouvelles annonces",
@@ -34,8 +37,10 @@ const T = {
     commercial: "Commercial",
     villa: "Villa",
     chooseCountry: "Choisir un pays",
+    chooseCity: "Choisir une ville",
     chooseTx: "Type de transaction",
     choosePropType: "Type de bien",
+    chooseFurnished: "Meublé ?",
   },
   en: {
     tagline: "We optimize your choice.",
@@ -44,6 +49,9 @@ const T = {
     allCities: "City",
     allTxTypes: "Transaction",
     allPropTypes: "Property type",
+    allFurnished: "Furnished / Unfurnished",
+    furnished: "Furnished",
+    unfurnished: "Unfurnished",
     btnSearch: "BROWSE",
     recentTitle: "Recently viewed",
     newTitle: "New listings",
@@ -57,8 +65,10 @@ const T = {
     commercial: "Commercial",
     villa: "Villa",
     chooseCountry: "Choose a country",
+    chooseCity: "Choose a city",
     chooseTx: "Transaction type",
     choosePropType: "Property type",
+    chooseFurnished: "Furnished?",
   },
 };
 
@@ -77,6 +87,23 @@ const COUNTRIES = [
   { code: "CD", label: "🇨🇩 Congo RDC" },
   { code: "MA", label: "🇲🇦 Maroc" },
 ];
+
+// Villes principales par pays — liste extensible (#261)
+const CITIES_BY_COUNTRY = {
+  BF: ["Ouagadougou","Bobo-Dioulasso","Koudougou","Ouahigouya","Banfora","Dédougou","Kaya","Tenkodogo","Fada N'Gourma","Manga","Gaoua","Dori","Ziniaré"],
+  CI: ["Abidjan","Bouaké","Daloa","Yamoussoukro","Korhogo","Man","San-Pédro","Gagnoa","Abengourou","Divo"],
+  SN: ["Dakar","Thiès","Rufisque","Kaolack","Ziguinchor","Saint-Louis","Touba","Mbour","Diourbel","Louga"],
+  ML: ["Bamako","Sikasso","Mopti","Ségou","Kayes","Gao","Tombouctou","Koutiala"],
+  TG: ["Lomé","Sokodé","Kara","Atakpamé","Kpalimé","Dapaong","Tsévié"],
+  BJ: ["Cotonou","Porto-Novo","Parakou","Abomey","Natitingou","Lokossa","Ouidah","Bohicon"],
+  NE: ["Niamey","Zinder","Maradi","Tahoua","Agadez","Dosso","Diffa"],
+  GN: ["Conakry","Nzérékoré","Kankan","Kindia","Labé","Mamou","Siguiri"],
+  GH: ["Accra","Kumasi","Tamale","Takoradi","Cape Coast","Sunyani","Koforidua"],
+  NG: ["Lagos","Abuja","Kano","Ibadan","Port Harcourt","Enugu","Kaduna","Benin City","Owerri","Calabar"],
+  CM: ["Douala","Yaoundé","Garoua","Bamenda","Maroua","Bafoussam","Ngaoundéré"],
+  CD: ["Kinshasa","Lubumbashi","Mbuji-Mayi","Kisangani","Kananga","Goma","Bukavu"],
+  MA: ["Casablanca","Rabat","Marrakech","Fès","Tanger","Agadir","Meknès","Oujda","Kénitra","Salé"],
+};
 
 const TX_OPTIONS = (t) => [
   { code: "sale",       label: t.sale },
@@ -146,14 +173,19 @@ export default function HomeScreen({ navigation }) {
   // Search form state
   const [query, setQuery] = useState("");
   const [country, setCountry] = useState({ code: "", label: t.allCountries });
-  const [city, setCity] = useState("");
+  const [city, setCity] = useState({ code: "", label: "" });
   const [txType, setTxType] = useState({ code: "", label: t.allTxTypes });
   const [propType, setPropType] = useState({ code: "", label: t.allPropTypes });
 
   // Modal visibility
-  const [showCountry, setShowCountry] = useState(false);
-  const [showTx, setShowTx]           = useState(false);
-  const [showProp, setShowProp]       = useState(false);
+  const [showCountry, setShowCountry]   = useState(false);
+  const [showCity, setShowCity]         = useState(false);
+  const [showTx, setShowTx]             = useState(false);
+  const [showProp, setShowProp]         = useState(false);
+  const [showFurnished, setShowFurnished] = useState(false);
+
+  // Furnished filter: "" | "true" | "false"
+  const [furnished, setFurnished] = useState({ code: "", label: "" });
 
   // Data state
   const [listings, setListings]   = useState([]);
@@ -208,10 +240,10 @@ export default function HomeScreen({ navigation }) {
     const params = {};
     if (query.trim()) params.q = query.trim();
     if (country.code) params.country_code = country.code;
-    if (city.trim()) params.city = city.trim();
+    if (city.code) params.city = city.code;
     if (txType.code) params.transaction_type = txType.code;
     if (propType.code) params.property_type = propType.code;
-    // Navigate to Browse tab with filters pre-applied
+    if (furnished.code !== "") params.is_furnished = furnished.code === "true";
     navigation.navigate("Parcourir", { filters: params });
   }
 
@@ -255,14 +287,11 @@ export default function HomeScreen({ navigation }) {
               <Text style={s.selectArrow}>▾</Text>
             </TouchableOpacity>
 
-            {/* City */}
-            <TextInput
-              style={s.input}
-              placeholder={t.allCities}
-              placeholderTextColor="#aaa"
-              value={city}
-              onChangeText={setCity}
-            />
+            {/* City picker — liste selon le pays sélectionné (#261) */}
+            <TouchableOpacity style={s.select} onPress={() => setShowCity(true)}>
+              <Text style={s.selectText}>{city.label || t.allCities}</Text>
+              <Text style={s.selectArrow}>▾</Text>
+            </TouchableOpacity>
 
             {/* Tx type picker */}
             <TouchableOpacity style={s.select} onPress={() => setShowTx(true)}>
@@ -273,6 +302,12 @@ export default function HomeScreen({ navigation }) {
             {/* Property type picker */}
             <TouchableOpacity style={s.select} onPress={() => setShowProp(true)}>
               <Text style={s.selectText}>{propType.label}</Text>
+              <Text style={s.selectArrow}>▾</Text>
+            </TouchableOpacity>
+
+            {/* Furnished picker (#262) */}
+            <TouchableOpacity style={s.select} onPress={() => setShowFurnished(true)}>
+              <Text style={s.selectText}>{furnished.label || t.allFurnished}</Text>
               <Text style={s.selectArrow}>▾</Text>
             </TouchableOpacity>
 
@@ -330,8 +365,20 @@ export default function HomeScreen({ navigation }) {
         title={t.chooseCountry}
         allLabel={t.allCountries}
         options={COUNTRIES.map((c) => ({ code: c.code, label: c.label }))}
-        onSelect={(code, label) => setCountry({ code, label: label || t.allCountries })}
+        onSelect={(code, label) => {
+          setCountry({ code, label: label || t.allCountries });
+          setCity({ code: "", label: "" }); // reset ville quand pays change (#261)
+        }}
         onClose={() => setShowCountry(false)}
+      />
+      {/* Villes selon pays sélectionné (#261) */}
+      <DropdownModal
+        visible={showCity}
+        title={t.chooseCity}
+        allLabel={t.allCities}
+        options={(CITIES_BY_COUNTRY[country.code] || []).map((v) => ({ code: v, label: v }))}
+        onSelect={(code, label) => setCity({ code, label: label || "" })}
+        onClose={() => setShowCity(false)}
       />
       <DropdownModal
         visible={showTx}
@@ -348,6 +395,18 @@ export default function HomeScreen({ navigation }) {
         options={PROP_OPTIONS(t)}
         onSelect={(code, label) => setPropType({ code, label: label || t.allPropTypes })}
         onClose={() => setShowProp(false)}
+      />
+      {/* Meublé / Non meublé (#262) */}
+      <DropdownModal
+        visible={showFurnished}
+        title={t.chooseFurnished}
+        allLabel={t.allFurnished}
+        options={[
+          { code: "true",  label: t.furnished },
+          { code: "false", label: t.unfurnished },
+        ]}
+        onSelect={(code, label) => setFurnished({ code, label: label || "" })}
+        onClose={() => setShowFurnished(false)}
       />
     </SafeAreaView>
   );
