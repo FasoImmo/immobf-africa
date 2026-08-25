@@ -37,6 +37,13 @@ router.get("/health", (_req, res) => {
   res.json({ ok: true, ts: Date.now() });
 });
 
+// Diagnostic IP sortante Railway (pour whitelist CinetPay) — à supprimer après config
+router.get("/ip-check", asyncHandler(async (_req, res) => {
+  const r = await fetch("https://api.ipify.org?format=json");
+  const data = await r.json();
+  res.json({ outbound_ip: data.ip, ts: Date.now() });
+}));
+
 // Redirect permanent vers le dernier APK Android
 router.get("/download/apk", (_req, res) => {
   const url = process.env.APK_DOWNLOAD_URL;
