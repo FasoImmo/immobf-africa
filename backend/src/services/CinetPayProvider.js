@@ -1,6 +1,6 @@
 "use strict";
 /**
- * CinetPayProvider — API "1.0 Aurore" (panel.cinetpay.net)
+ * CinetPayProvider — API "1.0 Aurore"
  *
  * Auth OAuth2:  POST /v1/oauth/login { api_key, api_password } → Bearer token (86400s)
  * Paiement:     POST /v1/payment (Bearer) → { data.payment_url }
@@ -13,19 +13,23 @@
  *   CINETPAY_API_KEY      — clé API (panneau Ressources > API & sécurité > "API Key")
  *   CINETPAY_API_PASSWORD — mot de passe API (à créer dans le panneau > "Définir un mot de passe API")
  *   CINETPAY_NOTIFY_URL   — URL du webhook (ex: https://api.immoafrica.online/api/webhooks/cinetpay)
+ *   CINETPAY_BASE_URL     — URL de base de l'API (défaut: https://api.cinetpay.co pour production)
+ *                           Sandbox : https://api.cinetpay.net
  *
  * Limite CinetPay : merchant_transaction_id ≤ 30 chars.
  * La référence ImmoBF "IMO-{13digits}-{8hex}" = 26 chars → OK sans troncature.
  *
- * Couverture Sandbox validée le 07/07/2026 (compte mahamady-koussoube, BF).
- * Docs : https://panel.cinetpay.net/mahamady-koussoube/developer/documentation
+ * Sandbox validé le 07/07/2026. Production activée le 27/08/2026.
+ * Docs sandbox : https://panel.cinetpay.net/mahamady-koussoube/developer/documentation
+ * Docs prod    : https://panel.cinetpay.co/mahamady-koussoube/developer/documentation
  */
 
 const PaymentProvider = require("./PaymentProvider");
 const config          = require("../config");
 const logger          = require("../utils/logger");
 
-const BASE_URL = "https://api.cinetpay.net";
+// Production : api.cinetpay.co — Sandbox : api.cinetpay.net
+const BASE_URL = process.env.CINETPAY_BASE_URL || "https://api.cinetpay.co";
 
 class CinetPayProvider extends PaymentProvider {
   constructor() {
