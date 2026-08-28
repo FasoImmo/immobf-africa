@@ -430,12 +430,12 @@ async function getPricingAdmin(req, res) {
 }
 
 async function setPricingAdmin(req, res) {
-  const { listing_1m, listing_3m, listing_6m, listing_12m, commission_pct } = req.body || {};
-  if ([listing_1m, listing_3m, listing_6m, listing_12m, commission_pct].some(
+  const { listing_1m, listing_3m, listing_6m, listing_12m, commission_pct, min_commission_xof } = req.body || {};
+  if ([listing_1m, listing_3m, listing_6m, listing_12m, commission_pct, min_commission_xof].some(
     (v) => v != null && (isNaN(Number(v)) || Number(v) < 0)
   )) throw BadRequest("Valeurs invalides — doivent être des nombres positifs");
   const PS = require("../models/PlatformSetting");
-  await PS.setPricing({ listing_1m, listing_3m, listing_6m, listing_12m, commission_pct });
+  await PS.setPricing({ listing_1m, listing_3m, listing_6m, listing_12m, commission_pct, min_commission_xof });
   const pricing = await PS.getPricing();
   res.json({ pricing });
 }

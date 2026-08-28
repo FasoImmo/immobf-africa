@@ -46,6 +46,7 @@ const PRICING_DEFAULTS = {
   listing_6m:  cfg.commissions.listingPlans[6],
   listing_12m: cfg.commissions.listingPlans[12],
   commission_pct: cfg.commissions.appPct,
+  min_commission_xof: cfg.commissions.minCommissionXof,
 };
 
 async function getPricing() {
@@ -58,6 +59,7 @@ async function getPricing() {
     listing_6m:     n("pricing_listing_6m"),
     listing_12m:    n("pricing_listing_12m"),
     commission_pct: n("pricing_commission_pct"),
+    min_commission_xof: n("pricing_min_commission_xof"),
     listingPlans: {
       1:  n("pricing_listing_1m"),
       3:  n("pricing_listing_3m"),
@@ -67,13 +69,14 @@ async function getPricing() {
   };
 }
 
-async function setPricing({ listing_1m, listing_3m, listing_6m, listing_12m, commission_pct }) {
+async function setPricing({ listing_1m, listing_3m, listing_6m, listing_12m, commission_pct, min_commission_xof }) {
   const pairs = [
-    ["pricing_listing_1m",      listing_1m],
-    ["pricing_listing_3m",      listing_3m],
-    ["pricing_listing_6m",      listing_6m],
-    ["pricing_listing_12m",     listing_12m],
-    ["pricing_commission_pct",  commission_pct],
+    ["pricing_listing_1m",          listing_1m],
+    ["pricing_listing_3m",          listing_3m],
+    ["pricing_listing_6m",          listing_6m],
+    ["pricing_listing_12m",         listing_12m],
+    ["pricing_commission_pct",      commission_pct],
+    ["pricing_min_commission_xof",  min_commission_xof],
   ];
   for (const [k, v] of pairs) {
     if (v != null) await set(k, String(Number(v)));

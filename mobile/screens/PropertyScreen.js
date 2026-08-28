@@ -172,9 +172,11 @@ export default function PropertyScreen({ route, navigation }) {
   const isSale = !isShort && !isLong;
 
   // Commission court séjour (sur durée choisie) et longue durée (1 mois)
+  // Minimum 100 XOF harmonisé avec le backend (APP_COMMISSION_MIN)
+  const MIN_COMMISSION = 100;
   const totalAmount = unitPrice * duration;
-  const commission = Math.round(totalAmount * (Number(p.deposit_pct || 5) / 100));
-  const commissionLong = Math.max(100, Math.round(unitPrice * (Number(p.deposit_pct || 5) / 100)));
+  const commission = Math.max(MIN_COMMISSION, Math.round(totalAmount * (Number(p.deposit_pct || 5) / 100)));
+  const commissionLong = Math.max(MIN_COMMISSION, Math.round(unitPrice * (Number(p.deposit_pct || 5) / 100)));
   const departure = addDays(arrival, duration);
 
   const typeLabel = isShort ? t.rentShort : isLong ? t.rentLong : t.sale;

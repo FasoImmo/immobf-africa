@@ -61,6 +61,7 @@ module.exports = {
     // commission transite par la plateforme (cf. tâche "Option 2" — paiement
     // direct au propriétaire + commission séparée pour ImmoBF, 29/06/2026).
     appPct: parseFloat(process.env.APP_COMMISSION_PCT || "5"),
+    minCommissionXof: parseInt(process.env.APP_COMMISSION_MIN || "100", 10),
     boostXof: parseInt(process.env.BOOST_PRICE_XOF || "5000", 10),
     agencySubXof: parseInt(process.env.AGENCY_SUBSCRIPTION_XOF || "20000", 10),
     listingFeeXof: parseInt(process.env.LISTING_FEE_XOF || "2000", 10),

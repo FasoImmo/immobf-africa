@@ -97,7 +97,7 @@ async function initiate(req, res) {
     const effectivePct = (property.deposit_pct != null)
       ? Number(property.deposit_pct)
       : pricing2.commission_pct;
-    value.amount = Math.max(100, Math.round(totalBookingAmount * effectivePct / 100));
+    value.amount = Math.max(pricing2.min_commission_xof, Math.round(totalBookingAmount * effectivePct / 100));
     value.currency = property.currency || value.currency;
   }
 
