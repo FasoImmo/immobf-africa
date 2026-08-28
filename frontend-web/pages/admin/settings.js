@@ -186,14 +186,30 @@ export default function AdminSettings() {
               <Grid item xs={12} sm={6} md={3}>
                 <TextField size="small" type="date" label="Début" fullWidth
                   value={promo.start || ""}
-                  onChange={(e) => setPromo((p) => ({ ...p, start: e.target.value }))}
+                  onChange={(e) => {
+                    const start = e.target.value;
+                    setPromo((p) => {
+                      const days = (start && p.end)
+                        ? Math.max(1, Math.round((new Date(p.end) - new Date(start)) / 86400000))
+                        : p.duration_days;
+                      return { ...p, start, duration_days: days };
+                    });
+                  }}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <TextField size="small" type="date" label="Fin" fullWidth
                   value={promo.end || ""}
-                  onChange={(e) => setPromo((p) => ({ ...p, end: e.target.value }))}
+                  onChange={(e) => {
+                    const end = e.target.value;
+                    setPromo((p) => {
+                      const days = (p.start && end)
+                        ? Math.max(1, Math.round((new Date(end) - new Date(p.start)) / 86400000))
+                        : p.duration_days;
+                      return { ...p, end, duration_days: days };
+                    });
+                  }}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
