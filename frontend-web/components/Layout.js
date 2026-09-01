@@ -353,6 +353,9 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
         <Typography variant="body2" color="text.secondary">
           © 2026 ImmoBF Africa — contact@immoafrica.online
         </Typography>
+        <Typography variant="caption" color="text.disabled" sx={{ display: "block", mt: 0.5 }}>
+          Africa DEV YAZID CONSULTING — RCCM BF-OUA-01-2025-B12-13511
+        </Typography>
         <Box sx={{ mt: 1, display: "flex", justifyContent: "center", gap: 2, flexWrap: "wrap" }}>
           {[
             { key: "footer.cgu", label: t("footer.cgu") },
