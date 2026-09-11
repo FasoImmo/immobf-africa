@@ -25,7 +25,7 @@ function displayDate(str) {
 }
 
 // ─── Modal blocage dates annonceur ───────────────────────────────────────────
-function BlockDatesModal({ visible, propertyId, propertyTitle, onClose }) {
+function BlockDatesModal({ visible, propertyId, propertyTitle, onClose, t }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -40,13 +40,13 @@ function BlockDatesModal({ visible, propertyId, propertyTitle, onClose }) {
     setLoading(true);
     Properties.getBlocks(propertyId)
       .then((d) => setBlocks(d.blocks || []))
-      .catch(() => Alert.alert("Erreur", "Impossible de charger les dates bloquées."))
+      .catch(() => Alert.alert("Erreur", t.blockErrLoad))
       .finally(() => setLoading(false));
   }, [visible, propertyId]);
 
   async function handleAdd() {
     if (blockEnd <= blockStart) {
-      return Alert.alert("Erreur", "La date de fin doit être après la date de début.");
+      return Alert.alert("Erreur", t.blockErrEnd);
     }
     setSaving(true);
     try {
@@ -60,7 +60,7 @@ function BlockDatesModal({ visible, propertyId, propertyTitle, onClose }) {
       setBlockStart(today);
       setBlockEnd(addDaysLogin(today, 1));
     } catch (e) {
-      Alert.alert("Erreur", e?.response?.data?.error?.message || "Impossible d'ajouter le bloc.");
+      Alert.alert("Erreur", e?.response?.data?.error?.message || t.blockErrAdd);
     } finally { setSaving(false); }
   }
 
@@ -69,7 +69,7 @@ function BlockDatesModal({ visible, propertyId, propertyTitle, onClose }) {
       await Properties.removeBlock(propertyId, blockId);
       setBlocks((prev) => prev.filter((b) => b.id !== blockId));
     } catch (e) {
-      Alert.alert("Erreur", e?.response?.data?.error?.message || "Impossible de supprimer.");
+      Alert.alert("Erreur", e?.response?.data?.error?.message || t.blockErrRemove);
     }
   }
 
@@ -78,7 +78,7 @@ function BlockDatesModal({ visible, propertyId, propertyTitle, onClose }) {
       <TouchableOpacity style={bdStyles.overlay} activeOpacity={1} onPress={onClose} />
       <View style={bdStyles.sheet}>
         <View style={bdStyles.header}>
-          <Text style={bdStyles.title} numberOfLines={1}>📅 Bloquer des dates</Text>
+          <Text style={bdStyles.title} numberOfLines={1}>📅 {t.blockDatesTitle}</Text>
           <TouchableOpacity onPress={onClose}><Text style={bdStyles.close}>✕</Text></TouchableOpacity>
         </View>
         <Text style={bdStyles.sub} numberOfLines={1}>{propertyTitle}</Text>
@@ -86,7 +86,7 @@ function BlockDatesModal({ visible, propertyId, propertyTitle, onClose }) {
         {/* Sélecteur nouvelle période */}
         <View style={bdStyles.row}>
           <View style={bdStyles.dateBox}>
-            <Text style={bdStyles.dateLabel}>Début</Text>
+            <Text style={bdStyles.dateLabel}>{t.blockStart}</Text>
             <View style={bdStyles.stepper}>
               <TouchableOpacity style={bdStyles.stepBtn} onPress={() => { const d = addDaysLogin(blockStart, -1); if (d >= today) setBlockStart(d); }}>
                 <Text style={bdStyles.stepTxt}>‹</Text>
@@ -98,7 +98,7 @@ function BlockDatesModal({ visible, propertyId, propertyTitle, onClose }) {
             </View>
           </View>
           <View style={bdStyles.dateBox}>
-            <Text style={bdStyles.dateLabel}>Fin</Text>
+            <Text style={bdStyles.dateLabel}>{t.blockEnd}</Text>
             <View style={bdStyles.stepper}>
               <TouchableOpacity style={bdStyles.stepBtn} onPress={() => { const d = addDaysLogin(blockEnd, -1); if (d > blockStart) setBlockEnd(d); }}>
                 <Text style={bdStyles.stepTxt}>‹</Text>
@@ -112,15 +112,15 @@ function BlockDatesModal({ visible, propertyId, propertyTitle, onClose }) {
         </View>
 
         <TouchableOpacity style={bdStyles.addBtn} onPress={handleAdd} disabled={saving}>
-          <Text style={bdStyles.addBtnText}>{saving ? "…" : "➕ Ajouter ce blocage"}</Text>
+          <Text style={bdStyles.addBtnText}>{saving ? "…" : `➕ ${t.blockAdd}`}</Text>
         </TouchableOpacity>
 
         {/* Liste des blocages existants */}
-        <Text style={bdStyles.listTitle}>Dates bloquées</Text>
+        <Text style={bdStyles.listTitle}>{t.blockList}</Text>
         {loading ? (
           <ActivityIndicator color="#0E7C66" style={{ marginTop: 8 }} />
         ) : blocks.length === 0 ? (
-          <Text style={{ color: "#888", fontSize: 13, marginTop: 6 }}>Aucune date bloquée.</Text>
+          <Text style={{ color: "#888", fontSize: 13, marginTop: 6 }}>{t.blockNone}</Text>
         ) : (
           <FlatList
             data={blocks}
@@ -199,6 +199,39 @@ const T = {
     backToLogin: "Retour à la connexion",
     errEmailRequired: "Email requis",
     errCodeRequired: "Code et nouveau mot de passe requis",
+    // Profil / stats
+    myStats: "Mes statistiques",
+    statListings: "Annonces",
+    statActive: "Actives",
+    statTotalViews: "Vues totales",
+    statViews7d: "Vues (7j)",
+    statWaClicks: "Clics WA",
+    loadingStats: "Chargement des stats…",
+    myMessages: "Mes messages",
+    myListings: "Mes annonces",
+    hideListings: "Masquer mes annonces",
+    noListings: "Aucune annonce.",
+    untitled: "Sans titre",
+    expires: "Expire :",
+    edit: "Modifier",
+    dates: "Dates",
+    delete: "Supprimer",
+    deleteTitle: "Supprimer",
+    deleteConfirm: (title) => `Supprimer "${title}" ? Action irréversible.`,
+    cancel: "Annuler",
+    errLoad: "Impossible de charger vos annonces.",
+    errDelete: "Erreur lors de la suppression.",
+    // BlockDatesModal
+    blockDatesTitle: "Bloquer des dates",
+    blockStart: "Début",
+    blockEnd: "Fin",
+    blockAdd: "Ajouter ce blocage",
+    blockList: "Dates bloquées",
+    blockNone: "Aucune date bloquée.",
+    blockErrLoad: "Impossible de charger les dates bloquées.",
+    blockErrEnd: "La date de fin doit être après la date de début.",
+    blockErrAdd: "Impossible d'ajouter le bloc.",
+    blockErrRemove: "Impossible de supprimer.",
   },
   en: {
     hello: "Hello",
@@ -233,6 +266,39 @@ const T = {
     backToLogin: "Back to login",
     errEmailRequired: "Email required",
     errCodeRequired: "Code and new password required",
+    // Profile / stats
+    myStats: "My statistics",
+    statListings: "Listings",
+    statActive: "Active",
+    statTotalViews: "Total views",
+    statViews7d: "Views (7d)",
+    statWaClicks: "WA Clicks",
+    loadingStats: "Loading stats…",
+    myMessages: "My messages",
+    myListings: "My listings",
+    hideListings: "Hide my listings",
+    noListings: "No listings.",
+    untitled: "Untitled",
+    expires: "Expires:",
+    edit: "Edit",
+    dates: "Dates",
+    delete: "Delete",
+    deleteTitle: "Delete",
+    deleteConfirm: (title) => `Delete "${title}"? This cannot be undone.`,
+    cancel: "Cancel",
+    errLoad: "Unable to load your listings.",
+    errDelete: "Error deleting listing.",
+    // BlockDatesModal
+    blockDatesTitle: "Block dates",
+    blockStart: "Start",
+    blockEnd: "End",
+    blockAdd: "Add this block",
+    blockList: "Blocked dates",
+    blockNone: "No blocked dates.",
+    blockErrLoad: "Unable to load blocked dates.",
+    blockErrEnd: "End date must be after start date.",
+    blockErrAdd: "Unable to add the block.",
+    blockErrRemove: "Unable to delete.",
   },
 };
 
@@ -250,6 +316,7 @@ function ProfileView({ me, onLogout, t, navigation }) {
       .then((d) => setStats(d))
       .catch(() => setStats(null))
       .finally(() => setLoadingStats(false));
+
   }, []);
 
   function loadListings() {
@@ -257,24 +324,24 @@ function ProfileView({ me, onLogout, t, navigation }) {
     setLoadingListings(true);
     Properties.myListings()
       .then((d) => { setListings(d.items || []); setShowListings(true); })
-      .catch(() => Alert.alert("Erreur", "Impossible de charger vos annonces."))
+      .catch(() => Alert.alert("Erreur", t.errLoad))
       .finally(() => setLoadingListings(false));
   }
 
   async function handleDelete(id, title) {
     Alert.alert(
-      "Supprimer",
-      `Supprimer "${title}" ? Action irréversible.`,
+      t.deleteTitle,
+      t.deleteConfirm(title),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: t.cancel, style: "cancel" },
         {
-          text: "Supprimer", style: "destructive",
+          text: t.delete, style: "destructive",
           onPress: async () => {
             try {
               await Properties.deleteListing(id);
               setListings((prev) => prev.filter((l) => l.id !== id));
             } catch (e) {
-              Alert.alert("Erreur", e?.response?.data?.error?.message || "Erreur lors de la suppression.");
+              Alert.alert("Erreur", e?.response?.data?.error?.message || t.errDelete);
             }
           },
         },
@@ -294,7 +361,7 @@ function ProfileView({ me, onLogout, t, navigation }) {
       {/* ── Statistiques annonces ─────────────────────────────── */}
       {loadingStats ? (
         <View style={{ alignItems: "center", marginTop: 16 }}>
-          <Text style={{ color: "#888" }}>Chargement des stats…</Text>
+          <Text style={{ color: "#888" }}>{t.loadingStats}</Text>
         </View>
       ) : stats && stats.listings && stats.listings.length > 0 ? (() => {
         const ls = stats.listings;
@@ -304,13 +371,13 @@ function ProfileView({ me, onLogout, t, navigation }) {
         const activeCount    = ls.filter((l) => l.subscription_status === "active").length;
         return (
           <View style={{ backgroundColor: "#f0faf7", borderRadius: 10, padding: 14, marginTop: 16, borderWidth: 1, borderColor: "#b2dfdb" }}>
-            <Text style={{ fontWeight: "700", fontSize: 13, color: "#0E7C66", marginBottom: 10 }}>📊 Mes statistiques</Text>
+            <Text style={{ fontWeight: "700", fontSize: 13, color: "#0E7C66", marginBottom: 10 }}>📊 {t.myStats}</Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              <View style={statBox}><Text style={statNum}>{ls.length}</Text><Text style={statLbl}>Annonces</Text></View>
-              <View style={statBox}><Text style={statNum}>{activeCount}</Text><Text style={statLbl}>Actives</Text></View>
-              <View style={statBox}><Text style={statNum}>{totalViews}</Text><Text style={statLbl}>Vues totales</Text></View>
-              <View style={statBox}><Text style={statNum}>{views7d}</Text><Text style={statLbl}>Vues (7j)</Text></View>
-              <View style={statBox}><Text style={statNum}>{waClicks}</Text><Text style={statLbl}>Clics WA</Text></View>
+              <View style={statBox}><Text style={statNum}>{ls.length}</Text><Text style={statLbl}>{t.statListings}</Text></View>
+              <View style={statBox}><Text style={statNum}>{activeCount}</Text><Text style={statLbl}>{t.statActive}</Text></View>
+              <View style={statBox}><Text style={statNum}>{totalViews}</Text><Text style={statLbl}>{t.statTotalViews}</Text></View>
+              <View style={statBox}><Text style={statNum}>{views7d}</Text><Text style={statLbl}>{t.statViews7d}</Text></View>
+              <View style={statBox}><Text style={statNum}>{waClicks}</Text><Text style={statLbl}>{t.statWaClicks}</Text></View>
             </View>
           </View>
         );
@@ -320,24 +387,24 @@ function ProfileView({ me, onLogout, t, navigation }) {
         style={[s.btn, { backgroundColor: "#1565c0", marginTop: 16 }]}
         onPress={() => navigation.navigate("Messages")}
       >
-        <Text style={s.btnText}>💬 Mes messages</Text>
+        <Text style={s.btnText}>💬 {t.myMessages}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={[s.btn, { backgroundColor: "#0E7C66", marginTop: 10 }]} onPress={loadListings}>
-        <Text style={s.btnText}>{loadingListings ? "…" : (showListings ? "Masquer mes annonces" : "Mes annonces")}</Text>
+        <Text style={s.btnText}>{loadingListings ? "…" : (showListings ? t.hideListings : t.myListings)}</Text>
       </TouchableOpacity>
 
       {showListings && listings.length === 0 && (
-        <Text style={{ textAlign: "center", color: "#666", marginTop: 12 }}>Aucune annonce.</Text>
+        <Text style={{ textAlign: "center", color: "#666", marginTop: 12 }}>{t.noListings}</Text>
       )}
 
       {showListings && listings.map((item) => (
         <View key={item.id} style={{ backgroundColor: "#fff", borderRadius: 8, padding: 12, marginTop: 10, borderWidth: 1, borderColor: "#e0e0e0" }}>
-          <Text style={{ fontWeight: "700", fontSize: 14 }} numberOfLines={1}>{item.title || "Sans titre"}</Text>
+          <Text style={{ fontWeight: "700", fontSize: 14 }} numberOfLines={1}>{item.title || t.untitled}</Text>
           <Text style={{ color: "#666", fontSize: 12, marginTop: 2 }}>{item.city} — {item.status}</Text>
           {item.listing_expires_at && (
             <Text style={{ color: "#888", fontSize: 11, marginTop: 2 }}>
-              Expire : {new Date(item.listing_expires_at).toLocaleDateString("fr-FR")}
+              {t.expires} {new Date(item.listing_expires_at).toLocaleDateString("fr-FR")}
             </Text>
           )}
           <View style={{ flexDirection: "row", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
@@ -345,21 +412,21 @@ function ProfileView({ me, onLogout, t, navigation }) {
               style={{ flex: 1, minWidth: 90, padding: 8, backgroundColor: "#0E7C66", borderRadius: 6, alignItems: "center" }}
               onPress={() => navigation.navigate("Publier", { editMode: true, propertyId: item.id, initialData: item })}
             >
-              <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>✏️ Modifier</Text>
+              <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>✏️ {t.edit}</Text>
             </TouchableOpacity>
             {(item.transaction_type === "rent_short" || item.transaction_type === "rent_long") && (
               <TouchableOpacity
                 style={{ flex: 1, minWidth: 90, padding: 8, backgroundColor: "#1565c0", borderRadius: 6, alignItems: "center" }}
                 onPress={() => setBlockModal({ id: item.id, title: item.title || "Annonce" })}
               >
-                <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>📅 Dates</Text>
+                <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>📅 {t.dates}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
               style={{ flex: 1, minWidth: 90, padding: 8, backgroundColor: "#c0392b", borderRadius: 6, alignItems: "center" }}
               onPress={() => handleDelete(item.id, item.title || "cette annonce")}
             >
-              <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>🗑 Supprimer</Text>
+              <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>🗑 {t.delete}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -374,6 +441,7 @@ function ProfileView({ me, onLogout, t, navigation }) {
         propertyId={blockModal?.id}
         propertyTitle={blockModal?.title}
         onClose={() => setBlockModal(null)}
+        t={t}
       />
     </ScrollView>
   );

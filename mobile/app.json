@@ -13,32 +13,43 @@
       "resizeMode": "contain",
       "backgroundColor": "#0E7C66"
     },
-    "updates": { "fallbackToCacheTimeout": 0 },
-    "assetBundlePatterns": ["**/*"],
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "africa.immobf.app",
-      "buildNumber": "5",
+      "buildNumber": "7",
+      "minimumOsVersion": "15.0",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "ImmoBF utilise votre position pour géolocaliser votre annonce sur la carte."
+        "NSLocationWhenInUseUsageDescription": "ImmoBF utilise votre position pour géolocaliser votre annonce sur la carte.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "africa.immobf.app",
-      "versionCode": 15,
+      "versionCode": 16,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
       ]
     },
     "plugins": [
-      ["expo-build-properties", {
-        "android": {
-          "targetSdkVersion": 36
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "targetSdkVersion": 36
+          }
         }
-      }]
+      ]
     ],
-    "web": { "favicon": "./assets/favicon.png" },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
     "extra": {
       "apiUrl": "https://immobf-africa-production.up.railway.app",
       "eas": {

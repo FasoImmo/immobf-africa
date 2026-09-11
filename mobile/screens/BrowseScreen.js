@@ -100,18 +100,20 @@ export default function BrowseScreen({ navigation, route }) {
   const [country, setCountry] = useState("");
   const [city, setCity] = useState("");
   const [txType, setTxType] = useState("");
+  // Filtres supplémentaires venant de HomeScreen (q, type, is_furnished)
+  const [extraParams, setExtraParams] = useState({});
   const [refreshing, setRefreshing] = useState(false);
   const [showCountry, setShowCountry] = useState(false);
   const [showType, setShowType] = useState(false);
 
-  const load = useCallback(async (extraFilters = {}) => {
+  const load = useCallback(async () => {
     setRefreshing(true);
     try {
       const params = { limit: 30, lang };
-      if (country) params.country_code = country;
+      if (country) params.country = country;           // backend attend "country"
       if (city.trim()) params.city = city.trim();
       if (txType) params.transaction_type = txType;
-      Object.assign(params, extraFilters);
+      Object.assign(params, extraParams);              // q, type, is_furnished
       const d = await Properties.search(params);
       const results = d.results || d.items || [];
       setItems(results);
@@ -119,19 +121,25 @@ export default function BrowseScreen({ navigation, route }) {
     } catch {
       setItems(await listCached());
     } finally { setRefreshing(false); }
-  }, [country, city, txType, lang]);
+  }, [country, city, txType, extraParams, lang]);
 
   useEffect(() => { load(); }, [load]);
 
-  // Accept filters passed from HomeScreen search
+  // Applique les filtres passés depuis HomeScreen
   useEffect(() => {
     const filters = route?.params?.filters;
-    if (filters) {
-      if (filters.country_code) setCountry(filters.country_code);
-      if (filters.city) setCity(filters.city);
-      if (filters.transaction_type) setTxType(filters.transaction_type);
-      load(filters);
-    }
+    if (!filters) return;
+    if (filters.country) setCountry(filters.country);
+    if (filters.city) setCity(filters.city);
+    if (filters.transaction_type) setTxType(filters.transaction_type);
+    // Stocker les filtres supplémentaires (q, type, is_furnished)
+    const extra = {};
+    if (filters.q) extra.q = filters.q;
+    if (filters.type) extra.type = filters.type;
+    if (filters.is_furnished !== undefined) extra.is_furnished = filters.is_furnished;
+    setExtraParams(extra);
+    // Pas besoin d'appeler load() ici : les setState ci-dessus reconstituent
+    // la dépendance de load() et useEffect([load]) le re-déclenchera automatiquement
   }, [route?.params?.filters]);
 
   const countryLabel = country

@@ -170,12 +170,24 @@ export default function HomeScreen({ navigation }) {
   const { lang } = useLang();
   const t = T[lang] || T.fr;
 
-  // Search form state
+  // Search form state — on stocke uniquement les codes, les labels sont calculés dynamiquement
   const [query, setQuery] = useState("");
-  const [country, setCountry] = useState({ code: "", label: t.allCountries });
-  const [city, setCity] = useState({ code: "", label: "" });
-  const [txType, setTxType] = useState({ code: "", label: t.allTxTypes });
-  const [propType, setPropType] = useState({ code: "", label: t.allPropTypes });
+  const [countryCode, setCountryCode] = useState("");
+  const [cityCode, setCityCode] = useState("");
+  const [txTypeCode, setTxTypeCode] = useState("");
+  const [propTypeCode, setPropTypeCode] = useState("");
+
+  // Labels calculés depuis les codes + t courant (se mettent à jour à chaque changement de langue)
+  const countryLabel = countryCode
+    ? (COUNTRIES.find((c) => c.code === countryCode)?.label || countryCode)
+    : t.allCountries;
+  const cityLabel = cityCode || t.allCities;
+  const txTypeLabel = txTypeCode
+    ? (TX_OPTIONS(t).find((o) => o.code === txTypeCode)?.label || txTypeCode)
+    : t.allTxTypes;
+  const propTypeLabel = propTypeCode
+    ? (PROP_OPTIONS(t).find((o) => o.code === propTypeCode)?.label || propTypeCode)
+    : t.allPropTypes;
 
   // Modal visibility
   const [showCountry, setShowCountry]   = useState(false);
@@ -185,7 +197,10 @@ export default function HomeScreen({ navigation }) {
   const [showFurnished, setShowFurnished] = useState(false);
 
   // Furnished filter: "" | "true" | "false"
-  const [furnished, setFurnished] = useState({ code: "", label: "" });
+  const [furnishedCode, setFurnishedCode] = useState("");
+  const furnishedLabel = furnishedCode === "true" ? t.furnished
+    : furnishedCode === "false" ? t.unfurnished
+    : t.allFurnished;
 
   // Data state
   const [listings, setListings]   = useState([]);
@@ -239,11 +254,11 @@ export default function HomeScreen({ navigation }) {
   function doSearch() {
     const params = {};
     if (query.trim()) params.q = query.trim();
-    if (country.code) params.country_code = country.code;
-    if (city.code) params.city = city.code;
-    if (txType.code) params.transaction_type = txType.code;
-    if (propType.code) params.property_type = propType.code;
-    if (furnished.code !== "") params.is_furnished = furnished.code === "true";
+    if (countryCode) params.country = countryCode;      // backend attend "country"
+    if (cityCode) params.city = cityCode;
+    if (txTypeCode) params.transaction_type = txTypeCode;
+    if (propTypeCode) params.type = propTypeCode;       // backend attend "type"
+    if (furnishedCode !== "") params.is_furnished = furnishedCode === "true";
     navigation.navigate("Parcourir", { filters: params });
   }
 
@@ -283,31 +298,31 @@ export default function HomeScreen({ navigation }) {
 
             {/* Country picker */}
             <TouchableOpacity style={s.select} onPress={() => setShowCountry(true)}>
-              <Text style={s.selectText}>{country.label}</Text>
+              <Text style={s.selectText}>{countryLabel}</Text>
               <Text style={s.selectArrow}>▾</Text>
             </TouchableOpacity>
 
             {/* City picker — liste selon le pays sélectionné (#261) */}
             <TouchableOpacity style={s.select} onPress={() => setShowCity(true)}>
-              <Text style={s.selectText}>{city.label || t.allCities}</Text>
+              <Text style={s.selectText}>{cityLabel}</Text>
               <Text style={s.selectArrow}>▾</Text>
             </TouchableOpacity>
 
             {/* Tx type picker */}
             <TouchableOpacity style={s.select} onPress={() => setShowTx(true)}>
-              <Text style={s.selectText}>{txType.label}</Text>
+              <Text style={s.selectText}>{txTypeLabel}</Text>
               <Text style={s.selectArrow}>▾</Text>
             </TouchableOpacity>
 
             {/* Property type picker */}
             <TouchableOpacity style={s.select} onPress={() => setShowProp(true)}>
-              <Text style={s.selectText}>{propType.label}</Text>
+              <Text style={s.selectText}>{propTypeLabel}</Text>
               <Text style={s.selectArrow}>▾</Text>
             </TouchableOpacity>
 
             {/* Furnished picker (#262) */}
             <TouchableOpacity style={s.select} onPress={() => setShowFurnished(true)}>
-              <Text style={s.selectText}>{furnished.label || t.allFurnished}</Text>
+              <Text style={s.selectText}>{furnishedLabel}</Text>
               <Text style={s.selectArrow}>▾</Text>
             </TouchableOpacity>
 
@@ -365,19 +380,19 @@ export default function HomeScreen({ navigation }) {
         title={t.chooseCountry}
         allLabel={t.allCountries}
         options={COUNTRIES.map((c) => ({ code: c.code, label: c.label }))}
-        onSelect={(code, label) => {
-          setCountry({ code, label: label || t.allCountries });
-          setCity({ code: "", label: "" }); // reset ville quand pays change (#261)
+        onSelect={(code) => {
+          setCountryCode(code);
+          setCityCode(""); // reset ville quand pays change
         }}
         onClose={() => setShowCountry(false)}
       />
-      {/* Villes selon pays sélectionné (#261) */}
+      {/* Villes selon pays sélectionné */}
       <DropdownModal
         visible={showCity}
         title={t.chooseCity}
         allLabel={t.allCities}
-        options={(CITIES_BY_COUNTRY[country.code] || []).map((v) => ({ code: v, label: v }))}
-        onSelect={(code, label) => setCity({ code, label: label || "" })}
+        options={(CITIES_BY_COUNTRY[countryCode] || []).map((v) => ({ code: v, label: v }))}
+        onSelect={(code) => setCityCode(code)}
         onClose={() => setShowCity(false)}
       />
       <DropdownModal
@@ -385,7 +400,7 @@ export default function HomeScreen({ navigation }) {
         title={t.chooseTx}
         allLabel={t.allTxTypes}
         options={TX_OPTIONS(t)}
-        onSelect={(code, label) => setTxType({ code, label: label || t.allTxTypes })}
+        onSelect={(code) => setTxTypeCode(code)}
         onClose={() => setShowTx(false)}
       />
       <DropdownModal
@@ -393,10 +408,10 @@ export default function HomeScreen({ navigation }) {
         title={t.choosePropType}
         allLabel={t.allPropTypes}
         options={PROP_OPTIONS(t)}
-        onSelect={(code, label) => setPropType({ code, label: label || t.allPropTypes })}
+        onSelect={(code) => setPropTypeCode(code)}
         onClose={() => setShowProp(false)}
       />
-      {/* Meublé / Non meublé (#262) */}
+      {/* Meublé / Non meublé */}
       <DropdownModal
         visible={showFurnished}
         title={t.chooseFurnished}
@@ -405,7 +420,7 @@ export default function HomeScreen({ navigation }) {
           { code: "true",  label: t.furnished },
           { code: "false", label: t.unfurnished },
         ]}
-        onSelect={(code, label) => setFurnished({ code, label: label || "" })}
+        onSelect={(code) => setFurnishedCode(code)}
         onClose={() => setShowFurnished(false)}
       />
     </SafeAreaView>
