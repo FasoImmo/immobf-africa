@@ -6,7 +6,15 @@ import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
 
-const APK_URL = process.env.NEXT_PUBLIC_APK_URL || "https://expo.dev/artifacts/eas/egPMv_56ePDR6EZKvBCx5v3mVuT8JDX4WISmJIOdyVs.apk";
+// Android : Google Play (alpha / bêta → production dès validation)
+const ANDROID_URL = process.env.NEXT_PUBLIC_ANDROID_URL || "https://play.google.com/store/apps/details?id=africa.immobf.app";
+const ANDROID_TESTING_URL = "https://play.google.com/apps/testing/africa.immobf.app";
+
+// iOS : App Store (disponible dès validation Apple — soumis sept. 2026)
+const IOS_URL = process.env.NEXT_PUBLIC_IOS_URL || "https://apps.apple.com/app/id6809453557";
+
+// Rétrocompatibilité (ancienne variable Vercel inutilisée — ne pas supprimer avant déploiement)
+const APK_URL = ANDROID_URL;
 
 export default function DownloadPage() {
   const { t } = useTranslation();
@@ -54,27 +62,31 @@ export default function DownloadPage() {
             variant="contained"
             size="large"
             startIcon={<AndroidIcon />}
-            href={APK_URL}
+            href={ANDROID_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             sx={{
               bgcolor: "white", color: "#0E7C66", fontWeight: 700,
               px: 4, py: 1.5,
               "&:hover": { bgcolor: "#f0f0f0" },
             }}
           >
-            {t("download.btn_apk")}
+            Google Play
           </Button>
           <Button
             variant="outlined"
             size="large"
             startIcon={<PhoneIphoneIcon />}
-            disabled
+            href={IOS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             sx={{
               borderColor: "rgba(255,255,255,0.5)", color: "white",
               px: 4, py: 1.5,
-              "&.Mui-disabled": { borderColor: "rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.5)" },
+              "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
             }}
           >
-            {t("download.btn_ios")}
+            App Store (iOS)
           </Button>
         </Box>
 
@@ -131,16 +143,32 @@ export default function DownloadPage() {
             </Box>
           ))}
 
-          <Button
-            variant="contained"
-            color="primary"
-            size="large"
-            startIcon={<AndroidIcon />}
-            href={APK_URL}
-            sx={{ mt: 3, px: 4, py: 1.5, fontWeight: 700 }}
-          >
-            {t("download.btn_download_now")}
-          </Button>
+          <Box sx={{ mt: 3, display: "flex", gap: 2, flexWrap: "wrap" }}>
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              startIcon={<AndroidIcon />}
+              href={ANDROID_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ px: 4, py: 1.5, fontWeight: 700 }}
+            >
+              Google Play (Android)
+            </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              size="large"
+              startIcon={<PhoneIphoneIcon />}
+              href={IOS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ px: 4, py: 1.5, fontWeight: 700 }}
+            >
+              App Store (iOS)
+            </Button>
+          </Box>
         </Grid>
 
         <Grid item xs={12} md={6}>
