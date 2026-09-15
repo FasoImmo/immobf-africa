@@ -7,14 +7,15 @@
 
 const SITE_URL = "https://www.immoafrica.online";
 
+// Pages statiques — URLs sans préfixe de locale (fr = défaut, /en/... pour anglais)
 const STATIC_PAGES = [
-  { path: "/",               priority: "1.0", changefreq: "daily"   },
-  { path: "/properties",     priority: "0.9", changefreq: "hourly"  },
-  { path: "/plans",          priority: "0.7", changefreq: "weekly"  },
-  { path: "/download",       priority: "0.6", changefreq: "monthly" },
-  { path: "/legal/cgu",      priority: "0.3", changefreq: "yearly"  },
-  { path: "/legal/privacy",  priority: "0.3", changefreq: "yearly"  },
-  { path: "/legal/cookies",  priority: "0.3", changefreq: "yearly"  },
+  { path: "/",              enPath: "/en",              priority: "1.0", changefreq: "daily"   },
+  { path: "/properties",   enPath: "/en/properties",   priority: "0.9", changefreq: "hourly"  },
+  { path: "/plans",        enPath: "/en/plans",        priority: "0.7", changefreq: "weekly"  },
+  { path: "/download",     enPath: "/en/download",     priority: "0.6", changefreq: "monthly" },
+  { path: "/legal/cgu",    enPath: "/en/legal/cgu",    priority: "0.3", changefreq: "yearly"  },
+  { path: "/legal/privacy",enPath: "/en/legal/privacy",priority: "0.3", changefreq: "yearly"  },
+  { path: "/legal/cookies",enPath: "/en/legal/cookies",priority: "0.3", changefreq: "yearly"  },
 ];
 
 function esc(s) {
@@ -70,13 +71,17 @@ export async function getServerSideProps({ res }) {
   const today   = new Date().toISOString().slice(0, 10);
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-  // ── Pages statiques ───────────────────────────────────────────────────────
-  const entries = STATIC_PAGES.map((p) => urlEntry({
-    loc: `${SITE_URL}${p.path}`,
-    lastmod: today,
-    changefreq: p.changefreq,
-    priority: p.priority,
-  }));
+  // ── Pages statiques (fr + en alternates) ─────────────────────────────────
+  const entries = STATIC_PAGES.flatMap((p) => {
+    const frUrl = `${SITE_URL}${p.path}`;
+    const enUrl = `${SITE_URL}${p.enPath}`;
+    return [
+      // Version fr (URL canonique sans préfixe = defaultLocale)
+      urlEntry({ loc: frUrl, lastmod: today, changefreq: p.changefreq, priority: p.priority }),
+      // Version en
+      urlEntry({ loc: enUrl, lastmod: today, changefreq: p.changefreq, priority: String(parseFloat(p.priority) - 0.1) }),
+    ];
+  });
 
   // ── Annonces + vendeurs (best-effort) ─────────────────────────────────────
   try {
