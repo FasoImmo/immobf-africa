@@ -89,10 +89,8 @@ export default function Document() {
         {/* ── Vérification moteurs de recherche ───────────────────────────── */}
         {/* Google Search Console */}
         <meta name="google-site-verification" content="v-csxptQHijmKpBSimeU0zyAEo7-Rwo35M8aUNTPC4A" />
-        {/* Bing Webmaster Tools — remplacer BING_CODE par le code de vérification Bing */}
-        <meta name="msvalidate.01" content="BING_VERIFICATION_CODE" />
-        {/* Yandex Webmaster — remplacer YANDEX_CODE par le code de vérification Yandex */}
-        <meta name="yandex-verification" content="YANDEX_VERIFICATION_CODE" />
+        {/* Bing Webmaster Tools — vérifié via import GSC (pas de meta tag nécessaire) */}
+        {/* Yandex Webmaster — ajouter meta name="yandex-verification" une fois le code obtenu */}
 
         {/* ── SEO de base ─────────────────────────────────────────────────── */}
         <meta name="application-name" content="ImmoBF Africa" />

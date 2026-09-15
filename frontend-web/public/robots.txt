@@ -4,5 +4,35 @@ Disallow: /admin
 Disallow: /account
 Disallow: /payment/callback
 Disallow: /api/
+Disallow: /_next/
+Disallow: /en/admin
+Disallow: /en/account
+Disallow: /en/payment/
+
+# Priorité au crawler Google
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /payment/callback
+Disallow: /api/
+
+# Bing
+User-agent: Bingbot
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /payment/callback
+Disallow: /api/
+
+# Ralentir les bots agressifs
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: MJ12bot
+Disallow: /
 
 Sitemap: https://www.immoafrica.online/sitemap.xml
