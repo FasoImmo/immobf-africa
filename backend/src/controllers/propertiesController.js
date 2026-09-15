@@ -5,6 +5,7 @@ const Property = require("../models/Property");
 const { BadRequest, NotFound, Forbidden } = require("../utils/errors");
 const moderation = require("../services/moderation");
 const valuation = require("../services/valuation");
+const indexnow = require("../services/indexnow");
 
 const propertySchema = Joi.object({
   transaction_type: Joi.string().valid("sale", "rent_long", "rent_short").default("sale"),
@@ -119,6 +120,8 @@ async function publish(req, res) {
   if (promo.active) {
     await Property.setExpiry(req.params.id, promo.duration_days || 30).catch(() => {});
   }
+  // Notification IndexNow (Bing + Yandex) — fire-and-forget, non-bloquant
+  indexnow.notifyProperty(req.params.id);
   res.json({ property: p });
 }
 
