@@ -122,6 +122,19 @@ export default function Document() {
         <meta name="twitter:description" content="Achetez, louez ou vendez un bien immobilier en Afrique. Paiement mobile money. App iOS & Android." />
         <meta name="twitter:image" content={`${SITE_URL}/og-image.png`} />
 
+        {/* ── Google Analytics GA4 ────────────────────────────────────────── */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-T60PJGBKF9" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-T60PJGBKF9', { page_path: window.location.pathname });
+            `,
+          }}
+        />
+
         {/* ── Données structurées JSON-LD ─────────────────────────────────── */}
         <script
           type="application/ld+json"

@@ -30,8 +30,8 @@ const nextConfig = {
       // Next.js requiert unsafe-inline pour les styles injectés et unsafe-eval pour HMR en dev
       // unsafe-eval requis uniquement en développement (HMR Next.js)
       process.env.NODE_ENV === "production"
-        ? "script-src 'self' 'unsafe-inline'"
-        : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+        ? "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com"
+        : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com",
       "style-src 'self' 'unsafe-inline'",
       // Images : self + data URIs + tout HTTPS (photos hébergées externement)
       "img-src 'self' data: blob: https:",
@@ -39,7 +39,7 @@ const nextConfig = {
       "worker-src 'self' blob:",
       // Connexions API + WebSocket
       // Sentry ingest pour les erreurs navigateur
-      `connect-src 'self' https://${apiHost} wss://${apiHost} https://*.ingest.sentry.io https://*.sentry.io`,
+      `connect-src 'self' https://${apiHost} wss://${apiHost} https://*.ingest.sentry.io https://*.sentry.io https://www.google-analytics.com https://analytics.google.com`,
       // Polices locales uniquement
       "font-src 'self'",
       // Aucune iframe autorisée depuis l'extérieur
