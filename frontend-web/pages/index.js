@@ -3,10 +3,19 @@ import Link from "next/link";
 import { Box, Button, Grid, Typography, Paper, TextField, MenuItem, Divider, Chip, Alert } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
+import SeoHead from "../components/SeoHead";
 import PropertyCard from "../components/PropertyCard";
 import { Properties, Analytics } from "../lib/api";
 import api from "../lib/api";
 import { AFRICAN_COUNTRIES } from "../lib/africanCountries";
+
+const ldHomeBreadcrumb = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Accueil", item: "https://www.immoafrica.online" },
+  ],
+};
 
 export default function Home() {
   const { t } = useTranslation();
@@ -69,7 +78,12 @@ export default function Home() {
   }
 
   return (
-    <Layout title="ImmoBF Africa — accueil">
+    <Layout title="ImmoBF Africa — Immobilier en Afrique de l'Ouest">
+      <SeoHead
+        title="Immobilier en Afrique de l'Ouest — Achat, Location, Vente"
+        description="Trouvez un appartement, une villa, un terrain ou un local commercial au Burkina Faso, Côte d'Ivoire, Sénégal et dans toute la zone UEMOA. Paiement Orange Money, Moov Money, Wave."
+        jsonLd={[ldHomeBreadcrumb]}
+      />
       {/* ── Hero / Barre de recherche ── */}
       <Paper elevation={0} sx={{ p: 4, mb: 4, background: "linear-gradient(135deg,#0E7C66,#13a48c)", color: "white" }}>
         <Typography variant="h3" gutterBottom>{t("app_name")}</Typography>

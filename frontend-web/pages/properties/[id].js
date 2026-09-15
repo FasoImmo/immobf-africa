@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { Box, Typography, Chip, Button, Grid, Paper, Divider, Stack, Alert, TextField, Tooltip, Rating, CircularProgress } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import Layout from "../../components/Layout";
+import SeoHead from "../../components/SeoHead";
 import PaymentDialog from "../../components/PaymentDialog";
 import PropertyCard from "../../components/PropertyCard";
 import BookingCalendar from "../../components/BookingCalendar";
@@ -163,6 +164,17 @@ export default function PropertyDetail() {
 
   if (!p) return <Layout><Typography>{t("property.loading")}</Typography></Layout>;
 
+  // ─── Breadcrumb JSON-LD ───────────────────────────────────────────────────
+  const ldBreadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Accueil", item: "https://www.immoafrica.online" },
+      { "@type": "ListItem", position: 2, name: "Annonces", item: "https://www.immoafrica.online/properties" },
+      { "@type": "ListItem", position: 3, name: p.title || `Annonce #${p.id}`, item: `https://www.immoafrica.online/properties/${p.id}` },
+    ],
+  };
+
   var isRent = p.transaction_type && p.transaction_type !== "sale";
   var txColor = TX_COLOR[p.transaction_type] || TX_COLOR.sale;
   var txLabel = p.transaction_type === "sale" ? t("nav.publish_sale")
@@ -253,9 +265,12 @@ export default function PropertyDetail() {
 
   return (
     <Layout title={p.title + " — ImmoBF"}>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      <SeoHead
+        title={p.title}
+        description={p.description ? p.description.slice(0, 160) : `${p.type} à ${p.city} — ImmoBF Africa`}
+        image={p.photos?.[0]?.url}
+        type="article"
+        jsonLd={[jsonLd, ldBreadcrumb]}
       />
       {router.query.published === "1" && (
         <Alert severity="success" sx={{ mb: 2 }}>{t("property.published_banner")}</Alert>
