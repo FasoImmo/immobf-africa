@@ -136,7 +136,9 @@ router.patch("/admin/pricing",             requireAdmin, asyncHandler(adminCtl.s
 router.post ("/admin/properties/:id/extend",  requireAdmin, asyncHandler(adminCtl.extendListing));
 router.post ("/admin/properties/:id/suspend", requireAdmin, asyncHandler(adminCtl.suspendListing));
 router.post ("/admin/properties/:id/restore", requireAdmin, asyncHandler(adminCtl.restoreListing));
-router.get  ("/admin/transactions",           requireAdmin, asyncHandler(adminCtl.listTransactions));
+router.get  ("/admin/transactions",                      requireAdmin, asyncHandler(adminCtl.listTransactions));
+router.post ("/admin/reconcile",                         requireAdmin, asyncHandler(adminCtl.reconcilePayments));
+router.post ("/admin/transactions/:id/check",            requireAdmin, asyncHandler(adminCtl.checkTransactionStatus));
 router.get  ("/admin/contacts",               requireAdmin, asyncHandler(adminCtl.listContacts));
 router.post ("/admin/contacts/newsletter",    requireAdmin, asyncHandler(adminCtl.sendContactNewsletter));
 router.get  ("/admin/reviews",                requireAdmin, asyncHandler(adminCtl.listReviews));

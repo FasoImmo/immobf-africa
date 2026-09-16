@@ -444,6 +444,83 @@ async function setPricingAdmin(req, res) {
  * GET /admin/transactions
  * Liste filtrée + paginée de toutes les transactions.
  */
+/**
+ * POST /admin/reconcile
+ * Déclenche manuellement un cycle de réconciliation des paiements pending.
+ * Retourne un rapport : { resolved, skipped, errors, total }.
+ */
+async function reconcilePayments(req, res) {
+  const { runReconciliation } = require("../services/reconciliation");
+  // runReconciliation est conçu pour être lancé par le cron — on l'appelle
+  // directement ici. Il loggue en interne et retourne undefined.
+  // On capture les compteurs via un wrapper léger.
+  let report;
+  try {
+    report = await runReconciliation({ returnReport: true });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e.message });
+  }
+  res.json({ ok: true, report: report || {} });
+}
+
+/**
+ * POST /admin/transactions/:id/check
+ * Vérifie le statut live d'une transaction auprès du provider et met à jour
+ * la DB si le statut a changé. Utile pour débloquer manuellement un paiement
+ * coincé en "pending" quand le webhook n'est pas arrivé.
+ */
+async function checkTransactionStatus(req, res) {
+  const { Forbidden, NotFound } = require("../utils/errors");
+  const registry  = require("../services/PaymentProviderRegistry");
+  const Transaction = require("../models/Transaction");
+  const { handleSucceededPayment } = require("../services/paymentActions");
+  const logger = require("../utils/logger");
+
+  const tx = await Transaction.findById(req.params.id);
+  if (!tx) throw NotFound("Transaction introuvable");
+
+  if (tx.status !== "pending") {
+    return res.json({ ok: true, status: tx.status, changed: false, message: "Statut déjà final — aucune action." });
+  }
+  if (!tx.external_id) {
+    return res.json({ ok: false, message: "Pas d'external_id — impossible d'interroger le provider." });
+  }
+
+  let provider;
+  try {
+    provider = registry.get(tx.provider);
+  } catch (_) {
+    return res.json({ ok: false, message: `Provider inconnu : ${tx.provider}` });
+  }
+
+  if (typeof provider.checkStatus !== "function") {
+    return res.json({ ok: false, message: `Le provider ${tx.provider} ne supporte pas la vérification en direct.` });
+  }
+
+  let liveStatus;
+  try {
+    liveStatus = await provider.checkStatus(tx.external_id);
+    if (liveStatus && typeof liveStatus === "object") liveStatus = liveStatus.status;
+  } catch (e) {
+    logger.warn({ err: e.message, transaction_id: tx.id }, "admin checkTransactionStatus: checkStatus error");
+    return res.status(502).json({ ok: false, message: `Erreur provider : ${e.message}` });
+  }
+
+  if (!liveStatus || liveStatus === "pending") {
+    return res.json({ ok: true, status: "pending", changed: false, message: "Toujours en attente côté provider." });
+  }
+
+  const updated = await Transaction.updateStatus(tx.id, liveStatus);
+  await Transaction.logEvent(tx.id, "admin_check", { from: "pending", to: liveStatus, admin: req.user?.email });
+  logger.info({ transaction_id: tx.id, provider: tx.provider, liveStatus, admin: req.user?.email }, "admin: transaction status updated manually");
+
+  if (liveStatus === "succeeded") {
+    await handleSucceededPayment(updated);
+  }
+
+  res.json({ ok: true, status: liveStatus, changed: true, transaction: updated });
+}
+
 async function listTransactions(req, res) {
   const {
     date_from, date_to, search, country, purpose,
@@ -731,7 +808,7 @@ module.exports = {
   getPromo, setPromo, extendListing, suspendListing, restoreListing,
   listContacts, sendContactNewsletter,
   getPricingAdmin, setPricingAdmin,
-  listTransactions,
+  listTransactions, reconcilePayments, checkTransactionStatus,
   listReviews, deleteReview,
   getNewsletterDraft, saveNewsletterDraft,
   listPaymentProviders, updatePaymentProvider,

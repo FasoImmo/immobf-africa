@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import {
-  Box, Button, Chip, CircularProgress, Container, Grid,
-  InputAdornment, MenuItem, Paper, Select, Table, TableBody,
+  Alert, Box, Button, Chip, CircularProgress, Container, Grid,
+  InputAdornment, MenuItem, Paper, Select, Snackbar, Table, TableBody,
   TableCell, TableHead, TableRow, TextField, Typography, Tooltip,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import SyncIcon from "@mui/icons-material/Sync";
 import AdminLayout from "../../components/AdminLayout";
 import { Admin } from "../../lib/api";
 import { formatFCFA } from "../../lib/format";
@@ -67,6 +68,9 @@ export default function AdminTransactions() {
   const [loading, setLoading] = useState(false);
   const [page, setPage]     = useState(0);
   const [providers, setProviders] = useState([]);
+  const [reconciling, setReconciling]   = useState(false);
+  const [checkingId,  setCheckingId]    = useState(null);
+  const [snack,       setSnack]         = useState(null); // { msg, severity }
 
   // filtres
   const [dateFrom,   setDateFrom]   = useState("");
@@ -117,6 +121,44 @@ export default function AdminTransactions() {
       .catch(() => {});
   }, [ok]);
 
+  // ── Réconciliation globale ──────────────────────────────────────────────────
+  const handleReconcile = async () => {
+    setReconciling(true);
+    try {
+      const res = await Admin.reconcilePayments();
+      const r = res.report || {};
+      setSnack({
+        msg: `Réconciliation terminée — ${r.resolved ?? 0} résolue(s), ${r.skipped ?? 0} ignorée(s), ${r.errors ?? 0} erreur(s) sur ${r.total ?? 0} transaction(s).`,
+        severity: (r.errors ?? 0) > 0 ? "warning" : "success",
+      });
+      load(page); // rafraîchir la liste
+    } catch (e) {
+      setSnack({ msg: `Erreur : ${e.message}`, severity: "error" });
+    } finally {
+      setReconciling(false);
+    }
+  };
+
+  // ── Vérification d'une transaction ─────────────────────────────────────────
+  const handleCheck = async (txId) => {
+    setCheckingId(txId);
+    try {
+      const res = await Admin.checkTransaction(txId);
+      if (!res.ok) {
+        setSnack({ msg: res.message || "Impossible de vérifier.", severity: "warning" });
+      } else if (!res.changed) {
+        setSnack({ msg: res.message || "Toujours en attente.", severity: "info" });
+      } else {
+        setSnack({ msg: `Statut mis à jour → ${STATUS_LABEL[res.status] || res.status}`, severity: "success" });
+        load(page);
+      }
+    } catch (e) {
+      setSnack({ msg: `Erreur : ${e.message}`, severity: "error" });
+    } finally {
+      setCheckingId(null);
+    }
+  };
+
   // KPIs calculés depuis la page courante
   const succeeded = rows.filter(r => r.status === "succeeded");
   const totalSucceeded = succeeded.reduce((s, r) => s + Number(r.amount), 0);
@@ -136,6 +178,22 @@ export default function AdminTransactions() {
           <Typography variant="body2" color="text.secondary">
             {total} transaction{total !== 1 ? "s" : ""}
           </Typography>
+          <Box sx={{ ml: "auto" }}>
+            <Tooltip title="Interroge chaque provider pour mettre à jour les paiements bloqués en attente">
+              <span>
+                <Button
+                  variant="contained"
+                  color="warning"
+                  size="small"
+                  startIcon={reconciling ? <CircularProgress size={14} color="inherit" /> : <SyncIcon />}
+                  onClick={handleReconcile}
+                  disabled={reconciling}
+                >
+                  {reconciling ? "Réconciliation…" : "Réconcilier"}
+                </Button>
+              </span>
+            </Tooltip>
+          </Box>
         </Box>
 
         {/* ── Filtres ─────────────────────────────────────────────────── */}
@@ -265,6 +323,7 @@ export default function AdminTransactions() {
                 <TableCell align="right">Montant</TableCell>
                 <TableCell>Statut</TableCell>
                 <TableCell>Référence</TableCell>
+                <TableCell>Action</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -277,7 +336,7 @@ export default function AdminTransactions() {
               )}
               {!loading && rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={10} align="center" sx={{ py: 3, color: "text.secondary" }}>
+                  <TableCell colSpan={12} align="center" sx={{ py: 3, color: "text.secondary" }}>
                     Aucune transaction trouvée.
                   </TableCell>
                 </TableRow>
@@ -325,6 +384,26 @@ export default function AdminTransactions() {
                     <TableCell sx={{ fontSize: 11, color: "text.secondary", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       <Tooltip title={tx.reference || ""}><span>{tx.reference || "—"}</span></Tooltip>
                     </TableCell>
+                    <TableCell>
+                      {tx.status === "pending" && (
+                        <Tooltip title="Interroger le provider pour mettre à jour ce paiement">
+                          <span>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="warning"
+                              disabled={checkingId === tx.id}
+                              onClick={() => handleCheck(tx.id)}
+                              sx={{ fontSize: 11, py: 0.3, minWidth: 70 }}
+                            >
+                              {checkingId === tx.id
+                                ? <CircularProgress size={12} color="inherit" />
+                                : "Vérifier"}
+                            </Button>
+                          </span>
+                        </Tooltip>
+                      )}
+                    </TableCell>
                   </TableRow>
                 );
               })}
@@ -343,6 +422,18 @@ export default function AdminTransactions() {
           </Box>
         )}
       </Container>
+
+      {/* ── Snackbar feedback ─────────────────────────────────────────── */}
+      <Snackbar
+        open={!!snack}
+        autoHideDuration={6000}
+        onClose={() => setSnack(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert onClose={() => setSnack(null)} severity={snack?.severity || "info"} sx={{ width: "100%" }}>
+          {snack?.msg}
+        </Alert>
+      </Snackbar>
     </AdminLayout>
   );
 }

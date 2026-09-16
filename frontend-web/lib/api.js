@@ -193,6 +193,8 @@ export const Admin = {
   suspendListing: (id, note) => api.post(`/admin/properties/${id}/suspend`, { note }).then((r) => r.data),
   restoreListing: (id) => api.post(`/admin/properties/${id}/restore`).then((r) => r.data),
   transactions: (params) => api.get("/admin/transactions", { params }).then((r) => r.data),
+  reconcilePayments: () => api.post("/admin/reconcile").then((r) => r.data),
+  checkTransaction: (id) => api.post(`/admin/transactions/${id}/check`).then((r) => r.data),
   contacts: (params) => api.get("/admin/contacts", { params }).then((r) => r.data),
   sendContactNewsletter: (data) => api.post("/admin/contacts/newsletter", data).then((r) => r.data),
   getPricing: () => api.get("/admin/pricing").then((r) => r.data),

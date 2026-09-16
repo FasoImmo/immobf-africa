@@ -36,7 +36,7 @@ const STALE_MINUTES = 3;
 // un flood d'appels API en cas de bug ou d'accumulation passée.
 const BATCH_LIMIT = 100;
 
-async function runReconciliation() {
+async function runReconciliation({ returnReport = false } = {}) {
   const { rows: staleTxs } = await query(
     `SELECT id, reference, external_id, provider, purpose, amount, currency,
             status, property_id, buyer_id, customer_email
@@ -109,10 +109,9 @@ async function runReconciliation() {
     }
   }
 
-  logger.info(
-    { resolved, skipped, errors, total: staleTxs.length },
-    "reconciliation: run terminé"
-  );
+  const report = { resolved, skipped, errors, total: staleTxs.length };
+  logger.info(report, "reconciliation: run terminé");
+  if (returnReport) return report;
 }
 
 function startReconciliationCron() {
