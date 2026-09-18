@@ -17,7 +17,22 @@ function generateCode() {
  * @param {string|null} email - email optionnel pour envoi dual
  * @param {"verification"|"reset"} purpose
  */
+// ── Compte démo Apple App Review ─────────────────────────────────────────────
+// Si DEMO_PHONE est défini, ce numéro accepte toujours DEMO_OTP (défaut 123456)
+// sans SMS ni Redis. À désactiver après la validation de l'App Store.
+const DEMO_PHONE = process.env.DEMO_PHONE || null;
+const DEMO_OTP   = process.env.DEMO_OTP   || "123456";
+
 async function sendOtp(phone, email = null, purpose = "verification") {
+  // Bypass pour le compte démo : pas de SMS, mais on stocke quand même
+  // le code statique en Redis pour que verifyOtp fonctionne normalement.
+  if (DEMO_PHONE && phone === DEMO_PHONE) {
+    const redis = getRedis();
+    await redis.set(`otp:${phone}`, DEMO_OTP, "EX", 86400); // 24h pour le reviewer
+    logger.info({ phone }, "sendOtp: demo account — static OTP set");
+    return true;
+  }
+
   const code = generateCode();
   const redis = getRedis();
   await redis.set(`otp:${phone}`, code, "EX", TTL_SECONDS);
