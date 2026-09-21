@@ -1,6 +1,6 @@
 import { Html, Head, Main, NextScript } from "next/document";
 
-const SITE_URL = "https://www.immoafrica.online";
+const SITE_URL = "https://immoafrica.online";
 
 // JSON-LD : Organisation
 const ldOrg = {

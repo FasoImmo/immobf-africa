@@ -91,6 +91,26 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    // Redirige /fr et /fr/:path* → /:path* (301 permanent)
+    // Évite les pages dupliquées signalées par Google Search Console :
+    // "Page en double sans URL canonique sélectionnée par l'utilisateur"
+    // Next.js i18n génère à la fois /  (locale par défaut fr) et /fr/ (même contenu).
+    return [
+      {
+        source: "/fr",
+        destination: "/",
+        permanent: true,
+        locale: false,
+      },
+      {
+        source: "/fr/:path*",
+        destination: "/:path*",
+        permanent: true,
+        locale: false,
+      },
+    ];
+  },
   async rewrites() {
     // Forward /api/* to the backend API (avoids CORS in browser).
     const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
