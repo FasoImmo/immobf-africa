@@ -284,22 +284,34 @@ async function updateUserProfile(req, res) {
 }
 
 // ── Suppression du compte (RGPD — droit à l'effacement) ─────────────────────
+//
+// Deux cas :
+//   1. Compte OTP uniquement (phone login, pas de password_hash) : la session JWT
+//      suffit comme preuve d'identité — pas de mot de passe à vérifier.
+//   2. Compte avec mot de passe : le mot de passe est requis comme confirmation.
+//
+// Exigence Apple App Store Review Guideline 5.1.1(v) : les apps qui permettent
+// la création de compte doivent offrir la suppression complète du compte. Un simple
+// "désactiver" ou "contacter le support" n'est pas accepté.
 const deleteMeSchema = Joi.object({
-  password: Joi.string().required().messages({ "any.required": "Le mot de passe est requis pour confirmer la suppression." }),
+  password: Joi.string().optional(),
 });
 
 async function deleteMe(req, res) {
-  const { value, error } = deleteMeSchema.validate(req.body);
-  if (error) throw BadRequest(error.details[0].message);
+  const { value } = deleteMeSchema.validate(req.body);
 
   const user = await User.findByIdWithAuth(req.user.id);
   if (!user) throw BadRequest("Compte introuvable.");
 
-  if (!user.password_hash) {
-    throw BadRequest("Votre compte n'a pas de mot de passe. Contactez le support.");
+  if (user.password_hash) {
+    // Compte avec mot de passe : vérification requise
+    if (!value.password) {
+      throw BadRequest("Le mot de passe est requis pour confirmer la suppression.");
+    }
+    const ok = await User.verifyPassword(user, value.password);
+    if (!ok) throw BadRequest("Mot de passe incorrect.");
   }
-  const ok = await User.verifyPassword(user, value.password);
-  if (!ok) throw BadRequest("Mot de passe incorrect.");
+  // Compte OTP (pas de password_hash) : JWT déjà vérifié par requireAuth — on procède.
 
   await User.deleteById(user.id);
   res.json({ deleted: true });

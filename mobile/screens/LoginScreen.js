@@ -232,6 +232,13 @@ const T = {
     blockErrEnd: "La date de fin doit être après la date de début.",
     blockErrAdd: "Impossible d'ajouter le bloc.",
     blockErrRemove: "Impossible de supprimer.",
+    // Suppression de compte
+    deleteAccountBtn: "Supprimer mon compte",
+    deleteAccountTitle: "Supprimer le compte",
+    deleteAccountMsg: "Cette action est irréversible. Toutes vos données (annonces, messages, paiements) seront définitivement supprimées.\n\nÊtes-vous sûr(e) de vouloir continuer ?",
+    deleteAccountConfirm: "Supprimer définitivement",
+    deleteAccountSuccess: "Votre compte a été supprimé.",
+    deleteAccountError: "Impossible de supprimer le compte. Réessayez.",
   },
   en: {
     hello: "Hello",
@@ -299,11 +306,18 @@ const T = {
     blockErrEnd: "End date must be after start date.",
     blockErrAdd: "Unable to add the block.",
     blockErrRemove: "Unable to delete.",
+    // Account deletion
+    deleteAccountBtn: "Delete my account",
+    deleteAccountTitle: "Delete account",
+    deleteAccountMsg: "This action cannot be undone. All your data (listings, messages, payments) will be permanently deleted.\n\nAre you sure you want to continue?",
+    deleteAccountConfirm: "Delete permanently",
+    deleteAccountSuccess: "Your account has been deleted.",
+    deleteAccountError: "Unable to delete your account. Please try again.",
   },
 };
 
 
-function ProfileView({ me, onLogout, t, navigation }) {
+function ProfileView({ me, onLogout, onDeleteAccount, t, navigation }) {
   const [listings, setListings] = React.useState([]);
   const [loadingListings, setLoadingListings] = React.useState(false);
   const [showListings, setShowListings] = React.useState(false);
@@ -436,6 +450,14 @@ function ProfileView({ me, onLogout, t, navigation }) {
         <Text style={s.btnText}>{t.logout}</Text>
       </TouchableOpacity>
 
+      {/* ── Suppression de compte (App Store Guideline 5.1.1v) ─────────── */}
+      <TouchableOpacity
+        style={[s.btn, { backgroundColor: "#4a4a4a", marginTop: 10 }]}
+        onPress={onDeleteAccount}
+      >
+        <Text style={[s.btnText, { fontSize: 13 }]}>🗑 {t.deleteAccountBtn}</Text>
+      </TouchableOpacity>
+
       <BlockDatesModal
         visible={!!blockModal}
         propertyId={blockModal?.id}
@@ -518,6 +540,31 @@ export default function LoginScreen({ navigation }) {
     setEmail(""); setPhone(""); setPassword("");
   }
 
+  function doDeleteAccount() {
+    Alert.alert(
+      t.deleteAccountTitle,
+      t.deleteAccountMsg,
+      [
+        { text: t.cancel, style: "cancel" },
+        {
+          text: t.deleteAccountConfirm,
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await Auth.deleteAccount();
+              await tokenStore.clearSession();
+              Alert.alert("✅", t.deleteAccountSuccess);
+              setMe(null);
+              setEmail(""); setPhone(""); setPassword("");
+            } catch (e) {
+              Alert.alert("Erreur", e?.response?.data?.error?.message || t.deleteAccountError);
+            }
+          },
+        },
+      ]
+    );
+  }
+
   async function doForgotSend() {
     if (!forgotEmail) return Alert.alert("Erreur", t.errEmailRequired);
     setBusy(true);
@@ -555,7 +602,7 @@ export default function LoginScreen({ navigation }) {
 
   // ─── Profil connecté ───────────────────────────────────────────────────────
   if (me) {
-    return <ProfileView me={me} onLogout={doLogout} t={t} navigation={navigation} />;
+    return <ProfileView me={me} onLogout={doLogout} onDeleteAccount={doDeleteAccount} t={t} navigation={navigation} />;
   }
 
   // ─── Mot de passe oublié ───────────────────────────────────────────────────
