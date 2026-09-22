@@ -22,7 +22,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "africa.immobf.app",
-      "buildNumber": "7",
+      "buildNumber": "8",
       "minimumOsVersion": "15.0",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "ImmoBF utilise votre position pour géolocaliser votre annonce sur la carte.",
