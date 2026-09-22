@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Box, Button, Grid, Typography, Paper, TextField, MenuItem, Divider, Chip, Alert } from "@mui/material";
+import AndroidIcon from "@mui/icons-material/Android";
+import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout";
 import SeoHead from "../components/SeoHead";
@@ -205,12 +207,30 @@ export default function Home() {
             {t("home.app_desc")}
           </Typography>
         </Box>
-        <Button
-          variant="contained" color="primary" component={Link} href="/download"
-          sx={{ fontWeight: 700, px: 3, flexShrink: 0 }}
-        >
-          {t("home.app_download")}
-        </Button>
+        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", flexShrink: 0 }}>
+          <Button
+            variant="contained"
+            size="medium"
+            startIcon={<AndroidIcon />}
+            href="https://play.google.com/store/apps/details?id=africa.immobf.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ fontWeight: 700, px: 2.5, bgcolor: "#0E7C66", "&:hover": { bgcolor: "#0a6355" } }}
+          >
+            Google Play
+          </Button>
+          <Button
+            variant="outlined"
+            size="medium"
+            startIcon={<PhoneIphoneIcon />}
+            href="https://apps.apple.com/app/id6809453557"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ fontWeight: 700, px: 2.5, borderColor: "#0E7C66", color: "#0E7C66", "&:hover": { bgcolor: "#f0faf6" } }}
+          >
+            App Store
+          </Button>
+        </Box>
       </Paper>
 
       {/* ── Newsletter ── */}
