@@ -10,7 +10,7 @@ import Layout from "../components/Layout";
 const ANDROID_URL = process.env.NEXT_PUBLIC_ANDROID_URL || "https://play.google.com/store/apps/details?id=africa.immobf.app";
 const ANDROID_TESTING_URL = "https://play.google.com/apps/testing/africa.immobf.app";
 
-// iOS : App Store (disponible dès validation Apple — soumis sept. 2026)
+// iOS : App Store (approuvée le 27 sept. 2026)
 const IOS_URL = process.env.NEXT_PUBLIC_IOS_URL || "https://apps.apple.com/app/id6809453557";
 
 // Rétrocompatibilité (ancienne variable Vercel inutilisée — ne pas supprimer avant déploiement)
@@ -92,7 +92,7 @@ export default function DownloadPage() {
 
         <Box sx={{ mt: 3, display: "flex", gap: 1, justifyContent: "center", flexWrap: "wrap" }}>
           <Chip label="Android 8+" size="small" sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "white" }} />
-          <Chip label="v1.5.1" size="small" sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "white" }} />
+          <Chip label="v1.6.7" size="small" sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "white" }} />
           <Chip label={t("download.chip_free")} size="small" sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "white" }} />
         </Box>
       </Box>
