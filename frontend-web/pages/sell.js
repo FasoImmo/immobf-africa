@@ -295,14 +295,14 @@ export default function SellPage() {
     }
   }, [router.isReady, router.query.tx]); // eslint-disable-line
 
-  // ─── Bypass promo si brouillon repris (resume/renew) arrive sur step 2 ──────
+  // ─── Bypass promo si brouillon repris (resume/renew) arrive sur step 3 ──────
   useEffect(function() {
-    if (step !== 2 || !propertyId || promo === null) return; // attendre chargement promo
+    if (step !== 3 || !propertyId || promo === null) return; // attendre chargement promo
     if (!promo.active) return;
     // Publier directement et sauter le paiement
     Properties.publish(propertyId)
-      .then(function() { setStep(3); })
-      .catch(function() {}); // garder step 2 si l'annonce est déjà publiée ou erreur
+      .then(function() { router.push("/properties/" + propertyId + "?published=1"); })
+      .catch(function() {}); // rester sur step 3 si l'annonce est déjà publiée ou erreur
   }, [step, propertyId, promo]); // eslint-disable-line
 
   // ─── Reprise d'un brouillon via ?resume=propertyId ───────────────────────
@@ -332,7 +332,7 @@ export default function SellPage() {
         rent_period: p.rent_period || "monthly",
       });
       setPropertyId(resumeId);
-      setStep(2); // brouillon déjà créé → aller directement au paiement
+      setStep(2); // brouillon déjà créé → aller directement aux médias
     }).catch(function() {});
   }, [router.isReady, router.query.resume]); // eslint-disable-line
 
@@ -365,7 +365,7 @@ export default function SellPage() {
         rent_period: p.rent_period || "monthly",
       });
       setPropertyId(renewId);
-      setStep(2); // annonce existe déjà → aller directement au paiement
+      setStep(2); // annonce existe déjà → aller directement aux médias
     }).catch(function() {});
   }, [router.isReady, router.query.renew]); // eslint-disable-line
 
@@ -373,14 +373,14 @@ export default function SellPage() {
   // l'étape 2 (point de départ raisonnable), mais l'utilisateur peut le
   // changer ci-dessous s'il paie depuis un autre pays.
   useEffect(function() {
-    if (step !== 2) return;
+    if (step !== 3) return;
     setBuyerCountry(form.country_code || "BF");
   }, [step]); // eslint-disable-line
 
   // Charger les providers à chaque changement de pays acheteur (et à
   // l'arrivée sur l'étape 2).
   useEffect(function() {
-    if (step !== 2 || !buyerCountry) return;
+    if (step !== 3 || !buyerCountry) return;
     const ops = PAWAPAY_OPS_BY_COUNTRY[buyerCountry] || PAWAPAY_OPS_BY_COUNTRY.default;
     setPawapayOperator(ops[0]?.value || "moov");
     setPawapayOtp("");
@@ -400,7 +400,7 @@ export default function SellPage() {
         if (data.transaction.status === "succeeded") {
           clearInterval(pollRef.current);
           setPolling(false);
-          setStep(3);
+          router.push("/properties/" + propertyId + "?published=1");
         } else if (data.transaction.status === "failed") {
           clearInterval(pollRef.current);
           setPolling(false);
@@ -484,13 +484,12 @@ export default function SellPage() {
       var res = await Properties.create(payload);
       var pid = res.property.id;
       setPropertyId(pid);
-      // Si promo gratuite active → auto-publier, sauter l'étape paiement
+      // Toujours passer aux médias (step 2) ; si promo active → publier maintenant,
+      // le paiement sera ignoré à l'étape 3 (bypass useEffect).
       if (promo && promo.active) {
         await Properties.publish(pid);
-        setStep(3);
-      } else {
-        setStep(2);
       }
+      setStep(2);
     } catch (err) {
       setFormErr(err && err.response && err.response.data && err.response.data.error
         ? err.response.data.error.message : err.message);
@@ -536,9 +535,9 @@ export default function SellPage() {
         pawapay_otp: provider === "pawapay" && currentOp.otp ? pawapayOtp : null,
       });
       setTxId(res.transaction_id);
-      // Stub mode : succès immédiat → passer directement à l'étape photos
+      // Stub mode : succès immédiat → naviguer vers l'annonce publiée
       if (res.status === "succeeded") {
-        setStep(3);
+        router.push("/properties/" + propertyId + "?published=1");
         return;
       }
       if (res.payment_url) {
@@ -579,13 +578,16 @@ export default function SellPage() {
   function removeFile(i) { setFiles(function(f) { return f.filter(function(_, idx) { return idx !== i; }); }); }
 
   async function uploadFiles() {
-    if (!files.length) { router.push("/properties/" + propertyId + "?published=1"); return; }
+    var afterUpload = (promo && promo.active)
+      ? function() { router.push("/properties/" + propertyId + "?published=1"); }
+      : function() { setStep(3); };
+    if (!files.length) { afterUpload(); return; }
     setUploadErr(null); setUploadProgress(10); setUploadBusy(true);
     try {
       var result = await Photos.upload(propertyId, files);
       setUploadedCount(result.photos.length);
       setUploadProgress(100);
-      setTimeout(function() { router.push("/properties/" + propertyId + "?published=1"); }, 1200);
+      setTimeout(afterUpload, 1200);
     } catch (err) {
       setUploadErr(err && err.response && err.response.data && err.response.data.error
         ? err.response.data.error.message : err.message);
@@ -648,7 +650,10 @@ export default function SellPage() {
   }
 
   async function uploadVideos() {
-    if (!videoFiles.length) { router.push("/properties/" + propertyId + "?published=1"); return; }
+    var afterUpload = (promo && promo.active)
+      ? function() { router.push("/properties/" + propertyId + "?published=1"); }
+      : function() { setStep(3); };
+    if (!videoFiles.length) { afterUpload(); return; }
     setVideoUploadErr(null); setVideoUploadBusy(true);
     try {
       var count = 0;
@@ -658,7 +663,7 @@ export default function SellPage() {
       }
       setVideoUploadedCount(count);
       stopWebcam();
-      setTimeout(function() { router.push("/properties/" + propertyId + "?published=1"); }, 1200);
+      setTimeout(afterUpload, 1200);
     } catch (err) {
       setVideoUploadErr(err && err.response && err.response.data && err.response.data.error
         ? err.response.data.error.message : err.message);
@@ -673,8 +678,8 @@ export default function SellPage() {
   // ─── Stepper header ───────────────────────────────────────────────────────
   var steps = [
     `1. ${t("sell.step_details")}`,
-    `2. ${t("sell.step_payment")}`,
-    `3. ${t("sell.step_photos")}`,
+    `2. ${t("sell.step_photos")}`,
+    `3. ${t("sell.step_payment")}`,
   ];
 
   return (
@@ -925,8 +930,163 @@ export default function SellPage() {
         </Paper>
       )}
 
-      {/* ─── ÉTAPE 2 : Paiement frais de publication ─────────────────────── */}
+      {/* ─── ÉTAPE 2 : Médias de l'annonce ────────────────────────────────── */}
       {step === 2 && (
+        <Paper sx={{ p: { xs: 2, md: 4 } }} elevation={1}>
+          {/* En-tête unifié */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h5" fontWeight={700} gutterBottom>
+              Médias de l’annonce
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Ajoutez des photos et/ou des vidéos pour valoriser votre bien. Les deux sections sont optionnelles — vous pouvez publier directement.
+            </Typography>
+          </Box>
+
+          {/* ── Section Photos ──────────────────────────────────────── */}
+          <Box sx={{ mb: 4 }}>
+            <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, mb: 1.5 }}>
+              <Typography variant="subtitle1" fontWeight={700}>🖼️ Photos</Typography>
+              <Typography variant="caption" color="text.secondary">
+                optionnel — 10 max · JPG, PNG, WebP · 10 Mo chacune
+              </Typography>
+            </Box>
+            <Box
+              onDrop={onDrop}
+              onDragOver={function(e) { e.preventDefault(); }}
+              onClick={function() { document.getElementById("file-input").click(); }}
+              sx={{
+                border: "2px dashed #0E7C66", borderRadius: 2, p: { xs: 3, md: 4 },
+                textAlign: "center", cursor: "pointer",
+                bgcolor: "rgba(14,124,102,0.04)",
+                "&:hover": { bgcolor: "rgba(14,124,102,0.08)" },
+                transition: "background 0.2s",
+              }}
+            >
+              <Typography color="text.secondary">{t("sell.photos_drop")}</Typography>
+              <input id="file-input" type="file" multiple
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: "none" }} onChange={onFilePick} />
+            </Box>
+
+            {files.length > 0 && (
+              <Stack direction="row" flexWrap="wrap" sx={{ mt: 2, gap: 1 }}>
+                {files.map(function(f, i) {
+                  return <Chip key={i} label={f.name} onDelete={function() { removeFile(i); }} />;
+                })}
+              </Stack>
+            )}
+
+            {uploadProgress !== null && (
+              <Box sx={{ mt: 2 }}>
+                <LinearProgress variant="determinate" value={uploadProgress} />
+                {uploadProgress === 100 && (
+                  <Typography color="success.main" sx={{ mt: 1 }}>
+                    {uploadedCount} fichier(s) uploadé(s)
+                  </Typography>
+                )}
+              </Box>
+            )}
+            {uploadErr && <Alert severity="error" sx={{ mt: 2 }}>{uploadErr}</Alert>}
+          </Box>
+
+          <Divider sx={{ my: 3 }} />
+
+          {/* ── Section Vidéos ─────────────────────────────────────── */}
+          <Box sx={{ mb: 4 }}>
+            <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, mb: 1.5 }}>
+              <Typography variant="subtitle1" fontWeight={700}>🎬 Vidéos</Typography>
+              <Typography variant="caption" color="text.secondary">
+                optionnel — 3 max · MP4, MOV, WebM · 200 Mo chacune
+              </Typography>
+            </Box>
+
+            <Stack direction="row" spacing={2} flexWrap="wrap" sx={{ mb: 2 }}>
+              <Button variant="outlined" component="label"
+                disabled={videoUploadBusy || videoFiles.length >= 3}>
+                📂 Choisir une vidéo
+                <input type="file" accept="video/*" hidden onChange={onVideoPick} />
+              </Button>
+              {!webcamActive ? (
+                <Button variant="outlined" onClick={startWebcam}
+                  disabled={videoUploadBusy || videoFiles.length >= 3}>
+                  📷 Activer la webcam
+                </Button>
+              ) : (
+                <>
+                  {!isRecording ? (
+                    <Button variant="outlined" color="error" onClick={startRecording}
+                      disabled={videoFiles.length >= 3}>
+                      ⏺ Démarrer l’enregistrement
+                    </Button>
+                  ) : (
+                    <Button variant="contained" color="error" onClick={stopRecording}>
+                      ⏹ Arrêter
+                    </Button>
+                  )}
+                  <Button variant="text" onClick={stopWebcam}>Fermer la caméra</Button>
+                </>
+              )}
+            </Stack>
+
+            {webcamActive && (
+              <Box sx={{ mb: 2 }}>
+                <video ref={webcamVideoRef} autoPlay muted playsInline
+                  style={{ width: "100%", maxWidth: 480, borderRadius: 8, border: "2px solid #0E7C66", background: "#000" }} />
+                {isRecording && (
+                  <Typography color="error" variant="body2" sx={{ mt: 0.5 }}>
+                    ● Enregistrement en cours…
+                  </Typography>
+                )}
+              </Box>
+            )}
+
+            {videoFiles.length > 0 && (
+              <Stack spacing={1} sx={{ mb: 2 }}>
+                {videoFiles.map(function(f, i) {
+                  return (
+                    <Stack key={i} direction="row" alignItems="center" spacing={1}>
+                      <Typography variant="body2" sx={{ flex: 1 }}>
+                        🎥 {f.name} ({(f.size / 1024 / 1024).toFixed(1)} Mo)
+                      </Typography>
+                      <Button size="small" color="error"
+                        onClick={function() { removeVideo(i); }} disabled={videoUploadBusy}>✕</Button>
+                    </Stack>
+                  );
+                })}
+              </Stack>
+            )}
+
+            {videoUploadedCount > 0 && (
+              <Alert severity="success" sx={{ mb: 1 }}>{videoUploadedCount} vidéo(s) uploadée(s)</Alert>
+            )}
+            {videoUploadErr && <Alert severity="error" sx={{ mb: 1 }}>{videoUploadErr}</Alert>}
+          </Box>
+
+          {/* ── Actions unifiées ──────────────────────────────────── */}
+          <Divider sx={{ mb: 3 }} />
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
+            <Button variant="text" color="inherit"
+              onClick={function() { stopWebcam(); if (promo && promo.active) { router.push("/properties/" + propertyId + "?published=1"); } else { setStep(3); } }}
+              disabled={uploadBusy || videoUploadBusy}>
+              {t("sell.skip_photos")}
+            </Button>
+            <Stack direction="row" spacing={2} flexWrap="wrap">
+              {videoFiles.length > 0 && (
+                <Button variant="outlined" color="primary" onClick={uploadVideos} disabled={videoUploadBusy}>
+                  {videoUploadBusy ? "Upload vidéos…" : `Envoyer ${videoFiles.length} vidéo(s)`}
+                </Button>
+              )}
+              <Button variant="contained" color="primary" onClick={uploadFiles} disabled={uploadBusy}>
+                {files.length ? t("sell.upload_btn") : t("sell.finish_btn")}
+              </Button>
+            </Stack>
+          </Box>
+        </Paper>
+      )}
+
+      {/* ─── ÉTAPE 3 : Paiement frais de publication ──────────────────────── */}
+      {step === 3 && (
         <Paper sx={{ p: 3 }} elevation={1}>
           <Typography variant="h6" gutterBottom>{t("sell.step_payment")}</Typography>
           {/* Sélecteur de durée */}
@@ -1095,7 +1255,7 @@ export default function SellPage() {
           )}
 
           <Box sx={{ mt: 3, display: "flex", justifyContent: "space-between" }}>
-            <Button variant="text" disabled={polling} onClick={function() { setStep(1); }}>
+            <Button variant="text" disabled={polling} onClick={function() { setStep(2); }}>
               {t("sell.back_btn")}
             </Button>
             <Button
@@ -1108,165 +1268,6 @@ export default function SellPage() {
             >
               {payBusy ? "…" : `${t("sell.pay_btn")} ${selectedPlan.price.toLocaleString("fr-FR")} FCFA`}
             </Button>
-          </Box>
-        </Paper>
-      )}
-
-      {/* ─── ÉTAPE 3 : Médias ────────────────────────────────────────── */}
-      {step === 3 && (
-        <Paper sx={{ p: { xs: 2, md: 4 } }} elevation={1}>
-          <Alert severity="success" sx={{ mb: 3 }}>
-            {t("sell.payment_confirmed")}
-          </Alert>
-
-          {/* En-tête unifié */}
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h5" fontWeight={700} gutterBottom>
-              Médias de l’annonce
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Ajoutez des photos et/ou des vidéos pour valoriser votre bien. Les deux sections sont optionnelles — vous pouvez publier directement.
-            </Typography>
-          </Box>
-
-          {/* ── Section Photos ──────────────────────────────────────── */}
-          <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, mb: 1.5 }}>
-              <Typography variant="subtitle1" fontWeight={700}>🖼️ Photos</Typography>
-              <Typography variant="caption" color="text.secondary">
-                optionnel — 10 max · JPG, PNG, WebP · 10 Mo chacune
-              </Typography>
-            </Box>
-            <Box
-              onDrop={onDrop}
-              onDragOver={function(e) { e.preventDefault(); }}
-              onClick={function() { document.getElementById("file-input").click(); }}
-              sx={{
-                border: "2px dashed #0E7C66", borderRadius: 2, p: { xs: 3, md: 4 },
-                textAlign: "center", cursor: "pointer",
-                bgcolor: "rgba(14,124,102,0.04)",
-                "&:hover": { bgcolor: "rgba(14,124,102,0.08)" },
-                transition: "background 0.2s",
-              }}
-            >
-              <Typography color="text.secondary">{t("sell.photos_drop")}</Typography>
-              <input id="file-input" type="file" multiple
-                accept="image/jpeg,image/png,image/webp"
-                style={{ display: "none" }} onChange={onFilePick} />
-            </Box>
-
-            {files.length > 0 && (
-              <Stack direction="row" flexWrap="wrap" sx={{ mt: 2, gap: 1 }}>
-                {files.map(function(f, i) {
-                  return <Chip key={i} label={f.name} onDelete={function() { removeFile(i); }} />;
-                })}
-              </Stack>
-            )}
-
-            {uploadProgress !== null && (
-              <Box sx={{ mt: 2 }}>
-                <LinearProgress variant="determinate" value={uploadProgress} />
-                {uploadProgress === 100 && (
-                  <Typography color="success.main" sx={{ mt: 1 }}>
-                    {uploadedCount} fichier(s) uploadé(s)
-                  </Typography>
-                )}
-              </Box>
-            )}
-            {uploadErr && <Alert severity="error" sx={{ mt: 2 }}>{uploadErr}</Alert>}
-          </Box>
-
-          <Divider sx={{ my: 3 }} />
-
-          {/* ── Section Vidéos ─────────────────────────────────────── */}
-          <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, mb: 1.5 }}>
-              <Typography variant="subtitle1" fontWeight={700}>🎬 Vidéos</Typography>
-              <Typography variant="caption" color="text.secondary">
-                optionnel — 3 max · MP4, MOV, WebM · 200 Mo chacune
-              </Typography>
-            </Box>
-
-            <Stack direction="row" spacing={2} flexWrap="wrap" sx={{ mb: 2 }}>
-              <Button variant="outlined" component="label"
-                disabled={videoUploadBusy || videoFiles.length >= 3}>
-                📂 Choisir une vidéo
-                <input type="file" accept="video/*" hidden onChange={onVideoPick} />
-              </Button>
-              {!webcamActive ? (
-                <Button variant="outlined" onClick={startWebcam}
-                  disabled={videoUploadBusy || videoFiles.length >= 3}>
-                  📷 Activer la webcam
-                </Button>
-              ) : (
-                <>
-                  {!isRecording ? (
-                    <Button variant="outlined" color="error" onClick={startRecording}
-                      disabled={videoFiles.length >= 3}>
-                      ⏺ Démarrer l’enregistrement
-                    </Button>
-                  ) : (
-                    <Button variant="contained" color="error" onClick={stopRecording}>
-                      ⏹ Arrêter
-                    </Button>
-                  )}
-                  <Button variant="text" onClick={stopWebcam}>Fermer la caméra</Button>
-                </>
-              )}
-            </Stack>
-
-            {webcamActive && (
-              <Box sx={{ mb: 2 }}>
-                <video ref={webcamVideoRef} autoPlay muted playsInline
-                  style={{ width: "100%", maxWidth: 480, borderRadius: 8, border: "2px solid #0E7C66", background: "#000" }} />
-                {isRecording && (
-                  <Typography color="error" variant="body2" sx={{ mt: 0.5 }}>
-                    ● Enregistrement en cours…
-                  </Typography>
-                )}
-              </Box>
-            )}
-
-            {videoFiles.length > 0 && (
-              <Stack spacing={1} sx={{ mb: 2 }}>
-                {videoFiles.map(function(f, i) {
-                  return (
-                    <Stack key={i} direction="row" alignItems="center" spacing={1}>
-                      <Typography variant="body2" sx={{ flex: 1 }}>
-                        🎥 {f.name} ({(f.size / 1024 / 1024).toFixed(1)} Mo)
-                      </Typography>
-                      <Button size="small" color="error"
-                        onClick={function() { removeVideo(i); }} disabled={videoUploadBusy}>✕</Button>
-                    </Stack>
-                  );
-                })}
-              </Stack>
-            )}
-
-            {videoUploadedCount > 0 && (
-              <Alert severity="success" sx={{ mb: 1 }}>{videoUploadedCount} vidéo(s) uploadée(s)</Alert>
-            )}
-            {videoUploadErr && <Alert severity="error" sx={{ mb: 1 }}>{videoUploadErr}</Alert>}
-          </Box>
-
-          {/* ── Actions unifiées ──────────────────────────────────── */}
-          <Divider sx={{ mb: 3 }} />
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
-            <Button variant="text" color="inherit"
-              onClick={function() { stopWebcam(); router.push("/properties/" + propertyId + "?published=1"); }}
-              disabled={uploadBusy || videoUploadBusy}>
-              {t("sell.skip_photos")}
-            </Button>
-            <Stack direction="row" spacing={2} flexWrap="wrap">
-              {videoFiles.length > 0 && (
-                <Button variant="outlined" color="primary" onClick={uploadVideos} disabled={videoUploadBusy}>
-                  {videoUploadBusy ? "Upload vidéos…" : `Envoyer ${videoFiles.length} vidéo(s)`}
-                </Button>
-              )}
-              <Button variant="contained" color="primary" onClick={uploadFiles} disabled={uploadBusy}>
-                {files.length ? t("sell.upload_btn") : t("sell.finish_btn")}
-              </Button>
-            </Stack>
           </Box>
         </Paper>
       )}

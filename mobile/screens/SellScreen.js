@@ -95,8 +95,8 @@ const T = {
   fr: {
     title: "Publier une annonce",
     step1: "1. Détails",
-    step2: "2. Paiement",
-    step3: "3. Photos",
+    step2: "2. Photos",
+    step3: "3. Paiement",
     // Form
     txType: "Type de transaction *",
     propType: "Type de bien *",
@@ -350,22 +350,20 @@ export default function SellScreen({ navigation, route }) {
       };
 
       if (isEditMode) {
-        // Mode édition : PATCH + aller directement aux photos
+        // Mode édition : PATCH + aller directement aux médias
         await Properties.update(propertyId, payload);
-        setStep(3);
+        setStep(2);
         return;
       }
 
       const res = await Properties.create(payload);
       const pid = res.property.id;
       setPropertyId(pid);
-      // Promo active → publication gratuite directe, skip paiement
+      // Toujours passer aux médias (step 2) ; promo → publier maintenant
       if (promo && promo.active) {
         await Properties.publish(pid);
-        setStep(3);
-      } else {
-        setStep(2);
       }
+      setStep(2);
     } catch (e) {
       Alert.alert("Erreur", e?.response?.data?.error?.message || e.message);
     } finally { setFormBusy(false); }
@@ -459,16 +457,16 @@ export default function SellScreen({ navigation, route }) {
   const [polling, setPolling] = useState(false);
   const pollRef = useRef(null);
 
-  // Init buyer country from form country when arriving at step 2
+  // Init buyer country from form country when arriving at step 3
   useEffect(() => {
-    if (step !== 2) return;
+    if (step !== 3) return;
     const c = COUNTRIES.find((c) => c.code === form.country_code) || COUNTRIES[0];
     setBuyerCountry(c);
   }, [step]);
 
   // Reload providers when buyer country changes
   useEffect(() => {
-    if (step !== 2) return;
+    if (step !== 3) return;
     setPawapayOperator("moov");
     setPawapayOtp("");
     Payments.providers(buyerCountry.code).then((d) => {
@@ -488,7 +486,7 @@ export default function SellScreen({ navigation, route }) {
         if (data.transaction.status === "succeeded") {
           clearInterval(pollRef.current);
           setPolling(false);
-          setStep(3);
+          setDone(true);
         } else if (data.transaction.status === "failed") {
           clearInterval(pollRef.current);
           setPolling(false);
@@ -521,7 +519,7 @@ export default function SellScreen({ navigation, route }) {
         description: `ImmoBF Africa — ${selectedPlan.price.toLocaleString("fr-FR")} FCFA`,
       });
       setTxId(res.transaction_id);
-      if (res.status === "succeeded") { setStep(3); return; }
+      if (res.status === "succeeded") { setDone(true); return; }
       if (res.payment_url) { Linking.openURL(res.payment_url); setPolling(true); return; }
       if (res.ussd_code) { setUssdCode(res.ussd_code); }
       setPolling(true);
@@ -577,11 +575,12 @@ export default function SellScreen({ navigation, route }) {
   }
 
   async function uploadPhotos() {
-    if (!photos.length) { setDone(true); return; }
+    const afterUpload = (promo && promo.active) ? () => setDone(true) : () => setStep(3);
+    if (!photos.length) { afterUpload(); return; }
     setUploadBusy(true);
     try {
       await Photos.upload(propertyId, photos);
-      setDone(true);
+      afterUpload();
     } catch (e) {
       Alert.alert("Erreur", e?.response?.data?.error?.message || e.message);
     } finally { setUploadBusy(false); }
@@ -626,6 +625,7 @@ export default function SellScreen({ navigation, route }) {
   }
 
   async function uploadVideosAndFinish() {
+    const afterUpload = (promo && promo.active) ? () => setDone(true) : () => setStep(3);
     setVideoUploadBusy(true);
     try {
       for (const asset of videoAssets) {
@@ -635,7 +635,7 @@ export default function SellScreen({ navigation, route }) {
       Alert.alert("Erreur vidéo", e?.response?.data?.error?.message || e.message);
     } finally {
       setVideoUploadBusy(false);
-      setDone(true);
+      afterUpload();
     }
   }
 
@@ -892,8 +892,140 @@ export default function SellScreen({ navigation, route }) {
         </View>
       )}
 
-      {/* ─── ÉTAPE 2 : Paiement ────────────────────────────────────────────── */}
+      {/* ─── ÉTAPE 2 : Médias ──────────────────────────────────────────────── */}
       {step === 2 && (
+        <View>
+
+          {/* ── Section Photos ────────────────────────────────────── */}
+          <View style={{ marginBottom: 6 }}>
+            <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, marginBottom: 4 }}>
+              <Text style={[s.label, { fontSize: 15, fontWeight: "700" }]}>
+                🖼️ {lang === "fr" ? "Photos" : "Photos"}
+              </Text>
+              <Text style={{ fontSize: 12, color: "#888" }}>
+                {lang === "fr" ? "(optionnel — 10 max · JPG, PNG, WebP)" : "(optional — 10 max · JPG, PNG, WebP)"}
+              </Text>
+            </View>
+            <Text style={s.hint}>{t.photosHint}</Text>
+          </View>
+
+          <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
+            <TouchableOpacity style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]} onPress={pickPhotos}>
+              <Text style={s.photoPickText}>🖼️ {t.addPhotos} ({photos.length}/10)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]} onPress={takePhoto}>
+              <Text style={s.photoPickText}>📸 {t.takePhoto}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {photos.length > 0 && (
+            <View style={s.photoGrid}>
+              {photos.map((a, i) => (
+                <View key={i} style={s.photoThumb}>
+                  <Image source={{ uri: a.uri }} style={s.thumbImg} />
+                  <TouchableOpacity
+                    style={s.removePhoto}
+                    onPress={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
+                  >
+                    <Text style={{ color: "white", fontSize: 12, fontWeight: "700" }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={[s.btn, uploadBusy && s.btnDisabled]}
+            onPress={uploadPhotos} disabled={uploadBusy}
+          >
+            {uploadBusy
+              ? <ActivityIndicator color="white" />
+              : <Text style={s.btnText}>{t.uploadBtn}</Text>
+            }
+          </TouchableOpacity>
+
+          {/* ── Section Vidéos ───────────────────────────────────── */}
+          <View style={{ marginTop: 24, borderTopWidth: 1, borderTopColor: "#e0e0e0", paddingTop: 20 }}>
+            <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, marginBottom: 4 }}>
+              <Text style={[s.label, { fontSize: 15, fontWeight: "700" }]}>
+                🎬 {lang === "fr" ? "Vidéos" : "Videos"}
+              </Text>
+              <Text style={{ fontSize: 12, color: "#888" }}>
+                {lang === "fr" ? "(optionnel — 3 max · MP4, MOV, WebM)" : "(optional — 3 max · MP4, MOV, WebM)"}
+              </Text>
+            </View>
+            <Text style={[s.hint, { marginBottom: 10 }]}>
+              {lang === "fr"
+                ? "200 Mo max. Filmez directement ou choisissez depuis la galerie."
+                : "200 MB max. Record directly or pick from gallery."}
+            </Text>
+
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity
+                style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]}
+                onPress={pickVideos}
+                disabled={videoAssets.length >= 3}
+              >
+                <Text style={s.photoPickText}>
+                  🎞️ {lang === "fr" ? `Galerie (${videoAssets.length}/3)` : `Gallery (${videoAssets.length}/3)`}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]}
+                onPress={recordVideo}
+                disabled={videoAssets.length >= 3}
+              >
+                <Text style={s.photoPickText}>🎥 {lang === "fr" ? "Filmer" : "Record"}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {videoAssets.length > 0 && (
+              <View style={{ marginTop: 10 }}>
+                {videoAssets.map((a, i) => (
+                  <View key={i} style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+                    <Text style={{ flex: 1, fontSize: 13, color: "#555" }} numberOfLines={1}>
+                      🎬 {a.uri.split("/").pop()}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setVideoAssets((prev) => prev.filter((_, idx) => idx !== i))}
+                      style={{ paddingHorizontal: 10 }}
+                    >
+                      <Text style={{ color: "#e53935", fontWeight: "700" }}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {videoAssets.length > 0 && (
+              <TouchableOpacity
+                style={[s.btn, videoUploadBusy && s.btnDisabled, { marginTop: 10 }]}
+                onPress={uploadVideosAndFinish}
+                disabled={videoUploadBusy}
+              >
+                {videoUploadBusy
+                  ? <ActivityIndicator color="white" />
+                  : <Text style={s.btnText}>
+                      {lang === "fr"
+                        ? `Envoyer ${videoAssets.length} vidéo(s) & Terminer`
+                        : `Upload ${videoAssets.length} video(s) & Finish`}
+                    </Text>
+                }
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* ── Action unifiée ─────────────────────────────────────────── */}
+          <TouchableOpacity style={[s.skipBtn, { marginTop: 20 }]} onPress={() => {
+            if (promo && promo.active) { setDone(true); } else { setStep(3); }
+          }}>
+            <Text style={s.skipText}>{t.skipBtn}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* ─── ÉTAPE 3 : Paiement ────────────────────────────────────────────── */}
+      {step === 3 && !done && (
         <View>
           {/* Plans */}
           <Text style={s.label}>{t.plan}</Text>
@@ -1023,136 +1155,6 @@ export default function SellScreen({ navigation, route }) {
               }
             </TouchableOpacity>
           )}
-        </View>
-      )}
-
-      {/* ─── ÉTAPE 3 : Photos ──────────────────────────────────────────────── */}
-      {step === 3 && !done && (
-        <View>
-
-          {/* ── Section Photos ────────────────────────────────────── */}
-          <View style={{ marginBottom: 6 }}>
-            <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, marginBottom: 4 }}>
-              <Text style={[s.label, { fontSize: 15, fontWeight: "700" }]}>
-                🖼️ {lang === "fr" ? "Photos" : "Photos"}
-              </Text>
-              <Text style={{ fontSize: 12, color: "#888" }}>
-                {lang === "fr" ? "(optionnel — 10 max · JPG, PNG, WebP)" : "(optional — 10 max · JPG, PNG, WebP)"}
-              </Text>
-            </View>
-            <Text style={s.hint}>{t.photosHint}</Text>
-          </View>
-
-          <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
-            <TouchableOpacity style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]} onPress={pickPhotos}>
-              <Text style={s.photoPickText}>🖼️ {t.addPhotos} ({photos.length}/10)</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]} onPress={takePhoto}>
-              <Text style={s.photoPickText}>📸 {t.takePhoto}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {photos.length > 0 && (
-            <View style={s.photoGrid}>
-              {photos.map((a, i) => (
-                <View key={i} style={s.photoThumb}>
-                  <Image source={{ uri: a.uri }} style={s.thumbImg} />
-                  <TouchableOpacity
-                    style={s.removePhoto}
-                    onPress={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
-                  >
-                    <Text style={{ color: "white", fontSize: 12, fontWeight: "700" }}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-          )}
-
-          <TouchableOpacity
-            style={[s.btn, uploadBusy && s.btnDisabled]}
-            onPress={uploadPhotos} disabled={uploadBusy}
-          >
-            {uploadBusy
-              ? <ActivityIndicator color="white" />
-              : <Text style={s.btnText}>{t.uploadBtn}</Text>
-            }
-          </TouchableOpacity>
-
-          {/* ── Section Vidéos ───────────────────────────────────── */}
-          <View style={{ marginTop: 24, borderTopWidth: 1, borderTopColor: "#e0e0e0", paddingTop: 20 }}>
-            <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, marginBottom: 4 }}>
-              <Text style={[s.label, { fontSize: 15, fontWeight: "700" }]}>
-                🎬 {lang === "fr" ? "Vidéos" : "Videos"}
-              </Text>
-              <Text style={{ fontSize: 12, color: "#888" }}>
-                {lang === "fr" ? "(optionnel — 3 max · MP4, MOV, WebM)" : "(optional — 3 max · MP4, MOV, WebM)"}
-              </Text>
-            </View>
-            <Text style={[s.hint, { marginBottom: 10 }]}>
-              {lang === "fr"
-                ? "200 Mo max. Filmez directement ou choisissez depuis la galerie."
-                : "200 MB max. Record directly or pick from gallery."}
-            </Text>
-
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              <TouchableOpacity
-                style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]}
-                onPress={pickVideos}
-                disabled={videoAssets.length >= 3}
-              >
-                <Text style={s.photoPickText}>
-                  🎞️ {lang === "fr" ? `Galerie (${videoAssets.length}/3)` : `Gallery (${videoAssets.length}/3)`}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]}
-                onPress={recordVideo}
-                disabled={videoAssets.length >= 3}
-              >
-                <Text style={s.photoPickText}>🎥 {lang === "fr" ? "Filmer" : "Record"}</Text>
-              </TouchableOpacity>
-            </View>
-
-            {videoAssets.length > 0 && (
-              <View style={{ marginTop: 10 }}>
-                {videoAssets.map((a, i) => (
-                  <View key={i} style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
-                    <Text style={{ flex: 1, fontSize: 13, color: "#555" }} numberOfLines={1}>
-                      🎬 {a.uri.split("/").pop()}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => setVideoAssets((prev) => prev.filter((_, idx) => idx !== i))}
-                      style={{ paddingHorizontal: 10 }}
-                    >
-                      <Text style={{ color: "#e53935", fontWeight: "700" }}>✕</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {videoAssets.length > 0 && (
-              <TouchableOpacity
-                style={[s.btn, videoUploadBusy && s.btnDisabled, { marginTop: 10 }]}
-                onPress={uploadVideosAndFinish}
-                disabled={videoUploadBusy}
-              >
-                {videoUploadBusy
-                  ? <ActivityIndicator color="white" />
-                  : <Text style={s.btnText}>
-                      {lang === "fr"
-                        ? `Envoyer ${videoAssets.length} vidéo(s) & Terminer`
-                        : `Upload ${videoAssets.length} video(s) & Finish`}
-                    </Text>
-                }
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* ── Action unifiée ─────────────────────────────────────────── */}
-          <TouchableOpacity style={[s.skipBtn, { marginTop: 20 }]} onPress={() => setDone(true)}>
-            <Text style={s.skipText}>{t.skipBtn}</Text>
-          </TouchableOpacity>
         </View>
       )}
 
