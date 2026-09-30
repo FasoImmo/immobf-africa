@@ -1271,7 +1271,6 @@ export default function SellPage() {
           </Box>
         </Paper>
       )}
-      )}
     </Layout>
   );
 }
