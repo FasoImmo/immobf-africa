@@ -273,7 +273,62 @@ export default function PropertyDetail() {
         jsonLd={[jsonLd, ldBreadcrumb]}
       />
       {router.query.published === "1" && (
-        <Alert severity="success" sx={{ mb: 2 }}>{t("property.published_banner")}</Alert>
+        <Paper
+          elevation={3}
+          sx={{
+            mb: 3, p: { xs: 2, sm: 3 },
+            border: "2px solid #0E7C66",
+            borderRadius: 3,
+            background: "linear-gradient(135deg, #f0faf7 0%, #e8f7f2 100%)",
+          }}
+        >
+          {/* Titre succès */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
+            <Typography variant="h5" fontWeight={700} color="primary">
+              ✅ {t("property.published_title") || "Annonce publiée !"}
+            </Typography>
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {t("property.published_subtitle") || "Voici exactement comment votre annonce apparaît aux visiteurs sur la plateforme. Vérifiez les informations et modifiez si nécessaire."}
+          </Typography>
+
+          {/* Boutons d'action */}
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+            <Button
+              variant="contained"
+              color="primary"
+              component={Link}
+              href={`/properties/${p.id}/edit`}
+            >
+              ✏️ {t("property.edit_btn") || "Modifier l'annonce"}
+            </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              component={Link}
+              href="/account"
+            >
+              📋 {t("nav.my_listings") || "Mes annonces"}
+            </Button>
+            <Button
+              variant="text"
+              onClick={() => {
+                const url = window.location.origin + "/properties/" + p.id;
+                if (navigator.share) {
+                  navigator.share({ title: p.title, url });
+                } else {
+                  navigator.clipboard.writeText(url).catch(() => {});
+                }
+              }}
+            >
+              🔗 {t("property.share") || "Partager"}
+            </Button>
+          </Stack>
+
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
+            👇 {t("property.published_preview_hint") || "Le contenu ci-dessous est la vue publique de votre annonce."}
+          </Typography>
+        </Paper>
       )}
       <Box sx={{ mb: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
         <Chip label={t("types." + p.type)} color="primary" />
