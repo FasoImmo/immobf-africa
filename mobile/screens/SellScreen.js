@@ -1029,7 +1029,19 @@ export default function SellScreen({ navigation, route }) {
       {/* ─── ÉTAPE 3 : Photos ──────────────────────────────────────────────── */}
       {step === 3 && !done && (
         <View>
-          <Text style={s.hint}>{t.photosHint}</Text>
+
+          {/* ── Section Photos ────────────────────────────────────── */}
+          <View style={{ marginBottom: 6 }}>
+            <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, marginBottom: 4 }}>
+              <Text style={[s.label, { fontSize: 15, fontWeight: "700" }]}>
+                🖼️ {lang === "fr" ? "Photos" : "Photos"}
+              </Text>
+              <Text style={{ fontSize: 12, color: "#888" }}>
+                {lang === "fr" ? "(optionnel — 10 max · JPG, PNG, WebP)" : "(optional — 10 max · JPG, PNG, WebP)"}
+              </Text>
+            </View>
+            <Text style={s.hint}>{t.photosHint}</Text>
+          </View>
 
           <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
             <TouchableOpacity style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]} onPress={pickPhotos}>
@@ -1066,15 +1078,20 @@ export default function SellScreen({ navigation, route }) {
             }
           </TouchableOpacity>
 
-          {/* ── Vidéos ──────────────────────────────────────────────────────── */}
-          <View style={{ marginTop: 20, borderTopWidth: 1, borderTopColor: "#e0e0e0", paddingTop: 16 }}>
-            <Text style={[s.label, { fontSize: 15, fontWeight: "700", marginBottom: 4 }]}>
-              🎬 {lang === "fr" ? "Vidéos (optionnel, max 3)" : "Videos (optional, max 3)"}
-            </Text>
-            <Text style={[s.hint, { marginBottom: 8 }]}>
+          {/* ── Section Vidéos ───────────────────────────────────── */}
+          <View style={{ marginTop: 24, borderTopWidth: 1, borderTopColor: "#e0e0e0", paddingTop: 20 }}>
+            <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, marginBottom: 4 }}>
+              <Text style={[s.label, { fontSize: 15, fontWeight: "700" }]}>
+                🎬 {lang === "fr" ? "Vidéos" : "Videos"}
+              </Text>
+              <Text style={{ fontSize: 12, color: "#888" }}>
+                {lang === "fr" ? "(optionnel — 3 max · MP4, MOV, WebM)" : "(optional — 3 max · MP4, MOV, WebM)"}
+              </Text>
+            </View>
+            <Text style={[s.hint, { marginBottom: 10 }]}>
               {lang === "fr"
-                ? "Filmez directement ou choisissez depuis la galerie."
-                : "Record directly or pick from gallery."}
+                ? "200 Mo max. Filmez directement ou choisissez depuis la galerie."
+                : "200 MB max. Record directly or pick from gallery."}
             </Text>
 
             <View style={{ flexDirection: "row", gap: 10 }}>
@@ -1097,7 +1114,7 @@ export default function SellScreen({ navigation, route }) {
             </View>
 
             {videoAssets.length > 0 && (
-              <View style={{ marginTop: 8 }}>
+              <View style={{ marginTop: 10 }}>
                 {videoAssets.map((a, i) => (
                   <View key={i} style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
                     <Text style={{ flex: 1, fontSize: 13, color: "#555" }} numberOfLines={1}>
@@ -1132,13 +1149,13 @@ export default function SellScreen({ navigation, route }) {
             )}
           </View>
 
-          <TouchableOpacity style={s.skipBtn} onPress={() => setDone(true)}>
+          {/* ── Action unifiée ─────────────────────────────────────────── */}
+          <TouchableOpacity style={[s.skipBtn, { marginTop: 20 }]} onPress={() => setDone(true)}>
             <Text style={s.skipText}>{t.skipBtn}</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* ─── SUCCÈS ────────────────────────────────────────────────────────── */}
       {step === 3 && done && (
         <View style={s.doneBox}>
           <Text style={s.doneTitle}>{t.published}</Text>

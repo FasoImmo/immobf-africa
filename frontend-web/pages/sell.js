@@ -1112,144 +1112,164 @@ export default function SellPage() {
         </Paper>
       )}
 
-      {/* ─── ÉTAPE 3 : Photos ────────────────────────────────────────────── */}
+      {/* ─── ÉTAPE 3 : Médias ────────────────────────────────────────── */}
       {step === 3 && (
-        <Paper sx={{ p: 3 }} elevation={1}>
-          <Alert severity="success" sx={{ mb: 2 }}>
+        <Paper sx={{ p: { xs: 2, md: 4 } }} elevation={1}>
+          <Alert severity="success" sx={{ mb: 3 }}>
             {t("sell.payment_confirmed")}
           </Alert>
-          <Typography variant="h6" gutterBottom>{t("sell.photos_title")}</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {t("sell.photos_hint")}
-          </Typography>
-          <Box
-            onDrop={onDrop}
-            onDragOver={function(e) { e.preventDefault(); }}
-            onClick={function() { document.getElementById("file-input").click(); }}
-            sx={{
-              border: "2px dashed #0E7C66", borderRadius: 2, p: 4,
-              textAlign: "center", cursor: "pointer",
-              bgcolor: "rgba(14,124,102,0.04)",
-              "&:hover": { bgcolor: "rgba(14,124,102,0.08)" }
-            }}
-          >
-            <Typography>{t("sell.photos_drop")}</Typography>
-            <input id="file-input" type="file" multiple
-              accept="image/jpeg,image/png,image/webp"
-              style={{ display: "none" }} onChange={onFilePick} />
+
+          {/* En-tête unifié */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h5" fontWeight={700} gutterBottom>
+              Médias de l’annonce
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Ajoutez des photos et/ou des vidéos pour valoriser votre bien. Les deux sections sont optionnelles — vous pouvez publier directement.
+            </Typography>
           </Box>
 
-          {files.length > 0 && (
-            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 2, gap: 1 }}>
-              {files.map(function(f, i) {
-                return <Chip key={i} label={f.name} onDelete={function() { removeFile(i); }} />;
-              })}
-            </Stack>
-          )}
-
-          {uploadProgress !== null && (
-            <Box sx={{ mt: 2 }}>
-              <LinearProgress variant="determinate" value={uploadProgress} />
-              {uploadProgress === 100 && (
-                <Typography color="success.main" sx={{ mt: 1 }}>
-                  {uploadedCount} fichier(s) uploadé(s) — redirection…
-                </Typography>
-              )}
+          {/* ── Section Photos ──────────────────────────────────────── */}
+          <Box sx={{ mb: 4 }}>
+            <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, mb: 1.5 }}>
+              <Typography variant="subtitle1" fontWeight={700}>🖼️ Photos</Typography>
+              <Typography variant="caption" color="text.secondary">
+                optionnel — 10 max · JPG, PNG, WebP · 10 Mo chacune
+              </Typography>
             </Box>
-          )}
+            <Box
+              onDrop={onDrop}
+              onDragOver={function(e) { e.preventDefault(); }}
+              onClick={function() { document.getElementById("file-input").click(); }}
+              sx={{
+                border: "2px dashed #0E7C66", borderRadius: 2, p: { xs: 3, md: 4 },
+                textAlign: "center", cursor: "pointer",
+                bgcolor: "rgba(14,124,102,0.04)",
+                "&:hover": { bgcolor: "rgba(14,124,102,0.08)" },
+                transition: "background 0.2s",
+              }}
+            >
+              <Typography color="text.secondary">{t("sell.photos_drop")}</Typography>
+              <input id="file-input" type="file" multiple
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: "none" }} onChange={onFilePick} />
+            </Box>
 
-          {uploadErr && <Alert severity="error" sx={{ mt: 2 }}>{uploadErr}</Alert>}
+            {files.length > 0 && (
+              <Stack direction="row" flexWrap="wrap" sx={{ mt: 2, gap: 1 }}>
+                {files.map(function(f, i) {
+                  return <Chip key={i} label={f.name} onDelete={function() { removeFile(i); }} />;
+                })}
+              </Stack>
+            )}
 
-          <Box sx={{ mt: 3, display: "flex", justifyContent: "space-between" }}>
-            <Button variant="text" onClick={function() { router.push("/properties/" + propertyId + "?published=1"); }} disabled={uploadBusy}>
+            {uploadProgress !== null && (
+              <Box sx={{ mt: 2 }}>
+                <LinearProgress variant="determinate" value={uploadProgress} />
+                {uploadProgress === 100 && (
+                  <Typography color="success.main" sx={{ mt: 1 }}>
+                    {uploadedCount} fichier(s) uploadé(s)
+                  </Typography>
+                )}
+              </Box>
+            )}
+            {uploadErr && <Alert severity="error" sx={{ mt: 2 }}>{uploadErr}</Alert>}
+          </Box>
+
+          <Divider sx={{ my: 3 }} />
+
+          {/* ── Section Vidéos ─────────────────────────────────────── */}
+          <Box sx={{ mb: 4 }}>
+            <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, mb: 1.5 }}>
+              <Typography variant="subtitle1" fontWeight={700}>🎬 Vidéos</Typography>
+              <Typography variant="caption" color="text.secondary">
+                optionnel — 3 max · MP4, MOV, WebM · 200 Mo chacune
+              </Typography>
+            </Box>
+
+            <Stack direction="row" spacing={2} flexWrap="wrap" sx={{ mb: 2 }}>
+              <Button variant="outlined" component="label"
+                disabled={videoUploadBusy || videoFiles.length >= 3}>
+                📂 Choisir une vidéo
+                <input type="file" accept="video/*" hidden onChange={onVideoPick} />
+              </Button>
+              {!webcamActive ? (
+                <Button variant="outlined" onClick={startWebcam}
+                  disabled={videoUploadBusy || videoFiles.length >= 3}>
+                  📷 Activer la webcam
+                </Button>
+              ) : (
+                <>
+                  {!isRecording ? (
+                    <Button variant="outlined" color="error" onClick={startRecording}
+                      disabled={videoFiles.length >= 3}>
+                      ⏺ Démarrer l’enregistrement
+                    </Button>
+                  ) : (
+                    <Button variant="contained" color="error" onClick={stopRecording}>
+                      ⏹ Arrêter
+                    </Button>
+                  )}
+                  <Button variant="text" onClick={stopWebcam}>Fermer la caméra</Button>
+                </>
+              )}
+            </Stack>
+
+            {webcamActive && (
+              <Box sx={{ mb: 2 }}>
+                <video ref={webcamVideoRef} autoPlay muted playsInline
+                  style={{ width: "100%", maxWidth: 480, borderRadius: 8, border: "2px solid #0E7C66", background: "#000" }} />
+                {isRecording && (
+                  <Typography color="error" variant="body2" sx={{ mt: 0.5 }}>
+                    ● Enregistrement en cours…
+                  </Typography>
+                )}
+              </Box>
+            )}
+
+            {videoFiles.length > 0 && (
+              <Stack spacing={1} sx={{ mb: 2 }}>
+                {videoFiles.map(function(f, i) {
+                  return (
+                    <Stack key={i} direction="row" alignItems="center" spacing={1}>
+                      <Typography variant="body2" sx={{ flex: 1 }}>
+                        🎥 {f.name} ({(f.size / 1024 / 1024).toFixed(1)} Mo)
+                      </Typography>
+                      <Button size="small" color="error"
+                        onClick={function() { removeVideo(i); }} disabled={videoUploadBusy}>✕</Button>
+                    </Stack>
+                  );
+                })}
+              </Stack>
+            )}
+
+            {videoUploadedCount > 0 && (
+              <Alert severity="success" sx={{ mb: 1 }}>{videoUploadedCount} vidéo(s) uploadée(s)</Alert>
+            )}
+            {videoUploadErr && <Alert severity="error" sx={{ mb: 1 }}>{videoUploadErr}</Alert>}
+          </Box>
+
+          {/* ── Actions unifiées ──────────────────────────────────── */}
+          <Divider sx={{ mb: 3 }} />
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
+            <Button variant="text" color="inherit"
+              onClick={function() { stopWebcam(); router.push("/properties/" + propertyId + "?published=1"); }}
+              disabled={uploadBusy || videoUploadBusy}>
               {t("sell.skip_photos")}
             </Button>
-            <Button variant="contained" onClick={uploadFiles} disabled={uploadBusy}>
-              {files.length ? t("sell.upload_btn") : t("sell.finish_btn")}
-            </Button>
-          </Box>
-
-          {/* ── Section vidéos ─────────────────────────────────────── */}
-          <Divider sx={{ my: 3 }} />
-          <Typography variant="h6" gutterBottom>🎬 Vidéos de présentation (optionnel)</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Ajoutez jusqu'à 3 vidéos courtes (MP4, MOV, WebM — 200 Mo max). Filmez directement avec votre webcam ou téléchargez depuis votre appareil.
-          </Typography>
-
-          {/* Sélecteur de fichier vidéo */}
-          <Stack direction="row" spacing={2} flexWrap="wrap" sx={{ mb: 2 }}>
-            <Button variant="outlined" component="label" disabled={videoUploadBusy || videoFiles.length >= 3}>
-              📂 Choisir une vidéo
-              <input type="file" accept="video/*" hidden onChange={onVideoPick} />
-            </Button>
-            {!webcamActive ? (
-              <Button variant="outlined" onClick={startWebcam} disabled={videoUploadBusy || videoFiles.length >= 3}>
-                📷 Activer la webcam
-              </Button>
-            ) : (
-              <>
-                {!isRecording ? (
-                  <Button variant="outlined" color="error" onClick={startRecording} disabled={videoFiles.length >= 3}>
-                    ⏺ Démarrer l'enregistrement
-                  </Button>
-                ) : (
-                  <Button variant="contained" color="error" onClick={stopRecording}>
-                    ⏹ Arrêter
-                  </Button>
-                )}
-                <Button variant="text" onClick={stopWebcam}>Fermer la caméra</Button>
-              </>
-            )}
-          </Stack>
-
-          {/* Prévisualisation webcam */}
-          {webcamActive && (
-            <Box sx={{ mb: 2 }}>
-              <video
-                ref={webcamVideoRef}
-                autoPlay
-                muted
-                playsInline
-                style={{ width: "100%", maxWidth: 480, borderRadius: 8, border: "2px solid #0E7C66", background: "#000" }}
-              />
-              {isRecording && (
-                <Typography color="error" variant="body2" sx={{ mt: 0.5 }}>
-                  ● Enregistrement en cours…
-                </Typography>
+            <Stack direction="row" spacing={2} flexWrap="wrap">
+              {videoFiles.length > 0 && (
+                <Button variant="outlined" color="primary" onClick={uploadVideos} disabled={videoUploadBusy}>
+                  {videoUploadBusy ? "Upload vidéos…" : `Envoyer ${videoFiles.length} vidéo(s)`}
+                </Button>
               )}
-            </Box>
-          )}
-
-          {/* Liste des vidéos sélectionnées */}
-          {videoFiles.length > 0 && (
-            <Stack spacing={1} sx={{ mb: 2 }}>
-              {videoFiles.map(function(f, i) {
-                return (
-                  <Stack key={i} direction="row" alignItems="center" spacing={1}>
-                    <Typography variant="body2" sx={{ flex: 1 }}>🎥 {f.name} ({(f.size / 1024 / 1024).toFixed(1)} Mo)</Typography>
-                    <Button size="small" color="error" onClick={function() { removeVideo(i); }} disabled={videoUploadBusy}>✕</Button>
-                  </Stack>
-                );
-              })}
-            </Stack>
-          )}
-
-          {videoUploadedCount > 0 && (
-            <Alert severity="success" sx={{ mb: 1 }}>{videoUploadedCount} vidéo(s) uploadée(s) — redirection…</Alert>
-          )}
-          {videoUploadErr && <Alert severity="error" sx={{ mb: 1 }}>{videoUploadErr}</Alert>}
-
-          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
-            <Button variant="text" onClick={function() { stopWebcam(); router.push("/properties/" + propertyId + "?published=1"); }} disabled={videoUploadBusy}>
-              Ignorer les vidéos
-            </Button>
-            {videoFiles.length > 0 && (
-              <Button variant="contained" onClick={uploadVideos} disabled={videoUploadBusy}>
-                {videoUploadBusy ? "Upload en cours…" : `Envoyer ${videoFiles.length} vidéo(s)`}
+              <Button variant="contained" color="primary" onClick={uploadFiles} disabled={uploadBusy}>
+                {files.length ? t("sell.upload_btn") : t("sell.finish_btn")}
               </Button>
-            )}
+            </Stack>
           </Box>
         </Paper>
+      )}
       )}
     </Layout>
   );
