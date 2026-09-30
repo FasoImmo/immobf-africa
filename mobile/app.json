@@ -23,7 +23,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "africa.immobf.app",
       "buildNumber": "9",
-      "minimumOsVersion": "15.0",
+      "minimumOsVersion": "15.1",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "ImmoBF utilise votre position pour géolocaliser votre annonce sur la carte.",
         "ITSAppUsesNonExemptEncryption": false
@@ -38,6 +38,7 @@
       ]
     },
     "plugins": [
+      "./plugins/withComposeCompilerFix",
       [
         "expo-build-properties",
         {
@@ -46,10 +47,12 @@
             "targetSdkVersion": 36
           },
           "ios": {
-            "deploymentTarget": "15.0"
+            "deploymentTarget": "15.1"
           }
         }
-      ]
+      ],
+      "expo-asset",
+      "expo-font"
     ],
     "web": {
       "favicon": "./assets/favicon.png"

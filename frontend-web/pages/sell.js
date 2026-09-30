@@ -478,6 +478,10 @@ export default function SellPage() {
         area_m2: form.area_m2 ? (areaUnit === "ha" ? Number(form.area_m2) * 10000 : Number(form.area_m2)) : null,
         bedrooms: form.bedrooms ? Number(form.bedrooms) : null,
         bathrooms: form.bathrooms ? Number(form.bathrooms) : null,
+        // lat/lng sont optionnels : chaîne vide → null pour éviter l'erreur
+        // de validation Joi "lat must be a number" quand non renseigné.
+        lat: form.lat !== "" && form.lat != null ? Number(form.lat) : null,
+        lng: form.lng !== "" && form.lng != null ? Number(form.lng) : null,
         is_furnished: Boolean(form.is_furnished),
         rent_period: isRent ? form.rent_period : null,
       });
@@ -505,6 +509,8 @@ export default function SellPage() {
         area_m2: form.area_m2 ? (areaUnit === "ha" ? Number(form.area_m2) * 10000 : Number(form.area_m2)) : null,
         bedrooms: form.bedrooms ? Number(form.bedrooms) : null,
         bathrooms: form.bathrooms ? Number(form.bathrooms) : null,
+        lat: form.lat !== "" && form.lat != null ? Number(form.lat) : null,
+        lng: form.lng !== "" && form.lng != null ? Number(form.lng) : null,
         is_furnished: Boolean(form.is_furnished),
         rent_period: isRent ? form.rent_period : null,
       });

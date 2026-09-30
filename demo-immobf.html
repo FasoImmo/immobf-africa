@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ImmoBF Africa — Démo guidée</title>
+<style>
+:root{--g:#0E7C66;--g2:#0a5c4d;--g3:#e8f5f0;--red:#ff5f57;--yel:#febc2e;--grn:#28c840}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#07121e;color:#fff;overflow:hidden;height:100vh}
+
+/* ── PROGRESS + COUNTER ── */
+#prog{position:fixed;top:0;left:0;height:4px;background:var(--g);transition:width .4s;z-index:200}
+#ctr{position:fixed;top:10px;right:16px;font-size:12px;color:rgba(255,255,255,.35);z-index:200;letter-spacing:.5px}
+#chapter{position:fixed;top:10px;left:16px;font-size:11px;font-weight:700;letter-spacing:1.5px;
+          text-transform:uppercase;color:rgba(255,255,255,.35);z-index:200}
+
+/* ── NAV ── */
+#nav{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:200}
+.btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;
+     padding:8px 22px;border-radius:20px;cursor:pointer;font-size:13px;transition:all .2s}
+.btn:hover{background:var(--g)}
+.btn.pri{background:var(--g);border-color:var(--g2)}
+
+/* ── SLIDES ── */
+#stage{width:100vw;height:100vh;position:relative}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+       justify-content:center;opacity:0;pointer-events:none;transition:opacity .45s;padding:20px}
+.slide.on{opacity:1;pointer-events:all}
+
+@keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.slide.on .a{animation:up .5s ease both}
+.slide.on .a1{animation-delay:.08s}.slide.on .a2{animation-delay:.2s}
+.slide.on .a3{animation-delay:.32s}.slide.on .a4{animation-delay:.44s}
+.slide.on .a5{animation-delay:.56s}.slide.on .a6{animation-delay:.68s}
+
+/* ── BADGE + TITLE ── */
+.badge{background:var(--g);border-radius:20px;padding:4px 14px;font-size:11px;
+       font-weight:700;letter-spacing:1.2px;text-transform:uppercase}
+.stitle{font-size:30px;font-weight:800;text-align:center;line-height:1.2;margin-top:10px}
+.ssub{font-size:15px;opacity:.55;text-align:center;margin-top:8px}
+
+/* ── BROWSER FRAME ── */
+.brw{background:#1a1a2e;border-radius:12px;overflow:hidden;width:820px;max-width:93vw;
+     box-shadow:0 28px 70px rgba(0,0,0,.65);margin-top:18px}
+.brw-bar{background:#26263a;padding:9px 14px;display:flex;align-items:center;gap:7px}
+.dot{width:10px;height:10px;border-radius:50%}
+.url{flex:1;background:#16162a;border-radius:6px;padding:4px 12px;font-size:11px;
+     color:rgba(255,255,255,.4);margin-left:8px;font-family:monospace}
+.brw-body{background:#fff;color:#111;min-height:290px}
+
+/* ── PHONE FRAME ── */
+.phone{background:#1a1a2e;border-radius:34px;width:210px;overflow:hidden;flex-shrink:0;
+       box-shadow:0 20px 55px rgba(0,0,0,.65);border:3px solid #2a2a3e}
+.notch{background:#111;height:26px;display:flex;align-items:center;justify-content:center}
+.notch-pill{width:58px;height:9px;background:#000;border-radius:10px}
+.pscreen{background:#fff;color:#111}
+.pnav{background:#fafafa;border-top:1px solid #eee;display:flex;justify-content:space-around;padding:7px 0}
+.pni{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:9px;color:#aaa}
+.pni.on{color:var(--g)}.pni-ic{font-size:17px}
+
+/* ── SHARED COMPONENTS ── */
+.wh{padding:12px 18px;display:flex;align-items:center;gap:16px;
+    background:var(--g);color:#fff}
+.wlogo{font-size:14px;font-weight:800}
+.wnav{margin-left:auto;display:flex;gap:14px;font-size:11px;opacity:.85}
+.wbtn{background:rgba(255,255,255,.2);border-radius:12px;padding:3px 12px;font-size:11px}
+
+.inp{width:100%;border:1.5px solid #e0e0e0;border-radius:8px;padding:8px 12px;
+     font-size:12px;color:#333;background:#fafafa}
+.inp.ok{border-color:var(--g);background:#f0faf7;color:#111}
+.inp.err{border-color:#e53935;background:#fff5f5}
+.lbl{font-size:10px;color:#888;margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.row{display:grid;gap:8px}
+.row2{grid-template-columns:1fr 1fr}
+.row3{grid-template-columns:1fr 1fr 1fr}
+.g-btn{background:var(--g);color:#fff;border-radius:8px;padding:10px 14px;
+       text-align:center;font-weight:700;font-size:13px;cursor:pointer;width:100%}
+.o-btn{background:transparent;border:2px solid var(--g);color:var(--g);border-radius:8px;
+       padding:9px 14px;text-align:center;font-weight:700;font-size:12px;width:100%}
+.chip{display:inline-flex;align-items:center;gap:5px;background:var(--g3);border-radius:12px;
+      padding:4px 10px;font-size:11px;color:var(--g);font-weight:600}
+.tag{display:inline-block;background:#e8f5e9;color:var(--g2);border-radius:8px;
+     padding:2px 8px;font-size:10px;font-weight:700;margin:2px}
+
+.ok-box{background:#e8f5e9;border-radius:10px;padding:12px;text-align:center}
+.ok-icon{font-size:26px}
+.ok-txt{font-size:12px;color:var(--g);font-weight:700;margin-top:4px}
+.ok-sub{font-size:10px;color:#555;margin-top:2px}
+
+.wa-btn{background:#25D366;color:#fff;border-radius:8px;padding:10px;
+        text-align:center;font-size:12px;font-weight:700;margin-top:8px}
+
+/* ── STEP LIST ── */
+.steps{list-style:none;display:flex;flex-direction:column;gap:10px;max-width:340px}
+.steps li{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.45}
+.sn{width:26px;height:26px;border-radius:50%;background:var(--g);display:flex;align-items:center;
+    justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px}
+
+/* ── PROGRESS STEP BAR ── */
+.prog-bar{display:flex;gap:0;align-items:center;margin:14px 0 16px;justify-content:center}
+.ps{display:flex;flex-direction:column;align-items:center;gap:4px}
+.ps-dot{width:28px;height:28px;border-radius:50%;border:2px solid #ddd;background:#fff;
+        display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#ccc;
+        position:relative;z-index:1}
+.ps-dot.done{background:var(--g);border-color:var(--g);color:#fff}
+.ps-dot.cur{border-color:var(--g);color:var(--g);font-weight:800}
+.ps-lbl{font-size:9px;color:#aaa;white-space:nowrap}
+.ps-lbl.done{color:var(--g)}
+.ps-lbl.cur{color:var(--g);font-weight:700}
+.ps-line{flex:1;height:2px;background:#ddd;min-width:30px}
+.ps-line.done{background:var(--g)}
+
+/* ── PHOTO GRID ── */
+.photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:4px 0}
+.photo-slot{border-radius:6px;display:flex;align-items:center;justify-content:center;
+            font-size:18px;aspect-ratio:4/3}
+
+/* ── PROP TYPE TABS ── */
+.type-tabs{display:flex;overflow-x:auto;gap:0;border-bottom:2px solid #eee;margin-bottom:12px}
+.tt{padding:7px 12px;font-size:11px;font-weight:600;color:#aaa;white-space:nowrap;cursor:pointer;
+    border-bottom:2px solid transparent;margin-bottom:-2px}
+.tt.on{color:var(--g);border-color:var(--g)}
+
+/* ── ANNONCE CARD ── */
+.ann-card{border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.08);background:#fff}
+.ann-img{height:72px;display:flex;align-items:center;justify-content:center;font-size:26px}
+.ann-body{padding:8px 10px}
+.ann-t{font-size:11px;font-weight:700;color:#111}
+.ann-p{font-size:11px;color:var(--g);font-weight:600}
+.ann-l{font-size:10px;color:#888;margin-top:1px}
+
+/* ── SPLIT ── */
+.split{display:flex;gap:28px;align-items:flex-start;justify-content:center}
+.split-r{display:flex;flex-direction:column;gap:12px;align-self:center}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+<div id="chapter"></div>
+<div id="ctr"></div>
+
+<div id="stage">
+
+<!-- ════════════════════════════════════════════════
+     SLIDE 0 — INTRO
+════════════════════════════════════════════════ -->
+<div class="slide on" id="s0" style="background:linear-gradient(135deg,#07121e 0%,#0E7C66 100%)">
+  <div style="font-size:54px;font-weight:900;letter-spacing:-2px;text-align:center" class="a1">
+    Immo<span style="color:#4fffcc">BF</span> Africa
+  </div>
+  <div style="font-size:18px;opacity:.65;margin-top:10px" class="a2">La plateforme immobilière de l'Afrique de l'Ouest</div>
+  <div style="display:flex;gap:10px;margin-top:24px;flex-wrap:wrap;justify-content:center" class="a3">
+    <span class="chip">🌍 Web</span>
+    <span class="chip">📱 Android</span>
+    <span class="chip">💳 Mobile Money</span>
+    <span class="chip">🇧🇫 🇨🇮 🇸🇳 🇲🇱 …</span>
+  </div>
+  <div style="margin-top:32px;background:rgba(255,255,255,.1);border-radius:20px;
+              padding:8px 22px;font-size:14px;letter-spacing:.5px" class="a4">
+    ▶ Démo guidée · Utilisez ← → ou les boutons
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SLIDE 1 — INSCRIPTION : vue d'ensemble
+════════════════════════════════════════════════ -->
+<div class="slide" id="s1">
+  <div class="badge a1">Inscription · Vue d'ensemble</div>
+  <div class="stitle a2">Créer un compte en 3 étapes</div>
+  <div class="ssub a3">Gratuit · aucune carte bancaire requise</div>
+
+  <div class="brw a4">
+    <div class="brw-bar">
+      <div class="dot" style="background:var(--red)"></div>
+      <div class="dot" style="background:var(--yel)"></div>
+      <div class="dot" style="background:var(--grn)"></div>
+      <div class="url">immoafrica.online/register</div>
+    </div>
+    <div class="brw-body" style="padding:18px 24px">
+      <!-- Barre de progression étapes -->
+      <div class="prog-bar">
+        <div class="ps">
+          <div class="ps-dot cur">1</div>
+          <div class="ps-lbl cur">Infos</div>
+        </div>
+        <div class="ps-line"></div>
+        <div class="ps">
+          <div class="ps-dot">2</div>
+          <div class="ps-lbl">Email</div>
+        </div>
+        <div class="ps-line"></div>
+        <div class="ps">
+          <div class="ps-dot">3</div>
+          <div class="ps-lbl">Confirmé</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div>
+          <h2 style="font-size:16px;font-weight:800;margin-bottom:14px">Créer un compte</h2>
+          <div class="lbl">Nom complet</div>
+          <div class="inp" style="margin-bottom:10px;color:#bbb">Votre nom…</div>
+          <div class="lbl">Adresse email</div>
+          <div class="inp" style="margin-bottom:10px;color:#bbb">votre@email.com</div>
+          <div class="lbl">Mot de passe</div>
+          <div class="inp" style="margin-bottom:10px;color:#bbb">••••••••</div>
+          <div class="lbl">Téléphone (optionnel)</div>
+          <div class="inp" style="margin-bottom:12px;color:#bbb">+226 …</div>
+          <div class="g-btn">S'inscrire gratuitement →</div>
+          <div style="text-align:center;font-size:11px;color:#888;margin-top:10px">
+            Déjà un compte ? <span style="color:var(--g);font-weight:600;cursor:pointer">Se connecter</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;justify-content:center;gap:12px">
+          <div style="background:#f8f8f8;border-radius:10px;padding:14px">
+            <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:#333">✅ Ce que vous pourrez faire</div>
+            <div style="font-size:11px;color:#555;display:flex;flex-direction:column;gap:5px">
+              <div>🏠 Publier des annonces immobilières</div>
+              <div>🔍 Accéder à toutes les annonces</div>
+              <div>💬 Contacter les annonceurs</div>
+              <div>💳 Réserver via mobile money</div>
+              <div>⭐ Laisser des avis</div>
+              <div>❤️ Sauvegarder vos favoris</div>
+            </div>
+          </div>
+          <div style="background:#fff3e0;border-radius:10px;padding:12px;font-size:11px;color:#e65100">
+            🔒 Vos données sont sécurisées et ne sont jamais partagées à des tiers.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SLIDE 2 — INSCRIPTION : remplir le formulaire
+════════════════════════════════════════════════ -->
+<div class="slide" id="s2">
+  <div class="badge a1">Inscription · Étape 1/3</div>
+  <div class="stitle a2">Remplir le formulaire</div>
+  <div class="ssub a3">Nom, email et mot de passe sécurisé</div>
+
+  <div class="brw a4">
+    <div class="brw-bar">
+      <div class="dot" style="background:var(--red)"></div><div class="dot" style="background:var(--yel)"></div><div class="dot" style="background:var(--grn)"></div>
+      <div class="url">immoafrica.online/register</div>
+    </div>
+    <div class="brw-body" style="padding:20px 24px">
+      <div class="prog-bar">
+        <div class="ps"><div class="ps-dot cur">1</div><div class="ps-lbl cur">Infos</div></div>
+        <div class="ps-line"></div>
+        <div class="ps"><div class="ps-dot">2</div><div class="ps-lbl">Email</div></div>
+        <div class="ps-line"></div>
+        <div class="ps"><div class="ps-dot">3</div><div class="ps-lbl">Confirmé</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div>
+          <div class="lbl">Nom complet *</div>
+          <div class="inp ok" style="margin-bottom:10px">Kosmad Mahamady</div>
+          <div class="lbl">Adresse email *</div>
+          <div class="inp ok" style="margin-bottom:10px">kosmad@gmail.com</div>
+          <div class="lbl">Mot de passe * <span style="color:var(--g);font-size:9px">● ● ● ● Fort</span></div>
+          <div class="inp ok" style="margin-bottom:10px">••••••••••</div>
+          <div class="lbl">Confirmer le mot de passe *</div>
+          <div class="inp ok" style="margin-bottom:10px">••••••••••</div>
+          <div class="lbl">Téléphone (optionnel)</div>
+          <div class="inp ok" style="margin-bottom:14px">+226 78 48 92 70</div>
+          <div class="g-btn">S'inscrire gratuitement →</div>
+        </div>
+        <div style="align-self:center">
+          <div style="background:#f0faf7;border-radius:10px;padding:14px;font-size:11px;color:#333;border:1.5px solid #b2dfdb">
+            <div style="font-weight:700;margin-bottom:8px;color:var(--g)">💡 Conseils</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div>📧 <strong>Email valide</strong> — vous recevrez un lien de confirmation</div>
+              <div>🔐 <strong>Mot de passe</strong> — minimum 8 caractères, incluez majuscules + chiffres</div>
+              <div>📱 <strong>Téléphone</strong> — utile pour être rappelé par les acheteurs</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;background:#fff;border:1px solid #eee;border-radius:10px;padding:12px;font-size:10px;color:#888">
+            En vous inscrivant, vous acceptez les
+            <span style="color:var(--g);font-weight:600">Conditions Générales d'Utilisation</span>
+            et la <span style="color:var(--g);font-weight:600">Politique de confidentialité</span> d'ImmoBF Africa.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SLIDE 3 — INSCRIPTION : vérification email
+════════════════════════════════════════════════ -->
+<div class="slide" id="s3">
+  <div class="badge a1">Inscription · Étape 2/3</div>
+  <div class="stitle a2">Vérifier votre adresse email</div>
+  <div class="ssub a3">Un lien de confirmation vous a été envoyé</div>
+
+  <div class="brw a4">
+    <div class="brw-bar">
+      <div class="dot" style="background:var(--red)"></div><div class="dot" style="background:var(--yel)"></div><div class="dot" style="background:var(--grn)"></div>
+      <div class="url">immoafrica.online/verify-email</div>
+    </div>
+    <div class="brw-body" style="padding:30px 24px">
+      <div class="prog-bar">
+        <div class="ps"><div class="ps-dot done">✓</div><div class="ps-lbl done">Infos</div></div>
+        <div class="ps-line done"></div>
+        <div class="ps"><div class="ps-dot cur">2</div><div class="ps-lbl cur">Email</div></div>
+        <div class="ps-line"></div>
+        <div class="ps"><div class="ps-dot">3</div><div class="ps-lbl">Confirmé</div></div>
+      </div>
+      <div style="text-align:center;max-width:420px;margin:0 auto">
+        <div style="font-size:52px">📧</div>
+        <h2 style="font-size:18px;font-weight:800;margin-top:12px">Vérifiez votre boîte mail</h2>
+        <p style="font-size:13px;color:#666;margin-top:8px;line-height:1.5">
+          Un email de confirmation a été envoyé à<br>
+          <strong style="color:#111">kosmad@gmail.com</strong>
+        </p>
+        <div style="background:#f0faf7;border-radius:12px;padding:16px;margin-top:20px;border:1.5px solid #b2dfdb">
+          <div style="font-size:11px;font-weight:700;color:var(--g);margin-bottom:8px">📨 Email reçu — Exemple</div>
+          <div style="background:#fff;border-radius:8px;padding:12px;text-align:left;font-size:11px;color:#333;border:1px solid #eee">
+            <div style="font-weight:700;margin-bottom:4px">De : noreply@immoafrica.online</div>
+            <div style="color:#888;margin-bottom:8px">Objet : Confirmez votre compte ImmoBF Africa</div>
+            <div style="color:#555;line-height:1.6">Bonjour Kosmad,<br>Cliquez sur le bouton ci-dessous pour confirmer votre adresse email.</div>
+            <div style="background:var(--g);color:#fff;border-radius:6px;padding:8px;text-align:center;font-weight:700;margin-top:10px;font-size:12px">
+              ✉️ Confirmer mon adresse email
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:14px;font-size:11px;color:#aaa">
+          Vous n'avez pas reçu l'email ? Vérifiez les spams ou
+          <span style="color:var(--g);font-weight:600;cursor:pointer">renvoyer le lien</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SLIDE 4 — INSCRIPTION : compte activé
+════════════════════════════════════════════════ -->
+<div class="slide" id="s4">
+  <div class="badge a1">Inscription · Étape 3/3</div>
+  <div class="stitle a2">Compte activé — Bienvenue !</div>
+  <div class="ssub a3">Vous êtes prêt à publier et réserver</div>
+
+  <div class="brw a4">
+    <div class="brw-bar">
+      <div class="dot" style="background:var(--red)"></div><div class="dot" style="background:var(--yel)"></div><div class="dot" style="background:var(--grn)"></div>
+      <div class="url">immoafrica.online/account</div>
+    </div>
+    <div class="brw-body" style="padding:20px 24px">
+      <div class="prog-bar">
+        <div class="ps"><div class="ps-dot done">✓</div><div class="ps-lbl done">Infos</div></div>
+        <div class="ps-line done"></div>
+        <div class="ps"><div class="ps-dot done">✓</div><div class="ps-lbl done">Email</div></div>
+        <div class="ps-line done"></div>
+        <div class="ps"><div class="ps-dot done" style="font-size:14px">✓</div><div class="ps-lbl done">Confirmé</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div style="text-align:center">
+          <div style="font-size:48px">🎉</div>
+          <h2 style="font-size:18px;font-weight:800;margin-top:8px">Bienvenue, Kosmad !</h2>
+          <p style="font-size:12px;color:#666;margin-top:6px;line-height:1.5">Votre compte est créé et vérifié.<br>Vous pouvez maintenant publier des annonces.</p>
+          <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px">
+            <div class="g-btn">🏠 Publier ma première annonce</div>
+            <div class="o-btn">🔍 Parcourir les annonces</div>
+          </div>
+        </div>
+        <div>
+          <div style="background:#f8f8f8;border-radius:10px;padding:14px;font-size:12px">
+            <div style="font-weight:700;margin-bottom:10px;color:#333">👤 Mon profil</div>
+            <div style="display:flex;flex-direction:column;gap:7px;color:#555">
+              <div><span style="color:#999">Nom : </span><strong>Kosmad Mahamady</strong></div>
+              <div><span style="color:#999">Email : </span><strong>kosmad@gmail.com</strong></div>
+              <div><span style="color:#999">Tél : </span><strong>+226 78 48 92 70</strong></div>
+              <div><span style="color:#999">Membre depuis : </span><strong>Août 2026</strong></div>
+              <div><span style="color:#999">Statut : </span><span style="background:#e8f5e9;color:var(--g);border-radius:6px;padding:1px 8px;font-size:10px;font-weight:700">✓ Vérifié</span></div>
+            </div>
+          </div>
+          <div style="background:#fff3e0;border-radius:10px;padding:12px;margin-top:10px;font-size:11px;color:#e65100">
+            💡 Complétez votre profil avec une photo et votre ville pour augmenter la confiance des acheteurs.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SLIDE 5 — PUBLICATION : intro types d'annonces
+════════════════════════════════════════════════ -->
+<div class="slide" id="s5">
+  <div class="badge a1">Publication · Types d'annonces</div>
+  <div class="stitle a2">6 catégories d'annonces disponibles</div>
+  <div class="ssub a3">Vente · Location longue durée · Court séjour</div>
+
+  <div class="brw a4">
+    <div class="brw-bar">
+      <div class="dot" style="background:var(--red)"></div><div class="dot" style="background:var(--yel)"></div><div class="dot" style="background:var(--grn)"></div>
+      <div class="url">immoafrica.online/sell</div>
+    </div>
+    <div class="brw-body" style="padding:16px 20px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        <!-- Maison -->
+        <div style="border-radius:10px;overflow:hidden;border:2px solid #e8f5e9;cursor:pointer">
+          <div style="background:linear-gradient(135deg,#a8d5c2,#0E7C66);height:60px;display:flex;align-items:center;justify-content:center;font-size:28px">🏠</div>
+          <div style="padding:8px 10px">
+            <div style="font-size:12px;font-weight:700">Maison</div>
+            <div style="font-size:10px;color:#888;margin-top:2px">Villa, maison individuelle, duplex</div>
+            <div class="tag" style="margin-top:4px">Vente</div><div class="tag">Location</div>
+          </div>
+        </div>
+        <!-- Appartement -->
+        <div style="border-radius:10px;overflow:hidden;border:2px solid #e3f2fd">
+          <div style="background:linear-gradient(135deg,#90caf9,#1565c0);height:60px;display:flex;align-items:center;justify-content:center;font-size:28px">🏢</div>
+          <div style="padding:8px 10px">
+            <div style="font-size:12px;font-weight:700">Appartement</div>
+            <div style="font-size:10px;color:#888;margin-top:2px">Studio, F2, F3, résidence</div>
+            <div class="tag" style="margin-top:4px;background:#e3f2fd;color:#1565c0">Vente</div><div class="tag" style="background:#e3f2fd;color:#1565c0">Location</div>
+          </div>
+        </div>
+        <!-- Terrain -->
+        <div style="border-radius:10px;overflow:hidden;border:2px solid #fff3e0">
+          <div style="background:linear-gradient(135deg,#ffcc80,#e65100);height:60px;display:flex;align-items:center;justify-content:center;font-size:28px">🏗️</div>
+          <div style="padding:8px 10px">
+            <div style="font-size:12px;font-weight:700">Terrain</div>
+            <div style="font-size:10px;color:#888;margin-top:2px">Parcelle, lot, terrain agricole</div>
+            <div class="tag" style="margin-top:4px;background:#fff3e0;color:#e65100">Vente uniquement</div>
+          </div>
+        </div>
+        <!-- Commercial -->
+        <div style="border-radius:10px;overflow:hidden;border:2px solid #f3e5f5">
+          <div style="background:linear-gradient(135deg,#ce93d8,#6a1b9a);height:60px;display:flex;align-items:center;justify-content:center;font-size:28px">🏪</div>
+          <div style="padding:8px 10px">
+            <div style="font-size:12px;font-weight:700">Local Commercial</div>
+            <div style="font-size:10px;color:#888;margin-top:2px">Boutique, entrepôt, bureau</div>
+            <div class="tag" style="margin-top:4px;background:#f3e5f5;color:#6a1b9a">Vente</div><div class="tag" style="background:#f3e5f5;color:#6a1b9a">Location</div>
+          </div>
+        </div>
+        <!-- Villa court séjour -->
+        <div style="border-radius:10px;overflow:hidden;border:2px solid #fce4ec">
+          <div style="background:linear-gradient(135deg,#f48fb1,#c62828);height:60px;display:flex;align-items:center;justify-content:center;font-size:28px">🌙</div>
+          <div style="padding:8px 10px">
+            <div style="font-size:12px;font-weight:700">Court Séjour</div>
+            <div style="font-size:10px;color:#888;margin-top:2px">Nuitée, week-end, vacances</div>
+            <div class="tag" style="margin-top:4px;background:#fce4ec;color:#c62828">Location/nuit</div>
+          </div>
+        </div>
+        <!-- Villa -->
+        <div style="border-radius:10px;overflow:hidden;border:2px solid #e8eaf6">
+          <div style="background:linear-gradient(135deg,#9fa8da,#283593);height:60px;display:flex;align-items:center;justify-content:center;font-size:28px">🏛️</div>
+          <div style="padding:8px 10px">
+            <div style="font-size:12px;font-weight:700">Villa</div>
+            <div style="font-size:10px;color:#888;margin-top:2px">Grande villa, propriété, résidence de luxe</div>
+            <div class="tag" style="margin-top:4px;background:#e8eaf6;color:#283593">Vente</div><div class="tag" style="background:#e8eaf6;color:#283593">Location</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SLIDE 6 — PUBLICATION : Maison à vendre
+════════════════════════════════════════════════ -->
+<div class="slide" id="s6">
+  <div class="badge a1">Publication · Exemple 1</div>
+  <div class="stitle a2">Maison — Vente</div>
+  <div class="ssub a3">Villa 4 pièces à Ouagadougou</div>
+
+  <div class="brw a4">
+    <div class="brw-bar">
+      <div class="dot" style="background:var(--red)"></div><div class="dot" style="background:var(--yel)"></div><div class="dot" style="background:var(--grn)"></div>
+      <div class="url">immoafrica.online/sell</div>
+    </div>
+    <div class="brw-body" style="padding:14px 20px">
+      <div class="type-tabs">
+        <div class="tt on">🏠 Maison</div><div class="tt">🏢 Appart.</div><div class="tt">🏗️ Terrain</div>
+        <div class="tt">🏪 Commercial</div><div class="tt">🌙 Court séjour</div><div class="tt">🏛️ Villa</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="row row2">
+            <div>
+              <div class="lbl">Pays *</div>
+              <div class="inp ok">🇧🇫 Burkina Faso</div>
+            </div>
+            <div>
+              <div class="lbl">Ville *</div>
+              <div class="inp ok">Ouagadougou</div>
+            </div>
+          </div>
+          <div class="row row2">
+            <div>
+              <div class="lbl">Type de transaction *</div>
+              <div class="inp ok">🏷️ Vente</div>
+            </div>
+            <div>
+              <div class="lbl">Type de bien *</div>
+              <div class="inp ok">🏠 Maison</div>
+            </div>
+          </div>
+          <div>
+            <div class="lbl">Titre de l'annonce *</div>
+            <div class="inp ok">Belle villa 4 pièces meublée, Ouaga 2000</div>
+          </div>
+          <div class="row row3">
+            <div><div class="lbl">Prix *</div><div class="inp ok">45 000 000</div></div>
+            <div><div class="lbl">Devise</div><div class="inp ok">FCFA</div></div>
+            <div><div class="lbl">Chambres</div><div class="inp ok">4 ch.</div></div>
+          </div>
+          <div class="row row2">
+            <div><div class="lbl">Superficie</div><div class="inp ok">200 m²</div></div>
+            <div><div class="lbl">Meublée ?</div><div class="inp ok">✓ Meublée</div></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="lbl">Photos (jusqu'à 10) *</div>
+          <div class="photo-grid">
+            <div class="photo-slot" style="background:linear-gradient(135deg,#a8d5c2,#0E7C66)">🏠</div>
+            <div class="photo-slot" style="background:linear-gradient(135deg,#b2dfdb,#26a69a)">🛋️</div>
+            <div class="photo-slot" style="background:linear-gradient(135deg,#80cbc4,#00897b)">🛏️</div>
+            <div class="photo-slot" style="background:#f5f5f5;border:2px dashed #ddd;color:#bbb;font-size:14px">+ Ajouter</div>
+          </div>
+          <div>
+            <div class="lbl">Description</div>
+            <div class="inp ok" style="min-height:60px;font-size:11px;line-height:1.5">
+              Villa moderne, 4 chambres, 2 salles de bains, salon spacieux, cuisine équipée. Parking 2 voitures. Quartier calme et sécurisé, proche écoles et marchés.
+            </div>
+          </div>
+          <div class="g-btn" style="margin-top:auto">Publier — Payer 5 000 FCFA →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SLIDE 7 — PUBLICATION : Appartement location
+════════════════════════════════════════════════ -->
+<div class="slide" id="s7">
+  <div class="badge a1">Publication · Exemple 2</div>
+  <div class="stitle a2">Appartement — Location longue durée</div>
+  <div class="ssub a3">F3 à Abidjan, Côte d'Ivoire</div>
+
+  <div class="brw a4">
+    <div class="brw-bar">
+      <div class="dot" style="background:var(--red)"></div><div class="dot" style="background:var(--yel)"></div><div class="dot" style="background:var(--grn)"></div>
+      <div class="url">immoafrica.online/sell</div>
+    </div>
+    <div class="brw-body" style="padding:14px 20px">
+      <div class="type-tabs">
+        <div class="tt">🏠 Maison</div><div class="tt on">🏢 Appart.</div><div class="tt">🏗️ Terrain</div>
+        <div class="tt">🏪 Commercial</div><div class="tt">🌙 Court séjour</div><div class="tt">🏛️ Villa</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="row row2">
+            <div><div class="lbl">Pays *</div><div class="inp ok">🇨🇮 Côte d'Ivoire</div></div>
+            <div><div class="lbl">Ville *</div><div class="inp ok">Abidjan</div></div>
+          </div>
+          <div class="row row2">
+            <div><div class="lbl">Type de transaction *</div><div class="inp ok">🔑 Location longue durée</div></div>
+            <div><div class="lbl">Type de bien *</div><div class="inp ok">🏢 Appartement</div></div>
+          </div>
+          <div><div class="lbl">Titre de l'annonce *</div><div class="inp ok">F3 lumineux, Cocody, résidence gardiennée</div></div>
+          <div class="row row3">
+            <div><div class="lbl">Loyer/mois *</div><div class="inp ok">180 000</div></div>
+            <div><div class="lbl">Devise</div><div class="inp ok">FCFA</div></div>
+            <div><div class="lbl">Chambres</div><div class="inp ok">2 ch.</div></div>
+          </div>
+          <div class="row row2">
+            <div><div class="lbl">Superficie</div><div class="inp ok">85 m²</div></div>
+            <div><div class="lbl">Meublé ?</div><div class="inp ok">✗ Non meublé</div></div>
+          </div>
+          <div><div class="lbl">Caution</div><div class="inp ok">360 000 FCFA (2 mois)</div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="lbl">Photos *</div>
+          <div class="photo-grid">
+            <div class="photo-slot" style="background:linear-gradient(135deg,#90caf9,#1565c0)">🏢</div>
+            <div class="photo-slot" style="background:linear-gradient(135deg,#b3e5fc,#0288d1)">🛋️</div>
+            <div class="photo-slot" style="background:linear-gradient(135deg,#b2ebf2,#0097a7)">🍳</div>
+            <div class="photo-slot" style="background:linear-gradient(135deg,#c8e6c9,#388e3c)">🛁</div>
+          </div>
+          <div><div class="lbl">Description</div>
+            <div class="inp ok" style="min-height:60px;font-size:11px;line-height:1.5">
+              Bel appartement F3 au 3ème étage, vue dégagée. Résidence sécurisée avec gardien 24h/24, parking sous-sol. Proximité écoles françaises et commerces Cocody.
+            </div>
+          </div>
+          <div class="g-btn" style="margin-top:auto">Publier — Payer 5 000 FCFA →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SLIDE 8 — PUBLICATION : Court séjour + Terrain
+════════════════════════════════════════════════ -->
+<div class="slide" id="s8">
+  <div class="badge a1">Publication · Exemples 3 &amp; 4</div>
+  <div class="stitle a2">Court séjour &amp; Terrain</div>
+  <div class="ssub a3">Deux types d'annonces côte à côte</div>
+
+  <div class="brw a4">
+    <div class="brw-bar">
+      <div class="dot" style="background:var(--red)"></div><div class="dot" style="background:var(--yel)"></div><div class="dot" style="background:var(--grn)"></div>
+      <div class="url">immoafrica.online/sell</div>
+    </div>
+    <div class="brw-body" style="padding:14px 20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <!-- Court séjour -->
+        <div style="border:2px solid #fce4ec;border-radius:10px;padding:14px">
+          <div style="font-size:13px;font-weight:800;margin-bottom:10px;color:#c62828">🌙 Court Séjour — par nuit</div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div class="row row2">
+              <div><div class="lbl">Pays</div><div class="inp ok" style="font-size:11px">🇧🇫 Burkina Faso</div></div>
+              <div><div class="lbl">Ville</div><div class="inp ok" style="font-size:11px">Ouagadougou</div></div>
+            </div>
+            <div><div class="lbl">Titre</div><div class="inp ok" style="font-size:11px">Studio meublé climatisé, Wemtenga</div></div>
+            <div class="row row2">
+              <div><div class="lbl">Prix/nuit</div><div class="inp ok" style="font-size:11px">15 000 FCFA</div></div>
+              <div><div class="lbl">Capacité</div><div class="inp ok" style="font-size:11px">2 pers.</div></div>
+            </div>
+            <div class="photo-grid" style="gap:3px">
+              <div class="photo-slot" style="background:linear-gradient(135deg,#f48fb1,#c62828);height:50px">🌙</div>
+              <div class="photo-slot" style="background:linear-gradient(135deg,#ef9a9a,#b71c1c);height:50px">🛏️</div>
+            </div>
+            <div><div class="lbl">Description</div>
+              <div class="inp ok" style="font-size:10px;line-height:1.4">Studio entièrement meublé, climatisé, WiFi, eau chaude. Idéal voyageurs d'affaires. Proche aéroport et centre-ville.</div>
+            </div>
+          </div>
+        </div>
+        <!-- Terrain -->
+        <div style="border:2px solid #fff3e0;border-radius:10px;padding:14px">
+          <div style="font-size:13px;font-weight:800;margin-bottom:10px;color:#e65100">🏗️ Terrain — Vente</div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div class="row row2">
+              <div><div class="lbl">Pays</div><div class="inp ok" style="font-size:11px">🇸🇳 Sénégal</div></div>
+              <div><div class="lbl">Ville</div><div class="inp ok" style="font-size:11px">Dakar</div></div>
+            </div>
+            <div><div class="lbl">Titre</div><div class="inp ok" style="font-size:11px">Terrain 800m² viabilisé, Almadies</div></div>
+            <div class="row row2">
+              <div><div class="lbl">Prix total</div><div class="inp ok" style="font-size:11px">25 000 000 FCFA</div></div>
+              <div><div class="lbl">Superficie</div><div class="inp ok" style="font-size:11px">800 m²</div></div>
+            </div>
+            <div class="photo-grid" style="gap:3px">
+              <div class="photo-slot" style="background:linear-gradient(135deg,#ffcc80,#e65100);height:50px">📐</div>
+              <div class="photo-slot" style="background:linear-gradient(135deg,#ffe082,#f57f17);height:50px">🗺️</div>
+            </div>
+            <div><div class="lbl">Description</div>
+              <div class="inp ok" style="font-size:10px;line-height:1.4">Terrain plat, titré et viabilisé (eau, électricité, voirie). Zone résidentielle calme aux Almadies. Idéal construction villa.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SLIDE 9 — PUBLICATION : Local commercial + Villa
+════════════════════════════════════════════════ -->
+<div class="slide" id="s9">
+  <div class="badge a1">Publication · Exemples 5 &amp; 6</div>
+  <div class="stitle a2">Local Commercial &amp; Villa</div>
+  <div class="ssub a3">Deux annonces professionnelles</div>
+
+  <div class="brw a4">
+    <div class="brw-bar">
+      <div class="dot" style="background:var(--red)"></div><div class="dot" style="background:var(--yel)"></div><div class="dot" style="background:var(--grn)"></div>
+      <div class="url">immoafrica.online/sell</div>
+    </div>
+    <div class="brw-body" style="padding:14px 20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <!-- Commercial -->
+        <div style="border:2px solid #f3e5f5;border-radius:10px;padding:14px">
+          <div style="font-size:13px;font-weight:800;margin-bottom:10px;color:#6a1b9a">🏪 Local Commercial — Location</div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div class="row row2">
+              <div><div class="lbl">Pays</div><div class="inp ok" style="font-size:11px">🇧🇯 Bénin</div></div>
+              <div><div class="lbl">Ville</div><div class="inp ok" style="font-size:11px">Cotonou</div></div>
+            </div>
+            <div><div class="lbl">Titre</div><div class="inp ok" style="font-size:11px">Boutique 60m², centre commercial Haïe Vive</div></div>
+            <div class="row row2">
+              <div><div class="lbl">Loyer/mois</div><div class="inp ok" style="font-size:11px">300 000 FCFA</div></div>
+              <div><div class="lbl">Superficie</div><div class="inp ok" style="font-size:11px">60 m²</div></div>
+            </div>
+            <div class="photo-grid" style="gap:3px">
+              <div class="photo-slot" style="background:linear-gradient(135deg,#ce93d8,#6a1b9a);height:50px">🏪</div>
+              <div class="photo-slot" style="background:linear-gradient(135deg,#e1bee7,#8e24aa);height:50px">📦</div>
+            </div>
+            <div><div class="lbl">Description</div>
+              <div class="inp ok" style="font-size:10px;line-height:1.4">Local commercial en rez-de-chaussée, vitrine sur rue passante. Électricité triphasée. Idéal commerce, bureau, agence.</div>
+            </div>
+          </div>
+        </div>
+        <!-- Villa luxe -->
+        <div style="border:2px solid #e8eaf6;border-radius:10px;padding:14px">
+          <div style="font-size:13px;font-weight:800;margin-bottom:10px;color:#283593">🏛️ Villa — Vente</div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div class="row row2">
+              <div><div class="lbl">Pays</div><div class="inp ok" style="font-size:11px">🇲🇱 Mali</div></div>
+              <div><div class="lbl">Ville</div><div class="inp ok" style="font-size:11px">Bamako</div></div>
+            </div>
+            <div><div class="lbl">Titre</div><div class="inp ok" style="font-size:11px">Villa R+1 standing, ACI 2000, piscine</div></div>
+            <div class="row row2">
+              <div><div class="lbl">Prix</div><div class="inp ok" style="font-size:11px">120 000 000 FCFA</div></div>
+              <div><div class="lbl">Chambres</div><div class="inp ok" style="font-size:11px">6 ch.</div></div>
+            </div>
+            <div class="photo-grid" style="gap:3px">
+              <div class="photo-slot" style="background:linear-gradient(135deg,#9fa8da,#283593);height:50px">🏛️</div>
+              <div class="photo-slot" style="background:linear-gradient(135deg,#7986cb,#1a237e);height:50px">🏊</div>
+            </div>
+            <div><div class="lbl">Description</div>
+              <div class="inp ok" style="font-size:10px;line-height:1.4">Grande villa avec piscine, jardin arboré, 2 garages, générateur, clôture haute sécurité. Standing exceptionnel, ACI 2000 Bamako.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SLIDE 10 — EXPLORATION & RÉSERVATION (bref)
+════════════════════════════════════════════════ -->
+<div class="slide" id="s10">
+  <div class="badge a1">Explorer &amp; Réserver</div>
+  <div class="stitle a2">Trouver, réserver, contacter</div>
+  <div class="ssub a3">En moins de 2 minutes</div>
+
+  <div class="brw a4">
+    <div class="brw-bar">
+      <div class="dot" style="background:var(--red)"></div><div class="dot" style="background:var(--yel)"></div><div class="dot" style="background:var(--grn)"></div>
+      <div class="url">immoafrica.online/properties/villa-ouaga-2000</div>
+    </div>
+    <div class="brw-body" style="padding:0;display:grid;grid-template-columns:1fr 1fr">
+      <!-- Gauche : fiche annonce -->
+      <div style="border-right:1px solid #eee;padding:14px">
+        <div style="height:100px;background:linear-gradient(135deg,#a8d5c2,#0E7C66);border-radius:8px;
+                    display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:10px">🏠</div>
+        <div style="font-size:16px;font-weight:800">Villa meublée 4 pièces</div>
+        <div style="font-size:14px;color:var(--g);font-weight:700;margin-top:4px">45 000 000 FCFA</div>
+        <div style="font-size:11px;color:#888;margin-top:3px">📍 Ouaga 2000, Burkina Faso</div>
+        <div style="margin-top:6px"><span class="tag">Meublé</span><span class="tag">4 ch.</span><span class="tag">200 m²</span></div>
+        <div style="font-size:11px;color:#555;margin-top:8px;line-height:1.5">Villa moderne, quartier calme, 2 garages, clôture sécurisée, proche commerces.</div>
+      </div>
+      <!-- Droite : paiement + contact -->
+      <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
+        <div style="background:#f0faf7;border-radius:10px;padding:12px">
+          <div style="font-size:12px;font-weight:700">Commission ImmoBF</div>
+          <div style="font-size:22px;font-weight:800;color:var(--g)">2 250 000 FCFA</div>
+          <div style="font-size:10px;color:#888">5% du prix · paiement sécurisé</div>
+        </div>
+        <div class="g-btn" style="font-size:12px">💳 Réserver — Payer la commission</div>
+        <!-- Dialog paiement simplifié -->
+        <div style="background:#f8f8f8;border-radius:10px;padding:12px;border:1.5px solid #eee">
+          <div style="font-size:11px;font-weight:700;margin-bottom:8px">Choisir un moyen de paiement</div>
+          <div class="inp ok" style="font-size:11px;margin-bottom:6px">BarkaPay — Moov Money BF ✓</div>
+          <div class="inp ok" style="font-size:11px;margin-bottom:8px">78 48 92 70</div>
+          <div class="ok-box">
+            <div class="ok-icon">✅</div>
+            <div class="ok-txt">Paiement confirmé !</div>
+            <div class="ok-sub">Contact annonceur débloqué</div>
+          </div>
+          <div class="wa-btn">💬 Contacter sur WhatsApp — +226 70 XX XX XX</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SLIDE 11 — MOBILE : inscription
+════════════════════════════════════════════════ -->
+<div class="slide" id="s11">
+  <div class="badge a1">Application Mobile · Inscription</div>
+  <div class="stitle a2">S'inscrire depuis le téléphone</div>
+  <div class="ssub a3">Même processus, optimisé mobile</div>
+
+  <div class="split a4">
+    <div class="phone">
+      <div class="notch"><div class="notch-pill"></div></div>
+      <div class="pscreen">
+        <div style="background:var(--g);padding:16px;text-align:center;color:#fff">
+          <div style="font-size:18px;font-weight:800">ImmoBF Africa</div>
+          <div style="font-size:10px;opacity:.7;margin-top:2px">Créer un compte</div>
+        </div>
+        <div style="padding:12px;display:flex;flex-direction:column;gap:7px">
+          <div class="lbl" style="font-size:9px">Nom complet</div>
+          <div class="inp ok" style="font-size:11px;padding:7px 10px">Kosmad Mahamady</div>
+          <div class="lbl" style="font-size:9px">Email</div>
+          <div class="inp ok" style="font-size:11px;padding:7px 10px">kosmad@gmail.com</div>
+          <div class="lbl" style="font-size:9px">Mot de passe</div>
+          <div class="inp ok" style="font-size:11px;padding:7px 10px">••••••••••</div>
+          <div class="lbl" style="font-size:9px">Téléphone</div>
+          <div class="inp ok" style="font-size:11px;padding:7px 10px">+226 78 48 92 70</div>
+          <div style="background:var(--g);color:#fff;border-radius:8px;padding:9px;text-align:center;font-weight:700;font-size:12px;margin-top:4px">
+            S'inscrire →
+          </div>
+          <div style="text-align:center;font-size:10px;color:#aaa">Déjà un compte ? <span style="color:var(--g)">Connexion</span></div>
+        </div>
+      </div>
+      <div class="pnav" style="font-size:8px;padding:5px 0">
+        <div class="pni"><span class="pni-ic">🏠</span>Accueil</div>
+        <div class="pni"><span class="pni-ic">🔍</span>Parcourir</div>
+        <div class="pni"><span class="pni-ic">➕</span>Publier</div>
+        <div class="pni on"><span class="pni-ic">👤</span>Compte</div>
+      </div>
+    </div>
+
+    <div class="phone">
+      <div class="notch"><div class="notch-pill"></div></div>
+      <div class="pscreen">
+        <div style="background:var(--g);padding:14px;text-align:center;color:#fff">
+          <div style="font-size:16px;font-weight:800">📧 Vérification</div>
+        </div>
+        <div style="padding:16px;text-align:center">
+          <div style="font-size:40px;margin-top:10px">📨</div>
+          <div style="font-size:13px;font-weight:700;margin-top:10px">Consultez votre email</div>
+          <div style="font-size:11px;color:#666;margin-top:6px;line-height:1.5">
+            Email envoyé à<br><strong>kosmad@gmail.com</strong>
+          </div>
+          <div style="background:#f0faf7;border-radius:8px;padding:10px;margin-top:12px;font-size:10px;color:var(--g)">
+            ✉️ Cliquez sur le lien dans l'email pour confirmer votre compte
+          </div>
+          <div style="background:var(--g);color:#fff;border-radius:8px;padding:9px;text-align:center;font-weight:700;font-size:11px;margin-top:12px">
+            ✅ J'ai confirmé mon email
+          </div>
+          <div style="margin-top:8px;font-size:10px;color:#aaa">Pas reçu ? <span style="color:var(--g)">Renvoyer</span></div>
+        </div>
+      </div>
+      <div class="pnav" style="font-size:8px;padding:5px 0">
+        <div class="pni"><span class="pni-ic">🏠</span>Accueil</div>
+        <div class="pni"><span class="pni-ic">🔍</span>Parcourir</div>
+        <div class="pni"><span class="pni-ic">➕</span>Publier</div>
+        <div class="pni on"><span class="pni-ic">👤</span>Compte</div>
+      </div>
+    </div>
+
+    <ul class="steps" style="align-self:center">
+      <li><div class="sn">1</div><span>Remplir nom, email, mot de passe, téléphone</span></li>
+      <li><div class="sn">2</div><span>Cliquer <strong>"S'inscrire"</strong></span></li>
+      <li><div class="sn">3</div><span>Ouvrir l'email → cliquer le lien de confirmation</span></li>
+      <li><div class="sn">4</div><span>Compte activé → prêt à publier et réserver</span></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SLIDE 12 — MOBILE : publication annonce
+════════════════════════════════════════════════ -->
+<div class="slide" id="s12">
+  <div class="badge a1">Application Mobile · Publication</div>
+  <div class="stitle a2">Publier une annonce depuis le téléphone</div>
+  <div class="ssub a3">Photos caméra · GPS · Brouillon automatique</div>
+
+  <div class="split a4">
+    <div class="phone">
+      <div class="notch"><div class="notch-pill"></div></div>
+      <div class="pscreen">
+        <div style="background:var(--g);color:#fff;padding:10px 14px;font-size:13px;font-weight:700">📝 Publier une annonce</div>
+        <div style="padding:10px 12px;display:flex;flex-direction:column;gap:7px">
+          <div class="inp ok" style="font-size:11px;padding:7px 10px">🇧🇫 Burkina Faso · Bobo-Dioulasso</div>
+          <div class="inp ok" style="font-size:11px;padding:7px 10px">🏠 Maison · 🏷️ Vente</div>
+          <div class="inp ok" style="font-size:11px;padding:7px 10px">Maison 3 pièces, Secteur 25, Bobo</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div class="inp ok" style="font-size:11px;padding:7px 10px">22 000 000 FCFA</div>
+            <div class="inp ok" style="font-size:11px;padding:7px 10px">3 ch. · 120m²</div>
+          </div>
+          <div style="background:#f0faf7;border-radius:8px;padding:8px;font-size:10px;color:var(--g);text-align:center">
+            📸 4 photos ajoutées · 🎥 1 vidéo · 📍 GPS enregistré
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div style="background:var(--g);color:#fff;border-radius:8px;padding:8px;text-align:center;font-size:11px;font-weight:700">
+              Publier
+            </div>
+            <div style="border:1.5px solid var(--g);color:var(--g);border-radius:8px;padding:8px;text-align:center;font-size:11px;font-weight:700">
+              Brouillon
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pnav" style="font-size:8px;padding:5px 0">
+        <div class="pni"><span class="pni-ic">🏠</span>Accueil</div>
+        <div class="pni"><span class="pni-ic">🔍</span>Parcourir</div>
+        <div class="pni on"><span class="pni-ic">➕</span>Publier</div>
+        <div class="pni"><span class="pni-ic">👤</span>Compte</div>
+      </div>
+    </div>
+
+    <ul class="steps" style="align-self:center">
+      <li><div class="sn">1</div><span>Choisir <strong>pays, ville</strong> (liste déroulante)</span></li>
+      <li><div class="sn">2</div><span>Sélectionner le <strong>type de bien</strong> et la <strong>transaction</strong></span></li>
+      <li><div class="sn">3</div><span>Saisir titre, prix, superficie, chambres, meublé/non</span></li>
+      <li><div class="sn">4</div><span><strong>Ajouter des photos</strong> depuis la galerie ou la caméra</span></li>
+      <li><div class="sn">5</div><span><strong>GPS automatique</strong> — localise l'annonce sur la carte</span></li>
+      <li><div class="sn">6</div><span>Cliquer <strong>"Publier"</strong> et payer 5 000 FCFA par mobile money</span></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SLIDE 13 — MOBILE : réservation (bref)
+════════════════════════════════════════════════ -->
+<div class="slide" id="s13">
+  <div class="badge a1">Application Mobile · Réservation</div>
+  <div class="stitle a2">Réserver &amp; Contacter l'annonceur</div>
+  <div class="ssub a3">Paiement mobile money · WhatsApp direct</div>
+
+  <div class="split a4" style="gap:20px">
+    <div class="phone">
+      <div class="notch"><div class="notch-pill"></div></div>
+      <div class="pscreen" style="position:relative;min-height:380px">
+        <div style="background:var(--g);color:#fff;padding:10px 14px;font-size:12px;font-weight:700">🏠 Villa meublée 4 pièces</div>
+        <div style="padding:10px 12px">
+          <div style="font-size:16px;font-weight:800;color:var(--g)">45 000 000 FCFA</div>
+          <div style="font-size:10px;color:#888">📍 Ouaga 2000 · Meublée · 4 ch. · 200m²</div>
+          <div style="margin-top:8px;background:#f0faf7;border-radius:8px;padding:10px">
+            <div style="font-size:10px;font-weight:700">Commission ImmoBF (5%)</div>
+            <div style="font-size:15px;font-weight:800;color:var(--g)">2 250 000 FCFA</div>
+          </div>
+        </div>
+        <!-- overlay -->
+        <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.45)">
+          <div style="background:#fff;border-radius:14px 14px 0 0;padding:14px">
+            <div style="font-size:12px;font-weight:700;margin-bottom:8px">Paiement</div>
+            <div class="inp ok" style="font-size:11px;padding:7px;margin-bottom:6px">BarkaPay · Moov Money BF</div>
+            <div class="inp ok" style="font-size:11px;padding:7px;margin-bottom:8px">78 48 92 70</div>
+            <div class="ok-box" style="padding:8px">
+              <div style="font-size:20px">✅</div>
+              <div class="ok-txt" style="font-size:11px">Paiement confirmé !</div>
+            </div>
+            <div class="wa-btn" style="font-size:11px;padding:8px">💬 Contacter sur WhatsApp</div>
+          </div>
+        </div>
+      </div>
+      <div class="pnav" style="font-size:8px;padding:5px 0">
+        <div class="pni"><span class="pni-ic">🏠</span>Accueil</div>
+        <div class="pni on"><span class="pni-ic">🔍</span>Parcourir</div>
+        <div class="pni"><span class="pni-ic">➕</span>Publier</div>
+        <div class="pni"><span class="pni-ic">👤</span>Compte</div>
+      </div>
+    </div>
+
+    <ul class="steps" style="align-self:center">
+      <li><div class="sn">1</div><span>Ouvrir la fiche annonce → <strong>RÉSERVER</strong></span></li>
+      <li><div class="sn">2</div><span>Choisir l'opérateur : <strong>Moov, Orange, Wave…</strong></span></li>
+      <li><div class="sn">3</div><span>Saisir votre numéro → valider la notification USSD</span></li>
+      <li><div class="sn">4</div><span>✅ <strong>Paiement confirmé</strong> → contact WhatsApp débloqué</span></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SLIDE 14 — OUTRO
+════════════════════════════════════════════════ -->
+<div class="slide" id="s14" style="background:radial-gradient(ellipse at center,#0E7C66 0%,#07121e 65%)">
+  <div style="font-size:52px;font-weight:900;letter-spacing:-2px;text-align:center" class="a1">
+    Immo<span style="color:#4fffcc">BF</span> Africa
+  </div>
+  <div style="font-size:17px;opacity:.65;margin-top:8px;text-align:center" class="a2">L'immobilier africain, simplifié.</div>
+  <div style="display:flex;gap:14px;margin-top:24px;flex-wrap:wrap;justify-content:center" class="a3">
+    <div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:8px 20px;font-size:13px">🌐 immoafrica.online</div>
+    <div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:8px 20px;font-size:13px">▶ Google Play</div>
+    <div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:8px 20px;font-size:13px">📧 contact@immoafrica.online</div>
+  </div>
+  <div style="margin-top:18px;font-size:12px;opacity:.35;text-align:center" class="a4">
+    🇧🇫 Burkina Faso · 🇨🇮 Côte d'Ivoire · 🇸🇳 Sénégal · 🇲🇱 Mali · 🇹🇬 Togo · 🇧🇯 Bénin · 🇳🇪 Niger · et toute l'Afrique
+  </div>
+</div>
+
+</div><!-- /stage -->
+
+<div id="nav">
+  <button class="btn" id="pb" onclick="go(-1)">◀ Précédent</button>
+  <button class="btn pri" id="nb" onclick="go(1)">Suivant ▶</button>
+</div>
+
+<script>
+const CHAPTERS = {
+  0:'Intro', 1:'Inscription', 2:'Inscription', 3:'Inscription', 4:'Inscription',
+  5:'Publication', 6:'Publication', 7:'Publication', 8:'Publication', 9:'Publication',
+  10:'Explorer & Réserver', 11:'Mobile', 12:'Mobile', 13:'Mobile', 14:'Fin'
+};
+const slides = document.querySelectorAll('.slide');
+const N = slides.length;
+let cur = 0;
+
+function show(i) {
+  slides[cur].classList.remove('on');
+  cur = ((i % N) + N) % N;
+  slides[cur].classList.add('on');
+  document.getElementById('prog').style.width = ((cur + 1) / N * 100) + '%';
+  document.getElementById('ctr').textContent = (cur + 1) + ' / ' + N;
+  document.getElementById('chapter').textContent = CHAPTERS[cur] || '';
+  document.getElementById('pb').style.opacity = cur === 0 ? '.35' : '1';
+  document.getElementById('nb').textContent = cur === N - 1 ? '🔄 Recommencer' : 'Suivant ▶';
+}
+function go(d) { show(cur + d); }
+
+document.addEventListener('keydown', e => {
+  if (e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' ') { e.preventDefault(); go(1); }
+  if (e.key==='ArrowLeft'||e.key==='ArrowUp') { e.preventDefault(); go(-1); }
+});
+
+let tx = 0;
+document.addEventListener('touchstart', e => tx = e.touches[0].clientX);
+document.addEventListener('touchend',   e => { const d = e.changedTouches[0].clientX - tx; if (Math.abs(d)>50) go(d<0?1:-1); });
+
+show(0);
+</script>
+</body>
+</html>

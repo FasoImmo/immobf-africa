@@ -20,8 +20,8 @@ const fs     = require("fs");
 const path   = require("path");
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-const PAGE_ID          = "61591828812763";
-const API_BASE         = "https://api.immoafrica.online/api/v1";
+const PAGE_ID          = "1231000666764203"; // ID interne Business (l'ID public 61591828812763 renvoie "global id not allowed" avec un token System User — voir facebook-business-verification-immobf en mémoire)
+const API_BASE         = "https://immobf-africa-production.up.railway.app/api/v1"; // api.immoafrica.online n'existe pas (ENOTFOUND) — vrai backend Railway, voir reference_immobf_resources en mémoire
 const SITE_BASE        = "https://immoafrica.online";
 const APP_DOWNLOAD     = "https://immoafrica.online/download";
 const FB_API_BASE      = "https://graph.facebook.com/v20.0";
@@ -262,7 +262,8 @@ async function main() {
   for (const p of selected) {
     try {
       process.stdout.write(`\n🔄 Détail + publication : "${p.title}"…`);
-      const detail = await httpGet(`${API_BASE}/properties/${p.id}`);
+      const detailRaw = await httpGet(`${API_BASE}/properties/${p.id}`);
+      const detail = detailRaw.property || detailRaw; // l'API renvoie { property: {...}, commission_paid }
       await sleep(1500);
 
       const photoCount = (detail.photos || []).length;

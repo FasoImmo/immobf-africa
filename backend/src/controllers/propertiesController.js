@@ -23,8 +23,10 @@ const propertySchema = Joi.object({
   city: Joi.string().min(2).max(120).required(),
   neighborhood: Joi.string().max(150).allow("", null),
   address: Joi.string().max(300).allow("", null),
-  lat: Joi.number().min(-90).max(90).allow(null),
-  lng: Joi.number().min(-180).max(180).allow(null),
+  // .empty("") : une chaîne vide est traitée comme absente → null
+  // évite "lat must be a number" quand le champ GPS est laissé vide.
+  lat: Joi.number().min(-90).max(90).allow(null).empty("").default(null),
+  lng: Joi.number().min(-180).max(180).allow(null).empty("").default(null),
   deposit_pct: Joi.number().min(0).max(100).default(5),
   is_furnished: Joi.boolean().default(false),
   rent_period: Joi.string().valid("monthly", "weekly", "nightly").allow(null),

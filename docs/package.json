@@ -1,0 +1,15 @@
+{
+  "name": "immobf-docs-generator",
+  "version": "1.0.0",
+  "description": "Générateur de documents ImmoBF Africa",
+  "scripts": {
+    "generate:docx": "node generate_fiche_technique.js",
+    "generate:pptx": "node generate_presentation.js",
+    "generate:all": "node generate_fiche_technique.js && node generate_presentation.js"
+  },
+  "dependencies": {
+    "canvas": "^3.2.3",
+    "docx": "^8.5.0",
+    "pptxgenjs": "^3.12.0"
+  }
+}
