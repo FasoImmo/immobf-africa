@@ -585,12 +585,34 @@ function isCommissionEligible(property) {
   if (property.commission_enabled === false) return false;
   // Court séjour : commission toujours activée (réservation de type hôtellerie)
   if (property.transaction_type === "rent_short") return true;
-  // Location longue durée : meublée résidentielle uniquement
-  return (
+  // Location longue durée : meublée résidentielle ET non meublée résidentielle
+  // (commission forfaitaire 5% du loyer mensuel dans les deux cas)
+  if (property.transaction_type === "rent_long") {
+    return ["house", "apartment", "villa"].includes(property.type);
+  }
+  return false;
+}
+
+/**
+ * Retourne le taux de commission effectif à appliquer selon le type d'annonce.
+ * Pour les locations longue durée non meublées, on applique un taux forfaitaire
+ * de 5% (au lieu du taux global configurable qui s'applique aux meublées).
+ * @param {object} property - ligne properties
+ * @param {number} globalPct - taux global depuis PlatformSetting
+ * @returns {number} taux en %
+ */
+function getEffectiveCommissionPct(property, globalPct) {
+  // Override explicit sur l'annonce
+  if (property.deposit_pct != null) return Number(property.deposit_pct);
+  // Location longue durée non meublée → commission forfaitaire 5%
+  if (
     property.transaction_type === "rent_long" &&
-    property.is_furnished === true &&
+    property.is_furnished !== true &&
     ["house", "apartment", "villa"].includes(property.type)
-  );
+  ) {
+    return 5;
+  }
+  return globalPct;
 }
 
 /**
@@ -626,6 +648,6 @@ module.exports = {
   addPhoto, photosFor, setExpiry, listForOwner, listAllForAdmin, withTransaction,
   update, deletePhoto, deleteForOwner, deleteForAdmin,
   extendListing, suspendListing, restoreListing,
-  isCommissionEligible, setCommissionEnabled, setDepositPct,
+  isCommissionEligible, getEffectiveCommissionPct, setCommissionEnabled, setDepositPct,
   addVideo, videosFor, deleteVideo,
 };

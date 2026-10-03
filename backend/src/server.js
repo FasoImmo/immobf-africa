@@ -114,6 +114,9 @@ if (require.main === module) {
     // Cron hebdo (lundi 08h00 UTC) : alertes qualité annonces
     const { startListingQualityCron } = require("./services/listingQuality");
     startListingQualityCron();
+    // Initialiser le cache des overrides pays des fournisseurs de paiement
+    const registry = require("./services/PaymentProviderRegistry");
+    registry.refreshCountryOverrides().catch(() => {});
     // Cron toutes les minutes : traiter les activations/désactivations programmées
     const PaymentProviderModel = require("./models/PaymentProvider");
     const ppLogger = require("./utils/logger");

@@ -269,6 +269,7 @@ export default function SellScreen({ navigation, route }) {
     currency: "XOF",
     country_code: "BF",
     city: "",
+    neighborhood: "",
     area_m2: "",
     bedrooms: "",
     is_furnished: false,
@@ -298,6 +299,7 @@ export default function SellScreen({ navigation, route }) {
         currency: initialData.currency || "XOF",
         country_code: initialData.country_code || "BF",
         city: initialData.city || "",
+        neighborhood: initialData.neighborhood || "",
         area_m2: initialData.area_m2 ? String(initialData.area_m2) : "",
         bedrooms: initialData.bedrooms ? String(initialData.bedrooms) : "",
         is_furnished: initialData.is_furnished === true,
@@ -319,6 +321,7 @@ export default function SellScreen({ navigation, route }) {
           currency: p.currency || "XOF",
           country_code: p.country_code || "BF",
           city: p.city || "",
+          neighborhood: p.neighborhood || "",
           area_m2: p.area_m2 ? String(p.area_m2) : "",
           bedrooms: p.bedrooms ? String(p.bedrooms) : "",
           is_furnished: p.is_furnished === true,
@@ -741,6 +744,14 @@ export default function SellScreen({ navigation, route }) {
           <TextInput
             placeholder={t.cityPlaceholder}
             value={form.city} onChangeText={(v) => setForm({ ...form, city: v })}
+            style={s.input}
+          />
+
+          {/* Quartier / Zone */}
+          <Text style={s.label}>{lang === "fr" ? "Quartier / Zone" : "Neighborhood / Zone"}</Text>
+          <TextInput
+            placeholder={lang === "fr" ? "Ex: Ouaga 2000, Zone du Bois…" : "e.g. Downtown, Residential area…"}
+            value={form.neighborhood} onChangeText={(v) => setForm({ ...form, neighborhood: v })}
             style={s.input}
           />
 

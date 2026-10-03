@@ -207,12 +207,12 @@ export default function PropertyDetail() {
     if (p.commission_enabled === false) return false;  // admin force OFF
     // Court séjour : commission toujours activée (réservation de type hôtellerie)
     if (p.transaction_type === "rent_short") return true;
-    // Location longue durée : meublée résidentielle uniquement
-    return (
-      p.transaction_type === "rent_long" &&
-      p.is_furnished === true &&
-      ["house", "apartment", "villa"].includes(p.type)
-    );
+    // Location longue durée : meublée OU non meublée, résidentielle (maison, appart, villa)
+    // La commission forfaitaire de 5% s'applique dans les deux cas.
+    if (p.transaction_type === "rent_long") {
+      return ["house", "apartment", "villa"].includes(p.type);
+    }
+    return false;
   })();
   var unitLabel = p.rent_period === "monthly" ? t("property.unit_months")
     : p.rent_period === "weekly" ? t("property.unit_weeks")

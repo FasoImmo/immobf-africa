@@ -85,18 +85,19 @@ async function initiate(req, res) {
     // L'admin peut forcer l'activation ou la désactivation via commission_enabled.
     if (!Property.isCommissionEligible(property)) {
       throw BadRequest(
-        "La commission de réservation ne s'applique pas à ce type d'annonce. " +
-        "Elle est réservée aux locations meublées (maison, appartement, villa)."
+        "La commission ne s'applique pas à ce type d'annonce. " +
+        "Elle concerne les locations (meublées ou non) de type maison, appartement ou villa."
       );
     }
 
     totalBookingAmount = property.price * value.booking_units;
     const PS2 = require("../models/PlatformSetting");
     const pricing2 = await PS2.getPricing();
-    // Taux effectif : taux personnalisé de l'annonce si défini, sinon taux global
-    const effectivePct = (property.deposit_pct != null)
-      ? Number(property.deposit_pct)
-      : pricing2.commission_pct;
+    // Taux effectif :
+    //   - Override explicite sur l'annonce (deposit_pct) → priorité absolue
+    //   - Location longue durée non meublée → 5% forfaitaire
+    //   - Sinon → taux global configurable (commission_pct)
+    const effectivePct = Property.getEffectiveCommissionPct(property, pricing2.commission_pct);
     value.amount = Math.max(pricing2.min_commission_xof, Math.round(totalBookingAmount * effectivePct / 100));
     value.currency = property.currency || value.currency;
   }

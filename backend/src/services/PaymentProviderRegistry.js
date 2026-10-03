@@ -61,16 +61,48 @@ function get(name) {
   return p;
 }
 
+// Cache en mémoire des overrides pays chargés depuis la DB.
+// Mis à jour par refreshCountryOverrides() appelé au démarrage et
+// après chaque PATCH /admin/payment-providers/:id.
+let _countryOverrides = {}; // { [providerId]: string[] | null }
+
+/**
+ * Met à jour le cache des overrides pays depuis la DB.
+ * Appelé au démarrage du serveur et après chaque PATCH admin.
+ */
+async function refreshCountryOverrides() {
+  try {
+    const PaymentProviderModel = require("../models/PaymentProvider");
+    const rows = await PaymentProviderModel.list();
+    _countryOverrides = {};
+    for (const row of rows) {
+      _countryOverrides[row.id] = row.countries_override || null;
+    }
+  } catch (e) {
+    // Non bloquant : on utilise les valeurs hardcodées si la DB est indisponible
+  }
+}
+
+/**
+ * Retourne la liste de pays effective pour un provider :
+ * override DB si défini, sinon liste hardcodée du provider.
+ */
+function getProviderCountries(p) {
+  const override = _countryOverrides[p.name];
+  return Array.isArray(override) && override.length > 0 ? override : p.countries;
+}
+
 function listForCountry(countryCode) {
   return Object.values(instances)
-    .filter((p) => p.countries.includes(countryCode))
+    .filter((p) => getProviderCountries(p).includes(countryCode))
     // On ne propose à l'utilisateur que les fournisseurs réellement
     // configurés (clés API présentes) — sinon le choix est trompeur :
     // il mène systématiquement à "non configuré, paiement refusé".
     .filter((p) => p.isConfigured())
     .map((p) => ({
       name: p.name,
-      countries: p.countries,
+      countries: getProviderCountries(p),
+      countriesDefault: p.countries,
       currencies: p.currencies,
       // Opérateurs disponibles pour ce pays (ex. PawaPay → Moov + Orange)
       // undefined si le provider ne supporte pas la sélection d'opérateur.
@@ -82,4 +114,13 @@ function all() {
   return Object.keys(instances);
 }
 
-module.exports = { get, listForCountry, all };
+/**
+ * Retourne les pays par défaut (hardcodés) d'un provider.
+ * Utile pour l'admin UI (afficher les pays par défaut vs override).
+ */
+function getDefaultCountries(providerId) {
+  const p = instances[providerId];
+  return p ? p.countries : [];
+}
+
+module.exports = { get, listForCountry, all, refreshCountryOverrides, getDefaultCountries, getProviderCountries };

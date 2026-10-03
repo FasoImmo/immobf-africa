@@ -4,12 +4,28 @@ import {
   Box, Typography, Grid, Card, CardContent, Chip, Switch, FormControlLabel,
   TextField, Button, Divider, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, Alert, Skeleton, Tooltip, Stack,
+  Checkbox, FormGroup, Collapse,
 } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import BlockIcon              from "@mui/icons-material/Block";
 import ScheduleIcon           from "@mui/icons-material/Schedule";
+import PublicIcon             from "@mui/icons-material/Public";
 import AdminLayout            from "../../components/AdminLayout";
 import { Admin }              from "../../lib/api";
+
+/* ─── Pays supportés ────────────────────────────────────────────────────── */
+const ALL_COUNTRIES = [
+  { code: "BF", name: "Burkina Faso" },
+  { code: "CI", name: "Côte d'Ivoire" },
+  { code: "SN", name: "Sénégal" },
+  { code: "ML", name: "Mali" },
+  { code: "TG", name: "Togo" },
+  { code: "BJ", name: "Bénin" },
+  { code: "NE", name: "Niger" },
+  { code: "GN", name: "Guinée" },
+  { code: "CM", name: "Cameroun" },
+  { code: "MG", name: "Madagascar" },
+];
 
 /* ─── Labels visuels par provider ───────────────────────────────────────── */
 const PROVIDER_LABELS = {
@@ -56,18 +72,41 @@ function StatusChip({ enabled }) {
 function ProviderCard({ provider, onSave }) {
   const label = PROVIDER_LABELS[provider.id] || { name: provider.id, color: "#64748B" };
 
-  const [saving,    setSaving]    = useState(false);
-  const [success,   setSuccess]   = useState(false);
-  const [error,     setError]     = useState(null);
-  const [form,      setForm]      = useState({
+  const defaultCountries = provider.countries_default || [];
+  // Si override null/vide → on affiche les pays par défaut cochés
+  const initialCountries = (Array.isArray(provider.countries_override) && provider.countries_override.length > 0)
+    ? provider.countries_override
+    : defaultCountries;
+
+  const [saving,      setSaving]      = useState(false);
+  const [success,     setSuccess]     = useState(false);
+  const [error,       setError]       = useState(null);
+  const [showCountry, setShowCountry] = useState(false);
+  const [form,        setForm]        = useState({
     enabled:               provider.enabled,
     disabled_reason:       provider.disabled_reason || "",
     scheduled_disable_at:  toLocalDatetimeValue(provider.scheduled_disable_at),
     scheduled_enable_at:   toLocalDatetimeValue(provider.scheduled_enable_at),
+    countries:             initialCountries,
   });
 
   function handleToggle(e) {
     setForm((f) => ({ ...f, enabled: e.target.checked, disabled_reason: e.target.checked ? "" : f.disabled_reason }));
+  }
+
+  function handleCountryToggle(code) {
+    setForm((f) => {
+      const next = f.countries.includes(code)
+        ? f.countries.filter((c) => c !== code)
+        : [...f.countries, code];
+      return { ...f, countries: next };
+    });
+  }
+
+  // Vrai si l'override est identique aux pays par défaut → on envoie null (reset)
+  function countriesChanged() {
+    const sorted = (arr) => [...arr].sort().join(",");
+    return sorted(form.countries) !== sorted(defaultCountries);
   }
 
   async function handleSave() {
@@ -75,15 +114,18 @@ function ProviderCard({ provider, onSave }) {
     setError(null);
     setSuccess(false);
     try {
+      // countries_override = null si identique aux défauts (pas d'override DB)
+      const countries_override = countriesChanged() ? form.countries : null;
       const payload = {
         enabled: form.enabled,
         disabled_reason:      form.disabled_reason || null,
         scheduled_disable_at: form.scheduled_disable_at ? new Date(form.scheduled_disable_at).toISOString() : null,
         scheduled_enable_at:  form.scheduled_enable_at  ? new Date(form.scheduled_enable_at).toISOString()  : null,
+        countries_override,
       };
       await Admin.updatePaymentProvider(provider.id, payload);
       setSuccess(true);
-      onSave(provider.id, payload);
+      onSave(provider.id, { ...payload, countries_override });
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       setError(err?.response?.data?.error?.message || "Erreur lors de la sauvegarde");
@@ -187,6 +229,73 @@ function ProviderCard({ provider, onSave }) {
             )}
           </Box>
         )}
+
+        <Divider sx={{ my: 1.5 }} />
+
+        {/* ── Pays ── */}
+        <Box
+          sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 1, cursor: "pointer", userSelect: "none" }}
+          onClick={() => setShowCountry((v) => !v)}
+        >
+          <PublicIcon sx={{ fontSize: 15, color: "#94A3B8" }} />
+          <Typography fontSize={12.5} fontWeight={600} color="#64748B" textTransform="uppercase" letterSpacing={0.5}>
+            Pays actifs
+          </Typography>
+          <Box sx={{ ml: "auto", display: "flex", gap: 0.5, flexWrap: "wrap", maxWidth: 160 }}>
+            {form.countries.slice(0, 4).map((c) => (
+              <Chip key={c} label={c} size="small" sx={{ fontSize: 10, height: 18, bgcolor: "#EFF6FF", color: "#1D4ED8" }} />
+            ))}
+            {form.countries.length > 4 && (
+              <Chip label={`+${form.countries.length - 4}`} size="small" sx={{ fontSize: 10, height: 18, bgcolor: "#F1F5F9", color: "#64748B" }} />
+            )}
+          </Box>
+          <Typography fontSize={11} color="#94A3B8" sx={{ ml: 0.5 }}>{showCountry ? "▲" : "▼"}</Typography>
+        </Box>
+
+        <Collapse in={showCountry}>
+          <Box sx={{ bgcolor: "#F8FAFC", borderRadius: 1.5, p: 1.5, mb: 1.5, border: "1px solid #E2E8F0" }}>
+            <Typography fontSize={11} color="#64748B" sx={{ mb: 1 }}>
+              Décochez un pays pour que ce fournisseur ne soit <strong>pas proposé</strong> aux utilisateurs de ce pays.
+              Par défaut (🔵) = liste du provider.
+            </Typography>
+            <FormGroup>
+              {ALL_COUNTRIES.map((country) => {
+                const isDefault = defaultCountries.includes(country.code);
+                return (
+                  <FormControlLabel
+                    key={country.code}
+                    control={
+                      <Checkbox
+                        checked={form.countries.includes(country.code)}
+                        onChange={() => handleCountryToggle(country.code)}
+                        size="small"
+                        sx={{
+                          color: "#CBD5E1",
+                          "&.Mui-checked": { color: C_ACTIVE },
+                          py: 0.25,
+                        }}
+                      />
+                    }
+                    label={
+                      <Typography fontSize={12.5} color="#374151">
+                        {country.name}{" "}
+                        <Typography component="span" fontSize={11} color={isDefault ? "#1D4ED8" : "#94A3B8"}>
+                          ({country.code}{isDefault ? " 🔵" : ""})
+                        </Typography>
+                      </Typography>
+                    }
+                    sx={{ ml: 0 }}
+                  />
+                );
+              })}
+            </FormGroup>
+            {countriesChanged() && (
+              <Typography fontSize={11} color="#B45309" sx={{ mt: 0.5 }}>
+                ⚠ Modifié — cliquez Appliquer pour sauvegarder
+              </Typography>
+            )}
+          </Box>
+        </Collapse>
 
         {error   && <Alert severity="error"   sx={{ mb: 1, py: 0.5, fontSize: 13 }}>{error}</Alert>}
         {success && <Alert severity="success" sx={{ mb: 1, py: 0.5, fontSize: 13 }}>Sauvegardé !</Alert>}
