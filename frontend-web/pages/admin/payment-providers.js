@@ -291,10 +291,37 @@ function ProviderCard({ provider, onSave }) {
 
         <Collapse in={showCountry}>
           <Box sx={{ bgcolor: "#F8FAFC", borderRadius: 1.5, p: 1.5, mb: 1.5, border: "1px solid #E2E8F0" }}>
-            <Typography fontSize={11} color="#64748B" sx={{ mb: 1 }}>
-              Décochez un pays pour que ce fournisseur ne soit <strong>pas proposé</strong> aux utilisateurs de ce pays.
-              Par défaut (🔵) = liste du provider.
-            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+              <Typography fontSize={11} color="#64748B">
+                Décochez un pays pour que ce fournisseur ne soit <strong>pas proposé</strong> aux utilisateurs de ce pays.
+                Par défaut (🔵) = liste du provider.
+              </Typography>
+              <Box sx={{ display: "flex", gap: 0.75, flexShrink: 0, ml: 1 }}>
+                <Typography
+                  component="span" fontSize={11} fontWeight={600}
+                  color="#1D4ED8" sx={{ cursor: "pointer", whiteSpace: "nowrap" }}
+                  onClick={() => setForm((f) => ({ ...f, countries: ALL_COUNTRIES.map((c) => c.code) }))}
+                >
+                  Tout ✓
+                </Typography>
+                <Typography component="span" fontSize={11} color="#94A3B8">|</Typography>
+                <Typography
+                  component="span" fontSize={11} fontWeight={600}
+                  color="#DC2626" sx={{ cursor: "pointer", whiteSpace: "nowrap" }}
+                  onClick={() => setForm((f) => ({ ...f, countries: [] }))}
+                >
+                  Aucun
+                </Typography>
+                <Typography component="span" fontSize={11} color="#94A3B8">|</Typography>
+                <Typography
+                  component="span" fontSize={11} fontWeight={600}
+                  color="#0E7C66" sx={{ cursor: "pointer", whiteSpace: "nowrap" }}
+                  onClick={() => setForm((f) => ({ ...f, countries: [...defaultCountries] }))}
+                >
+                  Défaut
+                </Typography>
+              </Box>
+            </Box>
             <FormGroup>
               {ALL_COUNTRIES.map((country) => {
                 const isDefault  = defaultCountries.includes(country.code);
