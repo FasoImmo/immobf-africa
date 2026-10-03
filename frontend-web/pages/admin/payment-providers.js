@@ -72,11 +72,22 @@ function StatusChip({ enabled }) {
 function ProviderCard({ provider, onSave }) {
   const label = PROVIDER_LABELS[provider.id] || { name: provider.id, color: "#64748B" };
 
-  const defaultCountries = provider.countries_default || [];
+  const defaultCountries    = provider.countries_default    || [];
+  const operatorsPerCountry = provider.operators_per_country || {};
+
   // Si override null/vide → on affiche les pays par défaut cochés
   const initialCountries = (Array.isArray(provider.countries_override) && provider.countries_override.length > 0)
     ? provider.countries_override
     : defaultCountries;
+
+  // operators form state: { BF: ["moov","orange"], CI: [...] }
+  // initialise depuis operators_override ou tous les opérateurs par défaut
+  const initialOperators = {};
+  for (const [cc, ops] of Object.entries(operatorsPerCountry)) {
+    const ov = provider.operators_override?.[cc];
+    initialOperators[cc] = ov ? ops.filter((op) => ov.includes(op.name)).map((op) => op.name)
+                               : ops.map((op) => op.name);
+  }
 
   const [saving,      setSaving]      = useState(false);
   const [success,     setSuccess]     = useState(false);
@@ -88,6 +99,7 @@ function ProviderCard({ provider, onSave }) {
     scheduled_disable_at:  toLocalDatetimeValue(provider.scheduled_disable_at),
     scheduled_enable_at:   toLocalDatetimeValue(provider.scheduled_enable_at),
     countries:             initialCountries,
+    operators:             initialOperators,
   });
 
   function handleToggle(e) {
@@ -103,10 +115,34 @@ function ProviderCard({ provider, onSave }) {
     });
   }
 
+  function handleOperatorToggle(countryCode, opName) {
+    setForm((f) => {
+      const current = f.operators[countryCode] || [];
+      const next = current.includes(opName)
+        ? current.filter((n) => n !== opName)
+        : [...current, opName];
+      return { ...f, operators: { ...f.operators, [countryCode]: next } };
+    });
+  }
+
   // Vrai si l'override est identique aux pays par défaut → on envoie null (reset)
   function countriesChanged() {
     const sorted = (arr) => [...arr].sort().join(",");
     return sorted(form.countries) !== sorted(defaultCountries);
+  }
+
+  // Calcule operators_override : null si tous les opérateurs sont sélectionnés par défaut
+  function buildOperatorsOverride() {
+    let override = null;
+    for (const [cc, ops] of Object.entries(operatorsPerCountry)) {
+      const allNames  = ops.map((op) => op.name).sort().join(",");
+      const formNames = (form.operators[cc] || []).sort().join(",");
+      if (allNames !== formNames) {
+        if (!override) override = {};
+        override[cc] = form.operators[cc] || [];
+      }
+    }
+    return override;
   }
 
   async function handleSave() {
@@ -114,18 +150,19 @@ function ProviderCard({ provider, onSave }) {
     setError(null);
     setSuccess(false);
     try {
-      // countries_override = null si identique aux défauts (pas d'override DB)
-      const countries_override = countriesChanged() ? form.countries : null;
+      const countries_override  = countriesChanged()  ? form.countries        : null;
+      const operators_override  = buildOperatorsOverride();
       const payload = {
         enabled: form.enabled,
         disabled_reason:      form.disabled_reason || null,
         scheduled_disable_at: form.scheduled_disable_at ? new Date(form.scheduled_disable_at).toISOString() : null,
         scheduled_enable_at:  form.scheduled_enable_at  ? new Date(form.scheduled_enable_at).toISOString()  : null,
         countries_override,
+        operators_override,
       };
       await Admin.updatePaymentProvider(provider.id, payload);
       setSuccess(true);
-      onSave(provider.id, { ...payload, countries_override });
+      onSave(provider.id, { ...payload, countries_override, operators_override });
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       setError(err?.response?.data?.error?.message || "Erreur lors de la sauvegarde");
@@ -260,32 +297,63 @@ function ProviderCard({ provider, onSave }) {
             </Typography>
             <FormGroup>
               {ALL_COUNTRIES.map((country) => {
-                const isDefault = defaultCountries.includes(country.code);
+                const isDefault  = defaultCountries.includes(country.code);
+                const countryOps = operatorsPerCountry[country.code] || [];
+                const isChecked  = form.countries.includes(country.code);
                 return (
-                  <FormControlLabel
-                    key={country.code}
-                    control={
-                      <Checkbox
-                        checked={form.countries.includes(country.code)}
-                        onChange={() => handleCountryToggle(country.code)}
-                        size="small"
-                        sx={{
-                          color: "#CBD5E1",
-                          "&.Mui-checked": { color: C_ACTIVE },
-                          py: 0.25,
-                        }}
-                      />
-                    }
-                    label={
-                      <Typography fontSize={12.5} color="#374151">
-                        {country.name}{" "}
-                        <Typography component="span" fontSize={11} color={isDefault ? "#1D4ED8" : "#94A3B8"}>
-                          ({country.code}{isDefault ? " 🔵" : ""})
+                  <Box key={country.code}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={isChecked}
+                          onChange={() => handleCountryToggle(country.code)}
+                          size="small"
+                          sx={{
+                            color: "#CBD5E1",
+                            "&.Mui-checked": { color: C_ACTIVE },
+                            py: 0.25,
+                          }}
+                        />
+                      }
+                      label={
+                        <Typography fontSize={12.5} color="#374151">
+                          {country.name}{" "}
+                          <Typography component="span" fontSize={11} color={isDefault ? "#1D4ED8" : "#94A3B8"}>
+                            ({country.code}{isDefault ? " 🔵" : ""})
+                          </Typography>
                         </Typography>
-                      </Typography>
-                    }
-                    sx={{ ml: 0 }}
-                  />
+                      }
+                      sx={{ ml: 0 }}
+                    />
+                    {/* Opérateurs du pays (si le pays est coché et a des opérateurs) */}
+                    {isChecked && countryOps.length > 0 && (
+                      <Box sx={{ pl: 4, pb: 0.5 }}>
+                        {countryOps.map((op) => (
+                          <FormControlLabel
+                            key={op.name}
+                            control={
+                              <Checkbox
+                                checked={(form.operators[country.code] || []).includes(op.name)}
+                                onChange={() => handleOperatorToggle(country.code, op.name)}
+                                size="small"
+                                sx={{
+                                  color: "#CBD5E1",
+                                  "&.Mui-checked": { color: "#7C3AED" },
+                                  py: 0.15,
+                                }}
+                              />
+                            }
+                            label={
+                              <Typography fontSize={12} color="#6B7280">
+                                {op.label || op.name}
+                              </Typography>
+                            }
+                            sx={{ ml: 0 }}
+                          />
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
                 );
               })}
             </FormGroup>

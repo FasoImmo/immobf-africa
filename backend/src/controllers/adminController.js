@@ -698,6 +698,8 @@ async function listPaymentProviders(req, res) {
       disabled_reason:      db ? db.disabled_reason       : null,
       countries_override:   db ? db.countries_override    : null,
       countries_default:    registry.getDefaultCountries(id),
+      operators_override:   db ? db.operators_override    : null,
+      operators_per_country: registry.getAllOperators(id),
       updated_at:           db ? db.updated_at            : null,
       stats_all:   statsMap[id]   || { nb_succeeded: 0, nb_failed: 0, nb_pending: 0, nb_total: 0, total_revenue: 0 },
       stats_30d:   stats30Map[id] || { nb_succeeded: 0, nb_failed: 0, nb_pending: 0, nb_total: 0, total_revenue: 0 },
@@ -714,6 +716,8 @@ const providerUpdateSchema = Joi.object({
   disabled_reason:      Joi.string().max(300).allow(null, ""),
   // null = réinitialiser vers les pays par défaut ; tableau = override
   countries_override:   Joi.array().items(Joi.string().length(2).uppercase()).allow(null),
+  // null = réinitialiser vers tous les opérateurs par défaut ; objet { "BF": ["moov"], … } = override
+  operators_override:   Joi.object().pattern(Joi.string().length(2).uppercase(), Joi.array().items(Joi.string())).allow(null),
 }).min(1);
 
 /**
@@ -740,6 +744,7 @@ async function updatePaymentProvider(req, res) {
     scheduled_enable_at:  value.scheduled_enable_at  !== undefined ? value.scheduled_enable_at  : current.scheduled_enable_at,
     disabled_reason:      value.disabled_reason       !== undefined ? value.disabled_reason       : current.disabled_reason,
     countries_override:   value.countries_override    !== undefined ? value.countries_override    : current.countries_override,
+    operators_override:   value.operators_override    !== undefined ? value.operators_override    : current.operators_override,
   });
 
   // Rafraîchir le cache du registry pour que listForCountry() utilise le nouvel override
@@ -747,7 +752,11 @@ async function updatePaymentProvider(req, res) {
 
   const logger = require("../utils/logger");
   logger.info({ provider: providerId, changes: value, admin: req.user?.email }, "payment provider updated by admin");
-  res.json({ provider: { ...updated, countries_default: registry.getDefaultCountries(providerId) } });
+  res.json({ provider: {
+    ...updated,
+    countries_default: registry.getDefaultCountries(providerId),
+    operators_per_country: registry.getAllOperators(providerId),
+  } });
 }
 
 // ── Commission toggle par annonce ─────────────────────────────────────────────

@@ -11,7 +11,7 @@ const { query } = require("../config/db");
 async function list() {
   const { rows } = await query(
     `SELECT id, enabled, scheduled_disable_at, scheduled_enable_at,
-            disabled_reason, countries_override, updated_at
+            disabled_reason, countries_override, operators_override, updated_at
      FROM payment_providers
      ORDER BY id`
   );
@@ -21,24 +21,29 @@ async function list() {
 async function get(id) {
   const { rows } = await query(
     `SELECT id, enabled, scheduled_disable_at, scheduled_enable_at,
-            disabled_reason, countries_override, updated_at
+            disabled_reason, countries_override, operators_override, updated_at
      FROM payment_providers WHERE id = $1`,
     [id]
   );
   return rows[0] || null;
 }
 
-async function upsert(id, { enabled, scheduled_disable_at, scheduled_enable_at, disabled_reason, countries_override }) {
+async function upsert(id, {
+  enabled, scheduled_disable_at, scheduled_enable_at,
+  disabled_reason, countries_override, operators_override,
+}) {
   const { rows } = await query(
     `INSERT INTO payment_providers
-       (id, enabled, scheduled_disable_at, scheduled_enable_at, disabled_reason, countries_override, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, NOW())
+       (id, enabled, scheduled_disable_at, scheduled_enable_at,
+        disabled_reason, countries_override, operators_override, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
      ON CONFLICT (id) DO UPDATE SET
        enabled               = EXCLUDED.enabled,
        scheduled_disable_at  = EXCLUDED.scheduled_disable_at,
        scheduled_enable_at   = EXCLUDED.scheduled_enable_at,
        disabled_reason       = EXCLUDED.disabled_reason,
        countries_override    = EXCLUDED.countries_override,
+       operators_override    = EXCLUDED.operators_override,
        updated_at            = NOW()
      RETURNING *`,
     [
@@ -47,7 +52,12 @@ async function upsert(id, { enabled, scheduled_disable_at, scheduled_enable_at, 
       scheduled_disable_at || null,
       scheduled_enable_at  || null,
       disabled_reason      || null,
-      countries_override !== undefined ? (countries_override ? JSON.stringify(countries_override) : null) : undefined,
+      countries_override !== undefined
+        ? (countries_override ? JSON.stringify(countries_override) : null)
+        : undefined,
+      operators_override !== undefined
+        ? (operators_override ? JSON.stringify(operators_override) : null)
+        : undefined,
     ]
   );
   return rows[0];

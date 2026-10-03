@@ -61,26 +61,61 @@ function get(name) {
   return p;
 }
 
-// Cache en mémoire des overrides pays chargés depuis la DB.
-// Mis à jour par refreshCountryOverrides() appelé au démarrage et
-// après chaque PATCH /admin/payment-providers/:id.
-let _countryOverrides = {}; // { [providerId]: string[] | null }
+// Cache en mémoire des overrides chargés depuis la DB.
+// Mis à jour par refreshOverrides() appelé au démarrage et après chaque PATCH admin.
+let _countryOverrides   = {}; // { [providerId]: string[] | null }
+let _operatorsOverrides = {}; // { [providerId]: { [countryCode]: string[] } | null }
 
 /**
- * Met à jour le cache des overrides pays depuis la DB.
+ * Met à jour le cache des overrides (pays + opérateurs) depuis la DB.
  * Appelé au démarrage du serveur et après chaque PATCH admin.
  */
 async function refreshCountryOverrides() {
   try {
     const PaymentProviderModel = require("../models/PaymentProvider");
     const rows = await PaymentProviderModel.list();
-    _countryOverrides = {};
+    _countryOverrides   = {};
+    _operatorsOverrides = {};
     for (const row of rows) {
-      _countryOverrides[row.id] = row.countries_override || null;
+      _countryOverrides[row.id]   = row.countries_override  || null;
+      _operatorsOverrides[row.id] = row.operators_override  || null;
     }
   } catch (e) {
     // Non bloquant : on utilise les valeurs hardcodées si la DB est indisponible
   }
+}
+
+/**
+ * Retourne tous les opérateurs disponibles par pays pour un provider.
+ * Format : { BF: [{ name, label }], CI: [...] }
+ * Vide ({}) si le provider ne supporte pas la sélection d'opérateur.
+ */
+function getAllOperators(providerId) {
+  const p = instances[providerId];
+  if (!p || typeof p.operators !== "function") return {};
+  const result = {};
+  for (const country of p.countries) {
+    const ops = p.operators(country);
+    if (ops && ops.length > 0) result[country] = ops;
+  }
+  return result;
+}
+
+/**
+ * Retourne les opérateurs actifs pour un provider dans un pays,
+ * en appliquant l'override DB si présent.
+ * @param {object} p - instance du provider
+ * @param {string} countryCode
+ * @returns {Array|undefined} - tableau d'opérateurs ou undefined si pas de sélection
+ */
+function getActiveOperators(p, countryCode) {
+  if (typeof p.operators !== "function") return undefined;
+  const allOps = p.operators(countryCode);
+  if (!allOps || allOps.length === 0) return undefined;
+  const override = _operatorsOverrides[p.name];
+  if (!override || !override[countryCode]) return allOps; // pas d'override → tous actifs
+  const allowed = override[countryCode];
+  return allOps.filter((op) => allowed.includes(op.name || op.value));
 }
 
 /**
@@ -106,7 +141,7 @@ function listForCountry(countryCode) {
       currencies: p.currencies,
       // Opérateurs disponibles pour ce pays (ex. PawaPay → Moov + Orange)
       // undefined si le provider ne supporte pas la sélection d'opérateur.
-      ...(typeof p.operators === "function" ? { operators: p.operators(countryCode) } : {}),
+      ...(typeof p.operators === "function" ? { operators: getActiveOperators(p, countryCode) } : {}),
     }));
 }
 
@@ -123,4 +158,4 @@ function getDefaultCountries(providerId) {
   return p ? p.countries : [];
 }
 
-module.exports = { get, listForCountry, all, refreshCountryOverrides, getDefaultCountries, getProviderCountries };
+module.exports = { get, listForCountry, all, refreshCountryOverrides, getDefaultCountries, getProviderCountries, getAllOperators };
