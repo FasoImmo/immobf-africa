@@ -5,7 +5,7 @@ const { translateProperty } = require("../services/translation");
 
 const BASE_COLS = `
   p.id, p.owner_id, p.agency_id, p.type, p.transaction_type, p.title, p.description,
-  p.price, p.currency, p.area_m2, p.bedrooms, p.bathrooms,
+  p.price, p.currency, p.area_m2, p.bedrooms, p.bathrooms, p.garage_count,
   p.country_code, p.city, p.neighborhood, p.address,
   p.lat, p.lng,
   p.status, p.verified, p.boosted_until, p.deposit_pct,
@@ -18,7 +18,7 @@ const BASE_COLS = `
 
 const RETURNING_COLS = `
   id, owner_id, agency_id, type, transaction_type, title, description,
-  price, currency, area_m2, bedrooms, bathrooms,
+  price, currency, area_m2, bedrooms, bathrooms, garage_count,
   country_code, city, neighborhood, address,
   lat, lng,
   status, verified, boosted_until, deposit_pct,
@@ -88,7 +88,7 @@ async function create(data) {
     title, description = null,
     title_en = null, description_en = null,
     price, currency = "XOF",
-    area_m2 = null, bedrooms = null, bathrooms = null,
+    area_m2 = null, bedrooms = null, bathrooms = null, garage_count = null,
     country_code = "BF", city, neighborhood = null, address = null,
     lat = null, lng = null,
     deposit_pct = 5, is_furnished = false, rent_period = null,
@@ -107,16 +107,16 @@ async function create(data) {
   const { rows } = await query(
     `INSERT INTO properties
       (owner_id, agency_id, transaction_type, type, title, description, price, currency,
-       area_m2, bedrooms, bathrooms, country_code, city, neighborhood, address,
+       area_m2, bedrooms, bathrooms, garage_count, country_code, city, neighborhood, address,
        lat, lng, deposit_pct, is_furnished, rent_period, features,
        title_translations, description_translations)
      VALUES
-      ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21::jsonb,
-       $22::jsonb,$23::jsonb)
+      ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22::jsonb,
+       $23::jsonb,$24::jsonb)
      RETURNING ${RETURNING_COLS}`,
     [
       owner_id, agency_id, transaction_type, type, title, description, price, currency,
-      area_m2, bedrooms, bathrooms, country_code, cleanCity, neighborhood, address,
+      area_m2, bedrooms, bathrooms, garage_count, country_code, cleanCity, neighborhood, address,
       lat, lng, deposit_pct, is_furnished, rent_period, JSON.stringify(features),
       titleTr, descTr,
     ]
@@ -426,7 +426,7 @@ async function listAllForAdmin(opts) {
 // Seul le propriétaire peut modifier ses propres annonces.
 const UPDATABLE_FIELDS = [
   "transaction_type", "type", "title", "description",
-  "price", "currency", "area_m2", "bedrooms", "bathrooms",
+  "price", "currency", "area_m2", "bedrooms", "bathrooms", "garage_count",
   "country_code", "city", "neighborhood", "address",
   "lat", "lng", "is_furnished", "rent_period", "features",
 ];
