@@ -208,6 +208,97 @@ const T = {
   },
 };
 
+// ─── Placeholders contextuels selon le type de bien ──────────────────────────
+function getContextualPlaceholders(propType, txType, isFurnished, lang) {
+  const fr = {
+    titles: {
+      villa: {
+        rent_short: "Ex : Villa F5 meublée avec piscine — Ouaga 2000, disponible de suite",
+        rent_long:  isFurnished ? "Ex : Villa F4 meublée climatisée — quartier résidentiel Ouaga 2000" : "Ex : Villa F5 non meublée — grande cour, 2 garages — Zone du Bois",
+        sale:       "Ex : Villa F6 à vendre — piscine, 3 garages, quartier résidentiel haut standing",
+      },
+      house: {
+        rent_short: "Ex : Maison F3 meublée tout confort — Pissy, disponible ce weekend",
+        rent_long:  isFurnished ? "Ex : Maison F4 meublée — clim, eau, élec inclus — Gounghin" : "Ex : Maison F5 non meublée — grande cour, quartier calme — Tanghin",
+        sale:       "Ex : Maison F4 à vendre — cour spacieuse, garage 2 voitures — Pissy",
+      },
+      apartment: {
+        rent_short: "Ex : Appartement meublé 2 pièces — wifi, clim — Zone du Bois, dispo immédiat",
+        rent_long:  isFurnished ? "Ex : Appartement F3 meublé sécurisé — parking inclus — Ouaga 2000" : "Ex : Appartement F4 non meublé — 2 salles de bain — Wemtenga",
+        sale:       "Ex : Appartement F3 à vendre — résidence sécurisée, parking couvert",
+      },
+      land: {
+        rent_short: "Ex : Espace disponible à la journée — parking sécurisé — centre-ville",
+        rent_long:  "Ex : Terrain à louer — usage commercial — bord de route nationale",
+        sale:       "Ex : Terrain 500 m² titré — secteur 15, Pissy — idéal construction",
+      },
+      office: {
+        rent_short: "Ex : Salle de réunion disponible à l'heure — centre-ville Ouagadougou",
+        rent_long:  "Ex : Bureau 80 m² climatisé — 3 pièces, parking — Koulouba",
+        sale:       "Ex : Immeuble de bureaux 4 étages à vendre — Karpala",
+      },
+      commercial: {
+        rent_short: "Ex : Stand commercial disponible pour événement — Zogona",
+        rent_long:  "Ex : Boutique 40 m² en bord de voie — fort passage — centre-ville",
+        sale:       "Ex : Local commercial 200 m² à vendre — accès facile poids lourds",
+      },
+    },
+    descs: {
+      villa_meublée:   "🏡 Superbe villa entièrement meublée — confort haut standing.\n\n✅ Intérieur :\n• Cuisine entièrement équipée : réfrigérateur, cuisinière, four, micro-ondes, ustensiles de cuisine\n• Salon avec canapés design, TV grand écran, climatiseur et table à manger\n• Chambres climatisées avec lits queen/king, armoires encastrées, moustiquaires\n• Salle de bain avec eau chaude, baignoire et douche à l'italienne\n• Wi-Fi haut débit inclus, Netflix disponible\n\n✅ Extérieur & sécurité :\n• Piscine privée et jardin paysagé irrigué\n• Garage couvert pour 2 véhicules, grande cour clôturée\n• Gardien 24h/24, portail électrique, vidéosurveillance\n• Groupe électrogène et château d'eau pour autonomie totale\n\n📍 Quartier résidentiel calme, commerces et restaurants à 5 min.",
+      villa_vide:      "🏡 Grande villa vide — espace généreux à personnaliser.\n\n✅ Caractéristiques :\n• Pièces spacieuses et lumineuses, hauts plafonds\n• Cuisine ouverte avec plan de travail en granit et placards intégrés\n• Salles de bain modernes, douche à l'italienne\n• Terrasse, jardin avec espace barbecue\n• Garage pour 2 véhicules et grande cour clôturée\n\n✅ Équipements techniques :\n• Château d'eau et fosse septique\n• Groupe électrogène raccordé\n• Portail électrique, clôture haute, gardien disponible\n\n📍 Quartier résidentiel sécurisé, accès rapide aux grandes artères.",
+      house_meublée:   "🏠 Belle maison meublée — idéale famille ou professionnel.\n\n✅ Équipements inclus :\n• Cuisine équipée : réfrigérateur, cuisinière gaz, micro-ondes\n• Salon climatisé avec canapés et télévision\n• Chambres avec lits, armoires et moustiquaires\n• Salle de bain avec eau chaude\n\n✅ Extérieur :\n• Grande cour clôturée, parking pour 2 voitures\n• Wi-Fi haut débit inclus\n• Groupe électrogène et château d'eau\n\n📍 Quartier calme, proche commodités (marché, école, pharmacie).",
+      house_vide:      "🏠 Maison spacieuse non meublée — luminosité et espace.\n\n✅ Caractéristiques :\n• Pièces bien ventilées et lumineuses\n• Cuisine avec bac à laver et prises électriques\n• Cour spacieuse, idéale enfants et véhicules\n• Clôture haute, portail sécurisé\n\n📍 Quartier résidentiel calme, accès transports facilité.",
+      apartment_meublé:"🏢 Appartement meublé moderne — idéal expatrié ou professionnel.\n\n✅ Équipements inclus :\n• Cuisine équipée : réfrigérateur, cuisinière, four, micro-ondes, ustensiles\n• Salon climatisé : télévision, canapés, table à manger\n• Chambre(s) avec lit confortable, armoire et moustiquaires\n• Salle de bain avec eau chaude\n• Wi-Fi haut débit inclus\n\n✅ Résidence :\n• Parking sécurisé, gardiennage 24h/24, interphone\n• Groupe électrogène, château d'eau\n• Vue dégagée et balcon\n\n📍 Résidence sécurisée, commerces et services à proximité.",
+      apartment_vide:  "🏢 Appartement spacieux non meublé — résidence moderne.\n\n✅ Caractéristiques :\n• Pièces lumineuses, cuisine ouverte sur séjour\n• Balcon avec vue dégagée\n• Parking privé inclus\n• Gardien, groupe électrogène, château d'eau\n\n📍 Résidence sécurisée, accès facile centre-ville.",
+      land:            "📐 Terrain viabilisé — titre foncier disponible.\n\n✅ Caractéristiques :\n• Superficie : précisez en m² ou ha\n• Accès par voie goudronnée\n• Raccordement électricité et eau ONEA à proximité\n• Documents : titre foncier / permis urbain d'habiter (PUH)\n\n✅ Usages idéaux :\n• Construction résidentielle ou commerciale\n• Investissement foncier sécurisé\n\n📍 Précisez le quartier et les repères d'accès.",
+      office:          "🏢 Bureau climatisé et sécurisé — prêt à l'emploi.\n\n✅ Équipements :\n• Climatisation centrale, câblage réseau\n• Internet haut débit inclus\n• Salle de réunion et coin repas\n• Parking et accueil sécurisé\n\n📍 Idéalement situé — précisez les axes d'accès.",
+      commercial:      "🏪 Local commercial — emplacement stratégique, fort passage.\n\n✅ Caractéristiques :\n• Grande vitrine sur rue, enseigne lumineuse possible\n• Réserve / arrière-boutique\n• Électricité, eau et climatisation raccordées\n• Accès livraisons facilité, parking à proximité\n\n📍 Environnement commercial dynamique — précisez le quartier.",
+    },
+  };
+  const en = {
+    titles: {
+      villa: {
+        rent_short: "e.g. Furnished 5BR villa with pool — Ouaga 2000, available now",
+        rent_long:  isFurnished ? "e.g. Furnished 4BR villa, A/C — residential area Ouaga 2000" : "e.g. Unfurnished 5BR villa — large yard, 2 garages — Zone du Bois",
+        sale:       "e.g. 6BR villa for sale — pool, 3 garages, upscale residential area",
+      },
+      house: {
+        rent_short: "e.g. Furnished 3BR house — Pissy, available this weekend",
+        rent_long:  isFurnished ? "e.g. Furnished 4BR house — A/C, water, electricity included" : "e.g. Unfurnished 5BR house — large yard, quiet neighborhood",
+        sale:       "e.g. 4BR house for sale — spacious yard, 2-car garage",
+      },
+      apartment: {
+        rent_short: "e.g. Furnished 2BR apartment — wifi, A/C — Zone du Bois, available now",
+        rent_long:  isFurnished ? "e.g. Furnished 3BR apartment, secure building — parking" : "e.g. Unfurnished 4BR apartment — 2 bathrooms — Wemtenga",
+        sale:       "e.g. 3BR apartment for sale — gated residence, covered parking",
+      },
+      land: { rent_short: "e.g. Daily parking space available — secure — city center", rent_long: "e.g. Land for lease — commercial use — national highway frontage", sale: "e.g. 500 m² titled land — sector 15, Pissy" },
+      office: { rent_short: "e.g. Meeting room by the hour — downtown Ouaga", rent_long: "e.g. 80 m² A/C office — 3 rooms, parking — Koulouba", sale: "e.g. 4-floor office building for sale — Karpala" },
+      commercial: { rent_short: "e.g. Commercial stand for event — Zogona", rent_long: "e.g. 40 m² shopfront — high footfall — city center", sale: "e.g. 200 m² commercial space for sale — truck access" },
+    },
+    descs: {
+      villa_meublée:   "🏡 Stunning fully furnished villa — high-end comfort.\n\n✅ Interior:\n• Fully equipped kitchen: fridge, stove, oven, microwave, utensils\n• Living room with designer sofas, large TV, A/C, dining set\n• A/C bedrooms with queen/king beds, fitted wardrobes, mosquito nets\n• Bathroom with hot water, bathtub & walk-in shower\n• High-speed Wi-Fi included\n\n✅ Outdoor & Security:\n• Private pool and landscaped garden\n• Covered garage for 2 vehicles, secure walled yard\n• 24/7 guard, electric gate, CCTV\n• Generator and water tank for full autonomy\n\n📍 Quiet residential area, shops & restaurants 5 min away.",
+      villa_vide:      "🏡 Spacious unfurnished villa — generous space to make your own.\n\n✅ Features:\n• Bright spacious rooms, high ceilings\n• Open kitchen with granite countertops and built-in storage\n• Modern bathrooms with walk-in shower\n• Terrace, garden and BBQ area\n• 2-car garage and large walled yard\n\n✅ Technical:\n• Water tank, septic tank, generator\n• Electric gate, high perimeter wall\n\n📍 Secure residential area, easy access to main roads.",
+      house_meublée:   "🏠 Lovely furnished house — perfect for families or professionals.\n\n✅ Included:\n• Equipped kitchen: fridge, gas stove, microwave\n• A/C living room with sofas and TV\n• Bedrooms with beds, wardrobes and mosquito nets\n• Bathroom with hot water\n\n✅ Outdoor:\n• Large walled yard, parking for 2 cars\n• Wi-Fi included, generator, water tank\n\n📍 Quiet area, close to market, school and pharmacy.",
+      house_vide:      "🏠 Spacious unfurnished house — bright and airy.\n\n✅ Features:\n• Well-ventilated bright rooms\n• Kitchen with sink and power outlets\n• Large yard, ideal for children and vehicles\n• Secure perimeter wall and gate\n\n📍 Peaceful residential area, good transport links.",
+      apartment_meublé:"🏢 Modern furnished apartment — ideal for expats or professionals.\n\n✅ Included:\n• Equipped kitchen: fridge, stove, oven, microwave, utensils\n• A/C living room: TV, sofas, dining table\n• Bedroom(s) with comfortable bed, wardrobe, mosquito nets\n• Bathroom with hot water\n• High-speed Wi-Fi included\n\n✅ Building:\n• Secure parking, 24/7 guard, intercom\n• Generator and water tank\n• Open view and balcony\n\n📍 Secure residence, shops and services nearby.",
+      apartment_vide:  "🏢 Spacious unfurnished apartment — modern residence.\n\n✅ Features:\n• Bright rooms, open-plan kitchen\n• Balcony with open view\n• Private parking included\n• Security guard, generator, water tank\n\n📍 Secure residence, easy city center access.",
+      land:            "📐 Serviced plot — title deed available.\n\n✅ Features:\n• Area: specify in m² or ha\n• Paved road access\n• Electricity and water connections nearby\n• Documents: title deed / urban building permit\n\n✅ Ideal for:\n• Residential or commercial construction\n• Secure land investment\n\n📍 Specify the neighborhood and access landmarks.",
+      office:          "🏢 Air-conditioned secure office — move-in ready.\n\n✅ Features:\n• Central A/C, network cabling\n• High-speed internet included\n• Meeting room and break room\n• Secure parking and reception\n\n📍 Prime location — specify access routes.",
+      commercial:      "🏪 Commercial space — prime location, high footfall.\n\n✅ Features:\n• Large street-facing shopfront\n• Stockroom / back office\n• Electricity, water and A/C connected\n• Easy delivery access, nearby parking\n\n📍 Dynamic commercial area — specify the neighborhood.",
+    },
+  };
+  const L = lang === "fr" ? fr : en;
+  const titlesByType = L.titles[propType] || L.titles.house;
+  const titlePh = titlesByType[txType] || titlesByType.sale || titlesByType.rent_long || "";
+  let descKey = propType;
+  if (propType === "villa")      descKey = isFurnished ? "villa_meublée"    : "villa_vide";
+  if (propType === "house")      descKey = isFurnished ? "house_meublée"    : "house_vide";
+  if (propType === "apartment")  descKey = isFurnished ? "apartment_meublé" : "apartment_vide";
+  const descPh = L.descs[descKey] || L.descs.land;
+  return { titlePh, descPh };
+}
+
 // ─── Modal sélecteur pays ─────────────────────────────────────────────────────
 function CountryModal({ visible, selected, onSelect, onClose, title }) {
   return (
@@ -272,6 +363,7 @@ export default function SellScreen({ navigation, route }) {
     neighborhood: "",
     area_m2: "",
     bedrooms: "",
+    garage_count: "",
     is_furnished: false,
     lat: "",
     lng: "",
@@ -302,6 +394,7 @@ export default function SellScreen({ navigation, route }) {
         neighborhood: initialData.neighborhood || "",
         area_m2: initialData.area_m2 ? String(initialData.area_m2) : "",
         bedrooms: initialData.bedrooms ? String(initialData.bedrooms) : "",
+        garage_count: initialData.garage_count ? String(initialData.garage_count) : "",
         is_furnished: initialData.is_furnished === true,
         lat: initialData.location?.lat ? String(initialData.location.lat) : "",
         lng: initialData.location?.lng ? String(initialData.location.lng) : "",
@@ -324,6 +417,7 @@ export default function SellScreen({ navigation, route }) {
           neighborhood: p.neighborhood || "",
           area_m2: p.area_m2 ? String(p.area_m2) : "",
           bedrooms: p.bedrooms ? String(p.bedrooms) : "",
+          garage_count: p.garage_count ? String(p.garage_count) : "",
           is_furnished: p.is_furnished === true,
           lat: p.location?.lat ? String(p.location.lat) : "",
           lng: p.location?.lng ? String(p.location.lng) : "",
@@ -349,6 +443,7 @@ export default function SellScreen({ navigation, route }) {
         rent_period: isRent ? "monthly" : null,
         ...(form.area_m2 ? { area_m2: areaUnit === "ha" ? Number(form.area_m2) * 10000 : Number(form.area_m2) } : { area_m2: null }),
         ...(form.bedrooms ? { bedrooms: Number(form.bedrooms) } : { bedrooms: null }),
+        ...(form.garage_count ? { garage_count: Number(form.garage_count) } : { garage_count: null }),
         is_furnished: form.is_furnished,
       };
 
@@ -722,12 +817,19 @@ export default function SellScreen({ navigation, route }) {
           </View>
 
           {/* Titre */}
-          <Text style={s.label}>{t.propTitle}</Text>
-          <TextInput
-            placeholder={t.titlePlaceholder}
-            value={form.title} onChangeText={(v) => setForm({ ...form, title: v })}
-            style={s.input} maxLength={120}
-          />
+          {(() => {
+            const { titlePh } = getContextualPlaceholders(form.type, form.transaction_type, form.is_furnished, lang);
+            return (
+              <>
+                <Text style={s.label}>{t.propTitle}</Text>
+                <TextInput
+                  placeholder={titlePh || t.titlePlaceholder}
+                  value={form.title} onChangeText={(v) => setForm({ ...form, title: v })}
+                  style={s.input} maxLength={120}
+                />
+              </>
+            );
+          })()}
 
           {/* Pays */}
           <Text style={s.label}>{t.country}</Text>
@@ -850,6 +952,22 @@ export default function SellScreen({ navigation, route }) {
             keyboardType="numeric"
           />
 
+          {/* Garage — visible pour maison, appartement, villa */}
+          {["house", "apartment", "villa"].includes(form.type) && (
+            <>
+              <Text style={s.label}>
+                {lang === "fr" ? "Garage / Parking (facultatif)" : "Garage / Parking (optional)"}
+              </Text>
+              <TextInput
+                placeholder={lang === "fr" ? "Ex : 2 (nombre de véhicules)" : "e.g. 2 (number of vehicles)"}
+                value={form.garage_count}
+                onChangeText={(v) => setForm({ ...form, garage_count: v.replace(/[^0-9]/g, "") })}
+                style={s.input}
+                keyboardType="numeric"
+              />
+            </>
+          )}
+
           {/* Meublé */}
           <TouchableOpacity
             onPress={() => setForm({ ...form, is_furnished: !form.is_furnished })}
@@ -867,13 +985,20 @@ export default function SellScreen({ navigation, route }) {
           </TouchableOpacity>
 
           {/* Description */}
-          <Text style={s.label}>{t.description}</Text>
-          <TextInput
-            placeholder={t.descPlaceholder}
-            value={form.description} onChangeText={(v) => setForm({ ...form, description: v })}
-            style={[s.input, { height: 90, textAlignVertical: "top" }]}
-            multiline numberOfLines={4}
-          />
+          {(() => {
+            const { descPh } = getContextualPlaceholders(form.type, form.transaction_type, form.is_furnished, lang);
+            return (
+              <>
+                <Text style={s.label}>{t.description}</Text>
+                <TextInput
+                  placeholder={descPh || t.descPlaceholder}
+                  value={form.description} onChangeText={(v) => setForm({ ...form, description: v })}
+                  style={[s.input, { height: 180, textAlignVertical: "top" }]}
+                  multiline numberOfLines={8}
+                />
+              </>
+            );
+          })()}
 
           <TouchableOpacity
             style={[s.btn, formBusy && s.btnDisabled]}

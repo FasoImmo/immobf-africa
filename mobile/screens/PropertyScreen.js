@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ScrollView, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking, Alert } from "react-native";
+import { ScrollView, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking, Alert, Modal } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLang } from "../lib/lang";
@@ -88,20 +88,146 @@ function Stepper({ value, onChange, min = 1, max = 365 }) {
   );
 }
 
-function DateStepper({ label, date, onPrev, onNext }) {
+/* ─── Calendrier pur JS ──────────────────────────────────────────────────── */
+const MONTH_FR = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+const MONTH_EN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DOW_FR   = ["Lu","Ma","Me","Je","Ve","Sa","Di"];
+const DOW_EN   = ["Mo","Tu","We","Th","Fr","Sa","Su"];
+
+function isoDay(d) {
+  // Returns YYYY-MM-DD string (local)
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+function fromIso(s) {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function CalendarPicker({ label, date, onChange, blockedRanges = [], lang = "fr" }) {
+  const [open, setOpen] = useState(false);
+  const [viewYear,  setViewYear]  = useState(date.getFullYear());
+  const [viewMonth, setViewMonth] = useState(date.getMonth());
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const months = lang === "fr" ? MONTH_FR : MONTH_EN;
+  const dows   = lang === "fr" ? DOW_FR   : DOW_EN;
+
+  function prevMonth() {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  }
+  function nextMonth() {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  }
+
+  // Build grid: weeks starting Monday
+  function buildGrid() {
+    const first = new Date(viewYear, viewMonth, 1);
+    // Monday=0 offset
+    const startDow = (first.getDay() + 6) % 7;
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const cells = [];
+    for (let i = 0; i < startDow; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(viewYear, viewMonth, d));
+    // Pad to complete last row
+    while (cells.length % 7 !== 0) cells.push(null);
+    const rows = [];
+    for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
+    return rows;
+  }
+
+  function isBlocked(d) {
+    if (!d) return false;
+    const ds = isoDay(d);
+    return blockedRanges.some(({ check_in, check_out }) => ds >= check_in.slice(0,10) && ds < check_out.slice(0,10));
+  }
+  function isPast(d) { return d && d < today; }
+  function isSelected(d) { return d && isoDay(d) === isoDay(date); }
+
+  const rows = buildGrid();
+
   return (
-    <View style={styles.dateStepper}>
-      <Text style={styles.dateLabel}>{label}</Text>
-      <View style={styles.dateRow}>
-        <TouchableOpacity style={styles.dateBtn} onPress={onPrev}>
-          <Text style={styles.dateBtnText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.dateValue}>{fmtDate(date)}</Text>
-        <TouchableOpacity style={styles.dateBtn} onPress={onNext}>
-          <Text style={styles.dateBtnText}>›</Text>
+    <>
+      {/* Champ cliquable */}
+      <View style={styles.dateStepper}>
+        <Text style={styles.dateLabel}>{label}</Text>
+        <TouchableOpacity style={styles.calendarTrigger} onPress={() => setOpen(true)} activeOpacity={0.7}>
+          <Text style={styles.calendarTriggerIcon}>📅</Text>
+          <Text style={styles.calendarTriggerText}>{fmtDate(date)}</Text>
+          <Text style={styles.calendarTriggerChevron}>▼</Text>
         </TouchableOpacity>
       </View>
-    </View>
+
+      {/* Modal calendrier */}
+      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+        <TouchableOpacity style={styles.calModalOverlay} activeOpacity={1} onPress={() => setOpen(false)}>
+          <TouchableOpacity style={styles.calModal} activeOpacity={1} onPress={() => {}}>
+            {/* En-tête mois */}
+            <View style={styles.calHeader}>
+              <TouchableOpacity onPress={prevMonth} style={styles.calNavBtn}>
+                <Text style={styles.calNavText}>‹</Text>
+              </TouchableOpacity>
+              <Text style={styles.calMonthTitle}>{months[viewMonth]} {viewYear}</Text>
+              <TouchableOpacity onPress={nextMonth} style={styles.calNavBtn}>
+                <Text style={styles.calNavText}>›</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Jours de la semaine */}
+            <View style={styles.calDowRow}>
+              {dows.map((d) => <Text key={d} style={styles.calDow}>{d}</Text>)}
+            </View>
+
+            {/* Grille */}
+            {rows.map((row, ri) => (
+              <View key={ri} style={styles.calRow}>
+                {row.map((d, ci) => {
+                  const blocked  = isBlocked(d);
+                  const past     = isPast(d);
+                  const selected = isSelected(d);
+                  const disabled = !d || blocked || past;
+                  return (
+                    <TouchableOpacity
+                      key={ci}
+                      style={[
+                        styles.calCell,
+                        selected  && styles.calCellSelected,
+                        blocked   && styles.calCellBlocked,
+                        past      && styles.calCellPast,
+                      ]}
+                      disabled={disabled}
+                      onPress={() => { onChange(d); setOpen(false); }}
+                    >
+                      <Text style={[
+                        styles.calCellText,
+                        selected && styles.calCellTextSelected,
+                        (blocked || past) && styles.calCellTextDisabled,
+                      ]}>
+                        {d ? d.getDate() : ""}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ))}
+
+            {/* Légende */}
+            <View style={styles.calLegend}>
+              <View style={[styles.calLegDot, { backgroundColor: "#B91C1C" }]} />
+              <Text style={styles.calLegText}>{lang === "fr" ? "Indisponible" : "Unavailable"}</Text>
+              <View style={[styles.calLegDot, { backgroundColor: "#0E7C66", marginLeft: 16 }]} />
+              <Text style={styles.calLegText}>{lang === "fr" ? "Sélectionné" : "Selected"}</Text>
+            </View>
+
+            <TouchableOpacity style={styles.calCloseBtn} onPress={() => setOpen(false)}>
+              <Text style={styles.calCloseBtnText}>{lang === "fr" ? "Fermer" : "Close"}</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+    </>
   );
 }
 
@@ -277,11 +403,12 @@ export default function PropertyScreen({ route, navigation }) {
           return (
           <>
             <View style={styles.durationBox}>
-              <DateStepper
+              <CalendarPicker
                 label={t.arrival}
                 date={arrival}
-                onPrev={() => { const d = addDays(arrival, -1); if (d >= today) setArrival(d); }}
-                onNext={() => setArrival(addDays(arrival, 1))}
+                onChange={(d) => setArrival(d)}
+                blockedRanges={bookedRanges}
+                lang={lang}
               />
               <View style={[styles.durationRow, { marginTop: 14 }]}>
                 <Text style={styles.durationLabel}>{t.duration}</Text>
@@ -429,6 +556,47 @@ const styles = StyleSheet.create({
   },
   dateBtnText: { color: "white", fontSize: 20, fontWeight: "700", lineHeight: 24 },
   dateValue: { fontSize: 16, fontWeight: "600", color: "#333" },
+  // ── CalendarPicker ──
+  calendarTrigger: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    backgroundColor: "#F0FAF7", borderWidth: 1.5, borderColor: "#0E7C66",
+    borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8,
+  },
+  calendarTriggerIcon: { fontSize: 18 },
+  calendarTriggerText: { fontSize: 16, fontWeight: "700", color: "#0E7C66", flex: 1 },
+  calendarTriggerChevron: { fontSize: 11, color: "#0E7C66" },
+  calModalOverlay: {
+    flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end",
+  },
+  calModal: {
+    backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    padding: 16, paddingBottom: 28,
+  },
+  calHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+  calNavBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  calNavText: { fontSize: 24, color: "#0E7C66", fontWeight: "700" },
+  calMonthTitle: { fontSize: 16, fontWeight: "700", color: "#1E293B" },
+  calDowRow: { flexDirection: "row", marginBottom: 4 },
+  calDow: { flex: 1, textAlign: "center", fontSize: 12, fontWeight: "600", color: "#94A3B8" },
+  calRow: { flexDirection: "row", marginBottom: 2 },
+  calCell: {
+    flex: 1, aspectRatio: 1, alignItems: "center", justifyContent: "center",
+    borderRadius: 8, margin: 1,
+  },
+  calCellSelected: { backgroundColor: "#0E7C66" },
+  calCellBlocked:  { backgroundColor: "#FEE2E2" },
+  calCellPast:     { backgroundColor: "#F8FAFC" },
+  calCellText:     { fontSize: 14, fontWeight: "500", color: "#1E293B" },
+  calCellTextSelected: { color: "#fff", fontWeight: "700" },
+  calCellTextDisabled: { color: "#CBD5E1" },
+  calLegend: { flexDirection: "row", alignItems: "center", marginTop: 12, marginBottom: 4 },
+  calLegDot: { width: 12, height: 12, borderRadius: 4, marginRight: 4 },
+  calLegText: { fontSize: 12, color: "#64748B" },
+  calCloseBtn: {
+    marginTop: 12, backgroundColor: "#0E7C66", borderRadius: 10,
+    paddingVertical: 12, alignItems: "center",
+  },
+  calCloseBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   typeBadge: {
     alignSelf: "flex-start", backgroundColor: "#e8f5f1",
     borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4, marginBottom: 8,
