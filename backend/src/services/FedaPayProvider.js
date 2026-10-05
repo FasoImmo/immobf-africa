@@ -44,7 +44,7 @@ class FedaPayProvider extends PaymentProvider {
   // affichait FedaPay comme option valide alors que le paiement échoue
   // systématiquement. À réintégrer dès que le support FedaPay confirme
   // Orange/Moov BF + carte réactivés pour le Burkina Faso.
-  get countries() { return ["BJ", "CI", "SN", "TG", "NE", "ML", "GN"]; }
+  get countries() { return ["BF", "BJ", "CI", "SN", "TG", "NE", "ML", "GN"]; }
 
   get currencies() { return ["XOF", "GNF"]; }
 
