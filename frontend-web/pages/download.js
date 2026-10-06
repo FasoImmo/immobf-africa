@@ -13,6 +13,10 @@ const ANDROID_TESTING_URL = "https://play.google.com/apps/testing/africa.immobf.
 // iOS : App Store (approuvée le 27 sept. 2026)
 const IOS_URL = process.env.NEXT_PUBLIC_IOS_URL || "https://apps.apple.com/app/id6809453557";
 
+// APK direct (v1.7.0 — lien Expo temporaire, valide jusqu'au ~16 oct. 2026).
+// À remplacer par le lien GitHub Release dès déblocage 2FA GitHub.
+const APK_DIRECT_URL = "https://expo.dev/accounts/immobfs-team/projects/immobilier-en-afrique/builds/3f9b2196-2dd3-44bb-bd50-9760ef2daf88";
+
 // Rétrocompatibilité (ancienne variable Vercel inutilisée — ne pas supprimer avant déploiement)
 const APK_URL = ANDROID_URL;
 
@@ -88,11 +92,26 @@ export default function DownloadPage() {
           >
             App Store (iOS)
           </Button>
+          <Button
+            variant="outlined"
+            size="large"
+            startIcon={<AndroidIcon />}
+            href={APK_DIRECT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{
+              borderColor: "rgba(255,255,255,0.4)", color: "rgba(255,255,255,0.85)",
+              px: 3, py: 1.5, fontSize: "0.85rem",
+              "&:hover": { bgcolor: "rgba(255,255,255,0.08)" },
+            }}
+          >
+            APK direct (v1.7.0)
+          </Button>
         </Box>
 
         <Box sx={{ mt: 3, display: "flex", gap: 1, justifyContent: "center", flexWrap: "wrap" }}>
           <Chip label="Android 8+" size="small" sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "white" }} />
-          <Chip label="v1.6.7" size="small" sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "white" }} />
+          <Chip label="v1.7.0" size="small" sx={{ bgcolor: "rgba(255,255,255,0.25)", color: "white", fontWeight: 700 }} />
           <Chip label={t("download.chip_free")} size="small" sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "white" }} />
         </Box>
       </Box>
