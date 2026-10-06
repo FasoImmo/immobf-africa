@@ -13,9 +13,8 @@ const ANDROID_TESTING_URL = "https://play.google.com/apps/testing/africa.immobf.
 // iOS : App Store (approuvée le 27 sept. 2026)
 const IOS_URL = process.env.NEXT_PUBLIC_IOS_URL || "https://apps.apple.com/app/id6809453557";
 
-// APK direct (v1.7.0 — lien Expo temporaire, valide jusqu'au ~16 oct. 2026).
-// À remplacer par le lien GitHub Release dès déblocage 2FA GitHub.
-const APK_DIRECT_URL = "https://expo.dev/accounts/immobfs-team/projects/immobilier-en-afrique/builds/3f9b2196-2dd3-44bb-bd50-9760ef2daf88";
+// APK direct (v1.7.0 — hébergé en statique sur Vercel, lien permanent).
+const APK_DIRECT_URL = "/downloads/immobf-v1.7.0.apk";
 
 // Rétrocompatibilité (ancienne variable Vercel inutilisée — ne pas supprimer avant déploiement)
 const APK_URL = ANDROID_URL;
