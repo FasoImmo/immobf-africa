@@ -34,16 +34,11 @@ class FedaPayProvider extends PaymentProvider {
 
   // Pays supportés - voir https://docs.fedapay.com (mai 2026).
   //
-  // CORRECTIF TEMPORAIRE (28/06/2026) : "BF" retiré de la liste. Le compte
-  // marchand FedaPay Live n'a pas (ou plus) Orange Money BF / Moov Money BF
-  // actifs côté dashboard, et aucune option carte bancaire n'apparaît au
-  // checkout pour un acheteur burkinabè — le checkout retombe sur le Bénin
-  // par défaut (voir docs/FEDAPAY_TICKET_WAVE_BF.md, ticket support #38974,
-  // tâche #24). isConfigured() ne vérifiant que la présence de la clé API
-  // (pas la disponibilité réelle des opérateurs par pays), laisser "BF" ici
-  // affichait FedaPay comme option valide alors que le paiement échoue
-  // systématiquement. À réintégrer dès que le support FedaPay confirme
-  // Orange/Moov BF + carte réactivés pour le Burkina Faso.
+  // NOTE (06/10/2026) : "BF" réintégré dans la liste. FedaPay est affiché
+  // comme option de paiement pour les utilisateurs burkinabè. Le ticket
+  // support #38974 reste ouvert pour activer Orange Money BF et Moov Money BF
+  // sur le compte Live (voir docs/FEDAPAY_TICKET_WAVE_BF.md). En attendant,
+  // les utilisateurs BF peuvent payer par carte bancaire via le checkout FedaPay.
   get countries() { return ["BF", "BJ", "CI", "SN", "TG", "NE", "ML", "GN"]; }
 
   get currencies() { return ["XOF", "GNF"]; }

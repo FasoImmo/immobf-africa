@@ -22,14 +22,12 @@ describe("FedaPayProvider", () => {
     expect(registry.all()).toContain("fedapay");
   });
 
-  test("couvre UEMOA hors BF (BF retire temporairement — ticket support #38974)", () => {
-    // BF retire le 28/06/2026 : Orange/Moov BF absents du compte Live FedaPay.
-    // Reactiver quand le ticket support confirme la disponibilite.
+  test("couvre BF et les pays UEMOA (BF reintegre — ticket support #38974 en cours)", () => {
+    // BF reintegre le 06/10/2026 pour permettre l affichage de FedaPay.
+    // Le ticket support #38974 reste ouvert pour Orange/Moov BF sur le compte Live.
     expect(provider.countries).toEqual(
-      expect.arrayContaining(["BJ", "CI", "SN", "TG", "NE", "ML", "GN"])
+      expect.arrayContaining(["BF", "BJ", "CI", "SN", "TG", "NE", "ML", "GN"])
     );
-    // BF n est pas dans la liste tant que le ticket n est pas resolu
-    expect(provider.countries).not.toContain("BF");
   });
 
   test("supporte XOF et GNF", () => {
