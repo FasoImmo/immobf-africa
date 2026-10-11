@@ -48,7 +48,7 @@ const PROP_TYPES = {
     { value: "land",       label: "Terrain" },
     { value: "house",      label: "Maison" },
     { value: "apartment",  label: "Appartement" },
-    { value: "villa",      label: "Villa" },
+    { value: "villa",      label: "Villa", apiValue: "house" },
     { value: "office",     label: "Bureau" },
     { value: "commercial", label: "Commerce" },
   ],
@@ -56,7 +56,7 @@ const PROP_TYPES = {
     { value: "land",       label: "Land" },
     { value: "house",      label: "House" },
     { value: "apartment",  label: "Apartment" },
-    { value: "villa",      label: "Villa" },
+    { value: "villa",      label: "Villa", apiValue: "house" },
     { value: "office",     label: "Office" },
     { value: "commercial", label: "Commercial" },
   ],
@@ -437,8 +437,12 @@ export default function SellScreen({ navigation, route }) {
     setFormBusy(true);
     try {
       const isRent = form.transaction_type !== "sale";
+      // "villa" n'est pas accepté par l'API backend (type: [land,house,apartment,office,commercial])
+      // On conserve "villa" en UI pour l'expérience utilisateur et on le mappe → "house" à l'envoi
+      const apiType = form.type === "villa" ? "house" : form.type;
       const payload = {
         ...form,
+        type: apiType,
         price: Number(form.price),
         rent_period: isRent ? "monthly" : null,
         ...(form.area_m2 ? { area_m2: areaUnit === "ha" ? Number(form.area_m2) * 10000 : Number(form.area_m2) } : { area_m2: null }),
@@ -475,8 +479,10 @@ export default function SellScreen({ navigation, route }) {
     setFormBusy(true);
     try {
       const isRent = form.transaction_type !== "sale";
+      const apiType = form.type === "villa" ? "house" : form.type;
       await Properties.create({
         ...form,
+        type: apiType,
         price: Number(form.price),
         rent_period: isRent ? "monthly" : null,
         ...(form.area_m2 ? { area_m2: areaUnit === "ha" ? Number(form.area_m2) * 10000 : Number(form.area_m2) } : { area_m2: null }),
@@ -673,15 +679,37 @@ export default function SellScreen({ navigation, route }) {
   }
 
   async function uploadPhotos() {
-    const afterUpload = (promo && promo.active) ? () => setDone(true) : () => setStep(3);
-    if (!photos.length) { afterUpload(); return; }
+    if (!photos.length) return; // ne fait rien si pas de photos (appelé depuis uploadAllAndFinish)
     setUploadBusy(true);
     try {
       await Photos.upload(propertyId, photos);
-      afterUpload();
+    } catch (e) {
+      Alert.alert("Erreur photos", e?.response?.data?.error?.message || e.message);
+      throw e; // propager pour arrêter uploadAllAndFinish
+    } finally { setUploadBusy(false); }
+  }
+
+  async function uploadAllAndFinish() {
+    const advance = (promo && promo.active) ? () => setDone(true) : () => setStep(3);
+    setUploadBusy(true);
+    try {
+      if (photos.length > 0) {
+        await Photos.upload(propertyId, photos);
+      }
+      if (videoAssets.length > 0) {
+        setVideoUploadBusy(true);
+        for (const asset of videoAssets) {
+          await Videos.upload(propertyId, asset);
+        }
+        setVideoUploadBusy(false);
+      }
+      advance();
     } catch (e) {
       Alert.alert("Erreur", e?.response?.data?.error?.message || e.message);
-    } finally { setUploadBusy(false); }
+    } finally {
+      setUploadBusy(false);
+      setVideoUploadBusy(false);
+    }
   }
 
   async function pickVideos() {
@@ -722,19 +750,9 @@ export default function SellScreen({ navigation, route }) {
     }
   }
 
+  // Conservé pour compatibilité mais remplacé par uploadAllAndFinish
   async function uploadVideosAndFinish() {
-    const afterUpload = (promo && promo.active) ? () => setDone(true) : () => setStep(3);
-    setVideoUploadBusy(true);
-    try {
-      for (const asset of videoAssets) {
-        await Videos.upload(propertyId, asset);
-      }
-    } catch (e) {
-      Alert.alert("Erreur vidéo", e?.response?.data?.error?.message || e.message);
-    } finally {
-      setVideoUploadBusy(false);
-      afterUpload();
-    }
+    await uploadAllAndFinish();
   }
 
   // ─── Garde : non connecté ─────────────────────────────────────────────────
@@ -1033,60 +1051,46 @@ export default function SellScreen({ navigation, route }) {
         <View>
 
           {/* ── Section Photos ────────────────────────────────────── */}
-          <View style={{ marginBottom: 6 }}>
-            <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, marginBottom: 4 }}>
-              <Text style={[s.label, { fontSize: 15, fontWeight: "700" }]}>
-                🖼️ {lang === "fr" ? "Photos" : "Photos"}
-              </Text>
-              <Text style={{ fontSize: 12, color: "#888" }}>
+          <View style={s.mediaSection}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
+              <Text style={s.mediaSectionTitle}>🖼️ {lang === "fr" ? "Photos" : "Photos"}</Text>
+              <Text style={s.mediaSectionSub}>
                 {lang === "fr" ? "(optionnel — 10 max · JPG, PNG, WebP)" : "(optional — 10 max · JPG, PNG, WebP)"}
               </Text>
             </View>
             <Text style={s.hint}>{t.photosHint}</Text>
-          </View>
 
-          <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
-            <TouchableOpacity style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]} onPress={pickPhotos}>
-              <Text style={s.photoPickText}>🖼️ {t.addPhotos} ({photos.length}/10)</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]} onPress={takePhoto}>
-              <Text style={s.photoPickText}>📸 {t.takePhoto}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {photos.length > 0 && (
-            <View style={s.photoGrid}>
-              {photos.map((a, i) => (
-                <View key={i} style={s.photoThumb}>
-                  <Image source={{ uri: a.uri }} style={s.thumbImg} />
-                  <TouchableOpacity
-                    style={s.removePhoto}
-                    onPress={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
-                  >
-                    <Text style={{ color: "white", fontSize: 12, fontWeight: "700" }}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
+              <TouchableOpacity style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]} onPress={pickPhotos}>
+                <Text style={s.photoPickText}>🖼️ {t.addPhotos} ({photos.length}/10)</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]} onPress={takePhoto}>
+                <Text style={s.photoPickText}>📸 {t.takePhoto}</Text>
+              </TouchableOpacity>
             </View>
-          )}
 
-          <TouchableOpacity
-            style={[s.btn, uploadBusy && s.btnDisabled]}
-            onPress={uploadPhotos} disabled={uploadBusy}
-          >
-            {uploadBusy
-              ? <ActivityIndicator color="white" />
-              : <Text style={s.btnText}>{t.uploadBtn}</Text>
-            }
-          </TouchableOpacity>
+            {photos.length > 0 && (
+              <View style={s.photoGrid}>
+                {photos.map((a, i) => (
+                  <View key={i} style={s.photoThumb}>
+                    <Image source={{ uri: a.uri }} style={s.thumbImg} />
+                    <TouchableOpacity
+                      style={s.removePhoto}
+                      onPress={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
+                    >
+                      <Text style={{ color: "white", fontSize: 12, fontWeight: "700" }}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
 
           {/* ── Section Vidéos ───────────────────────────────────── */}
-          <View style={{ marginTop: 24, borderTopWidth: 1, borderTopColor: "#e0e0e0", paddingTop: 20 }}>
-            <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, marginBottom: 4 }}>
-              <Text style={[s.label, { fontSize: 15, fontWeight: "700" }]}>
-                🎬 {lang === "fr" ? "Vidéos" : "Videos"}
-              </Text>
-              <Text style={{ fontSize: 12, color: "#888" }}>
+          <View style={[s.mediaSection, { borderTopWidth: 1, borderTopColor: "#e8e8e8", marginTop: 8, paddingTop: 16 }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
+              <Text style={s.mediaSectionTitle}>🎬 {lang === "fr" ? "Vidéos" : "Videos"}</Text>
+              <Text style={s.mediaSectionSub}>
                 {lang === "fr" ? "(optionnel — 3 max · MP4, MOV, WebM)" : "(optional — 3 max · MP4, MOV, WebM)"}
               </Text>
             </View>
@@ -1098,61 +1102,85 @@ export default function SellScreen({ navigation, route }) {
 
             <View style={{ flexDirection: "row", gap: 10 }}>
               <TouchableOpacity
-                style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]}
+                style={[s.photoPickBtn, { flex: 1, marginTop: 0 }, videoAssets.length >= 3 && s.btnPickDisabled]}
                 onPress={pickVideos}
                 disabled={videoAssets.length >= 3}
               >
-                <Text style={s.photoPickText}>
+                <Text style={[s.photoPickText, videoAssets.length >= 3 && { color: "#aaa" }]}>
                   🎞️ {lang === "fr" ? `Galerie (${videoAssets.length}/3)` : `Gallery (${videoAssets.length}/3)`}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[s.photoPickBtn, { flex: 1, marginTop: 0 }]}
+                style={[s.photoPickBtn, { flex: 1, marginTop: 0 }, videoAssets.length >= 3 && s.btnPickDisabled]}
                 onPress={recordVideo}
                 disabled={videoAssets.length >= 3}
               >
-                <Text style={s.photoPickText}>🎥 {lang === "fr" ? "Filmer" : "Record"}</Text>
+                <Text style={[s.photoPickText, videoAssets.length >= 3 && { color: "#aaa" }]}>
+                  🎥 {lang === "fr" ? "Filmer" : "Record"}
+                </Text>
               </TouchableOpacity>
             </View>
 
             {videoAssets.length > 0 && (
               <View style={{ marginTop: 10 }}>
                 {videoAssets.map((a, i) => (
-                  <View key={i} style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+                  <View key={i} style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#f5f5f5", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 6 }}>
                     <Text style={{ flex: 1, fontSize: 13, color: "#555" }} numberOfLines={1}>
                       🎬 {a.uri.split("/").pop()}
                     </Text>
                     <TouchableOpacity
                       onPress={() => setVideoAssets((prev) => prev.filter((_, idx) => idx !== i))}
-                      style={{ paddingHorizontal: 10 }}
+                      style={{ paddingLeft: 12 }}
                     >
-                      <Text style={{ color: "#e53935", fontWeight: "700" }}>✕</Text>
+                      <Text style={{ color: "#e53935", fontWeight: "700", fontSize: 16 }}>✕</Text>
                     </TouchableOpacity>
                   </View>
                 ))}
               </View>
             )}
-
-            {videoAssets.length > 0 && (
-              <TouchableOpacity
-                style={[s.btn, videoUploadBusy && s.btnDisabled, { marginTop: 10 }]}
-                onPress={uploadVideosAndFinish}
-                disabled={videoUploadBusy}
-              >
-                {videoUploadBusy
-                  ? <ActivityIndicator color="white" />
-                  : <Text style={s.btnText}>
-                      {lang === "fr"
-                        ? `Envoyer ${videoAssets.length} vidéo(s) & Terminer`
-                        : `Upload ${videoAssets.length} video(s) & Finish`}
-                    </Text>
-                }
-              </TouchableOpacity>
-            )}
           </View>
 
-          {/* ── Action unifiée ─────────────────────────────────────────── */}
-          <TouchableOpacity style={[s.skipBtn, { marginTop: 20 }]} onPress={() => {
+          {/* ── Résumé sélection ─────────────────────────────────── */}
+          {(photos.length > 0 || videoAssets.length > 0) && (
+            <View style={{ backgroundColor: "#f0faf6", borderRadius: 10, padding: 12, marginTop: 16, flexDirection: "row", gap: 16, justifyContent: "center" }}>
+              {photos.length > 0 && (
+                <Text style={{ color: "#0E7C66", fontWeight: "600", fontSize: 14 }}>
+                  🖼️ {photos.length} {lang === "fr" ? "photo(s)" : "photo(s)"}
+                </Text>
+              )}
+              {videoAssets.length > 0 && (
+                <Text style={{ color: "#0E7C66", fontWeight: "600", fontSize: 14 }}>
+                  🎬 {videoAssets.length} {lang === "fr" ? "vidéo(s)" : "video(s)"}
+                </Text>
+              )}
+            </View>
+          )}
+
+          {/* ── Bouton unique "Envoyer & Continuer" ──────────────── */}
+          <TouchableOpacity
+            style={[s.btn, (uploadBusy || videoUploadBusy) && s.btnDisabled, { marginTop: 20 }]}
+            onPress={uploadAllAndFinish}
+            disabled={uploadBusy || videoUploadBusy}
+          >
+            {(uploadBusy || videoUploadBusy)
+              ? <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+                  <ActivityIndicator color="white" />
+                  <Text style={s.btnText}>
+                    {lang === "fr" ? "Envoi en cours…" : "Uploading…"}
+                  </Text>
+                </View>
+              : <Text style={s.btnText}>
+                  {photos.length === 0 && videoAssets.length === 0
+                    ? (lang === "fr" ? "Continuer sans médias →" : "Continue without media →")
+                    : (lang === "fr"
+                        ? `Envoyer & Continuer (${photos.length + videoAssets.length} fichier${photos.length + videoAssets.length > 1 ? "s" : ""}) →`
+                        : `Upload & Continue (${photos.length + videoAssets.length} file${photos.length + videoAssets.length > 1 ? "s" : ""}) →`)
+                  }
+                </Text>
+            }
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[s.skipBtn, { marginTop: 8 }]} onPress={() => {
             if (promo && promo.active) { setDone(true); } else { setStep(3); }
           }}>
             <Text style={s.skipText}>{t.skipBtn}</Text>
@@ -1377,6 +1405,10 @@ const s = StyleSheet.create({
   // Photos
   photoPickBtn: { marginTop: 8, borderWidth: 2, borderColor: "#0E7C66", borderStyle: "dashed", borderRadius: 10, padding: 16, alignItems: "center" },
   photoPickText: { color: "#0E7C66", fontSize: 15, fontWeight: "600" },
+  btnPickDisabled: { borderColor: "#ccc", opacity: 0.5 },
+  mediaSection: { marginBottom: 4 },
+  mediaSectionTitle: { fontSize: 15, fontWeight: "700", color: "#222" },
+  mediaSectionSub: { fontSize: 12, color: "#888" },
   // GPS
   gpsBox: { borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 10, padding: 12, backgroundColor: "#fafafa", marginBottom: 4 },
   gpsBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: "#0E7C66", borderRadius: 8, padding: 10, marginBottom: 8 },
