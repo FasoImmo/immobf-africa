@@ -327,6 +327,24 @@ function CountryModal({ visible, selected, onSelect, onClose, title }) {
   );
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+/** Formate un montant brut (chiffres uniquement) avec séparateurs de milliers fr-FR.
+ *  Ex: "50000" → "50 000"  |  "" → ""
+ */
+function formatThousands(raw) {
+  if (!raw) return "";
+  const digits = String(raw).replace(/\D/g, "");
+  if (!digits) return "";
+  return Number(digits).toLocaleString("fr-FR");
+}
+
+/** Extrait les chiffres d'une valeur affichée (supprime espaces, points, virgules).
+ *  Ex: "50 000" → "50000"
+ */
+function stripFormatting(displayed) {
+  return displayed.replace(/\D/g, "");
+}
+
 // ─── Composant principal ──────────────────────────────────────────────────────
 export default function SellScreen({ navigation, route }) {
   const { lang } = useLang();
@@ -916,7 +934,8 @@ export default function SellScreen({ navigation, route }) {
           <View style={s.priceRow}>
             <TextInput
               placeholder={t.pricePlaceholder}
-              value={form.price} onChangeText={(v) => setForm({ ...form, price: v })}
+              value={formatThousands(form.price)}
+              onChangeText={(v) => setForm({ ...form, price: stripFormatting(v) })}
               style={[s.input, { flex: 1, marginTop: 0 }]}
               keyboardType="numeric"
             />
