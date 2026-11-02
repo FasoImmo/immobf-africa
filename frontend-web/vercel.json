@@ -24,6 +24,16 @@
       "source": "/home",
       "destination": "/",
       "permanent": true
+    },
+    {
+      "source": "/fr",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/fr/:path*",
+      "destination": "/:path*",
+      "permanent": true
     }
   ],
   "rewrites": [
