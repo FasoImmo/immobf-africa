@@ -3,11 +3,11 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { I18nextProvider } from "react-i18next";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import "../lib/i18n";
-import i18n from "../lib/i18n";
+import { getI18n } from "../lib/i18n";
 import CookieBanner from "../components/CookieBanner";
 
 const SITE_URL = "https://immoafrica.online";
@@ -30,18 +30,29 @@ export default function App({ Component, pageProps }) {
   const localePart = locale === defaultLocale ? "" : `/${locale}`;
   const canonicalUrl = `${SITE_URL}${localePart}${cleanPath === "/" ? "" : cleanPath}`;
 
+  // Langue : la locale de l'URL fait foi (/en → anglais), identique au rendu serveur.
+  // Sur les URL sans préfixe (locale par défaut), la préférence enregistrée est
+  // appliquée après hydratation, comme auparavant.
+  const [lang, setLang] = useState(locale || defaultLocale || "fr");
   useEffect(() => {
-    // Restaurer la langue après hydratation (évite les erreurs React #418/#423/#425)
-    const savedLang = localStorage.getItem("immobf_lang");
-    if (savedLang && savedLang !== i18n.language) {
-      i18n.changeLanguage(savedLang);
+    let next = locale || defaultLocale || "fr";
+    if (locale === defaultLocale) {
+      try {
+        const saved = localStorage.getItem("immobf_lang");
+        if (saved === "fr" || saved === "en") next = saved;
+      } catch (_) {}
     }
+    setLang(next);
+  }, [locale, defaultLocale]);
+
+  useEffect(() => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
   }, []);
 
   return (
+    <I18nextProvider i18n={getI18n(lang)}>
     <ThemeProvider theme={theme}>
       <Head>
         {/* Canonical dynamique — résout les doublons i18n signalés par Google Search Console */}
@@ -51,5 +62,6 @@ export default function App({ Component, pageProps }) {
       <Component {...pageProps} />
       <CookieBanner />
     </ThemeProvider>
+    </I18nextProvider>
   );
 }

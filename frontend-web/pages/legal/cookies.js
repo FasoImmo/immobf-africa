@@ -55,7 +55,7 @@ export default function CookiesPage() {
           </Typography>
         </Box>
         <Typography variant="body2" sx={{ color: "#888", mb: 4, fontStyle: "italic" }}>
-          Version 1.0 — 4 juin 2026 — ImmoBF Africa / immoafrica.online
+          Version 1.1 — 2 novembre 2026 — ImmoBF Africa / immoafrica.online
         </Typography>
 
         <Section title="1. Qu'est-ce qu'un cookie ?">
@@ -66,7 +66,7 @@ export default function CookiesPage() {
         </Section>
 
         <Section title="2. Cookies que nous utilisons">
-          <P>ImmoBF Africa utilise uniquement des cookies <strong>strictement nécessaires</strong> au fonctionnement de la plateforme. Aucun cookie publicitaire, de traçage tiers ou de profilage n'est déposé.</P>
+          <P>ImmoBF Africa utilise des cookies <strong>strictement nécessaires</strong> au fonctionnement de la plateforme et, uniquement si vous l'acceptez, des cookies de <strong>mesure d'audience</strong> (Google Analytics). Aucun cookie publicitaire ni de profilage n'est déposé.</P>
 
           <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden", mt: 2 }}>
             <Box sx={{ px: 2, py: 1.5, backgroundColor: "#f9f9f9", borderBottom: "1px solid #eee" }}>
@@ -99,13 +99,18 @@ export default function CookiesPage() {
                 duration="1 an"
                 required
               />
+              <CookieRow
+                name="_ga, _ga_T60PJGBKF9"
+                purpose="Mesure d'audience (Google Analytics 4) : pages vues, durée de visite. Déposés seulement après acceptation."
+                duration="13 mois"
+              />
             </Box>
           </Paper>
         </Section>
 
         <Section title="3. Cookies tiers">
           <P>
-            Notre plateforme ne charge aucun script publicitaire tiers. Les prestataires de paiement
+            Notre plateforme ne charge aucun script publicitaire tiers. Google Analytics (Google Ireland Ltd) fonctionne en mode « consentement » : sans votre accord, aucun cookie n'est déposé. Les prestataires de paiement
             (FedaPay, Orange Money, Moov Money) peuvent déposer leurs propres cookies lors des redirections
             vers leurs pages de paiement — ces cookies sont régis par leurs politiques respectives.
           </P>
@@ -129,7 +134,7 @@ export default function CookiesPage() {
               }}
               sx={{ backgroundColor: "#1B6B3A", "&:hover": { backgroundColor: "#145530" } }}
             >
-              Accepter les cookies nécessaires
+              Accepter la mesure d'audience
             </Button>
             <Button
               variant="outlined"

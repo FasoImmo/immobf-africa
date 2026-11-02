@@ -20,4 +20,27 @@ if (!i18n.isInitialized) {
     });
 }
 
+// Une instance par langue, choisie à partir de la locale de l'URL (/en → anglais).
+// Le rendu serveur et le premier rendu client utilisent donc la même langue,
+// sans erreur d'hydratation, et /en est réellement servi en anglais.
+const instances = {};
+export function getI18n(lng) {
+  const lang = lng === "en" ? "en" : "fr";
+  if (!instances[lang]) {
+    const inst = i18n.createInstance();
+    inst.use(initReactI18next).init({
+      resources: {
+        fr: { translation: fr },
+        en: { translation: en },
+      },
+      lng: lang,
+      fallbackLng: "fr",
+      interpolation: { escapeValue: false },
+      initImmediate: false, // ressources en mémoire : initialisation synchrone
+    });
+    instances[lang] = inst;
+  }
+  return instances[lang];
+}
+
 export default i18n;

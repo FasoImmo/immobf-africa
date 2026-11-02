@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Box, Button, Grid, Typography, Paper, TextField, MenuItem, Divider, Chip, Alert } from "@mui/material";
+import { Box, Button, Grid, Typography, Paper, TextField, MenuItem, Divider, Chip, Alert, Skeleton } from "@mui/material";
 import AndroidIcon from "@mui/icons-material/Android";
 import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import { useTranslation } from "react-i18next";
@@ -19,14 +19,16 @@ const ldHomeBreadcrumb = {
   ],
 };
 
-export default function Home() {
+export default function Home({ initialItems = null }) {
   const { t } = useTranslation();
   const [q, setQ] = useState("");
   const [country, setCountry] = useState("");
   const [city, setCity] = useState("");
   const [type, setType] = useState("");
   const [txType, setTxType] = useState("");
-  const [items, setItems] = useState([]);
+  // null = chargement en cours ; tableau = annonces reçues (éventuellement vide)
+  const [items, setItems] = useState(initialItems);
+  const [itemsError, setItemsError] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [recentItems, setRecentItems] = useState([]);
   const [suggestContext, setSuggestContext] = useState(null);
@@ -37,8 +39,14 @@ export default function Home() {
   useEffect(() => {
     // Annonces récentes
     Properties.search({ limit: 6 })
-      .then((d) => setItems(d.items || []))
-      .catch(() => setItems([]));
+      .then((d) => { setItems(d.items || []); setItemsError(false); })
+      .catch(() => {
+        // On garde les annonces rendues côté serveur ; erreur affichée seulement s'il n'y a rien.
+        setItems((prev) => {
+          if (!prev || prev.length === 0) setItemsError(true);
+          return prev || [];
+        });
+      });
 
     if (typeof window === "undefined") return;
 
@@ -182,14 +190,23 @@ export default function Home() {
         {suggestions.length > 0 ? t("home.recent_all") : t("browse.title_all")}
       </Typography>
       <Grid container spacing={2}>
-        {items.map((p) => (
+        {items === null && [0, 1, 2, 3, 4, 5].map((i) => (
+          <Grid item xs={12} sm={6} md={4} key={`sk-${i}`}>
+            <Skeleton variant="rectangular" height={180} sx={{ borderRadius: 2 }} />
+            <Skeleton width="80%" sx={{ mt: 1 }} />
+            <Skeleton width="50%" />
+          </Grid>
+        ))}
+        {(items || []).map((p) => (
           <Grid item xs={12} sm={6} md={4} key={p.id}>
             <PropertyCard property={p} />
           </Grid>
         ))}
-        {items.length === 0 && (
+        {items !== null && items.length === 0 && (
           <Grid item xs={12}>
-            <Typography color="text.secondary">{t("home.no_listings")}</Typography>
+            <Typography color="text.secondary">
+              {itemsError ? t("home.listings_error") : t("home.no_listings")}
+            </Typography>
           </Grid>
         )}
       </Grid>
@@ -273,4 +290,27 @@ export default function Home() {
       </Paper>
     </Layout>
   );
+}
+
+// Rendu statique incrémental : les 6 annonces récentes sont présentes dans le HTML
+// (robots, aperçus WhatsApp/Facebook/LinkedIn), puis rafraîchies côté client.
+export async function getStaticProps({ locale }) {
+  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  let initialItems = null;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(
+      `${base}/api/v1/properties?limit=6&lang=${encodeURIComponent(locale || "fr")}`,
+      { signal: ctrl.signal }
+    );
+    clearTimeout(timer);
+    if (res.ok) {
+      const d = await res.json();
+      initialItems = Array.isArray(d.items) ? d.items : [];
+    }
+  } catch (_) {
+    // API injoignable au build : la page s'affiche avec le squelette puis charge côté client.
+  }
+  return { props: { initialItems }, revalidate: 300 };
 }

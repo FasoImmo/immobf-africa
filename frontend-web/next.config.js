@@ -69,8 +69,8 @@ const nextConfig = {
           {
             key: "Permissions-Policy",
             value: [
-              "camera=()",
-              "microphone=()",
+              "camera=(self)",        // enregistrement vidéo de l'annonce (pages/sell.js, getUserMedia)
+              "microphone=(self)",    // son de la vidéo d'annonce
               "geolocation=(self)",   // autorisé pour la carte
               "payment=()",
               "usb=()",

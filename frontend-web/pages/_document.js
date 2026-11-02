@@ -67,9 +67,11 @@ const ldAgent = {
   ],
 };
 
-export default function Document() {
+export default function Document(props) {
+  const locale = props.locale || props.__NEXT_DATA__?.locale || "fr";
+  const isEn = locale === "en";
   return (
-    <Html lang="fr">
+    <Html lang={isEn ? "en" : "fr"}>
       <Head>
         {/* ── PWA ─────────────────────────────────────────────────────────── */}
         <link rel="manifest" href="/manifest.json" />
@@ -112,8 +114,8 @@ export default function Document() {
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content="ImmoBF Africa — Plateforme immobilière africaine" />
         <meta property="og:url" content={SITE_URL} />
-        <meta property="og:locale" content="fr_FR" />
-        <meta property="og:locale:alternate" content="en_US" />
+        <meta property="og:locale" content={isEn ? "en_US" : "fr_FR"} />
+        <meta property="og:locale:alternate" content={isEn ? "fr_FR" : "en_US"} />
 
         {/* ── Twitter / X Card ────────────────────────────────────────────── */}
         <meta name="twitter:card" content="summary_large_image" />
@@ -129,6 +131,22 @@ export default function Document() {
             __html: `
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
+              window.gtag = gtag;
+              // Consent Mode v2 : aucun cookie _ga tant que le visiteur n'a pas cliqué « Accepter ».
+              gtag('consent', 'default', {
+                analytics_storage: 'denied',
+                ad_storage: 'denied',
+                ad_user_data: 'denied',
+                ad_personalization: 'denied',
+                wait_for_update: 500
+              });
+              function immobfApplyConsent(){
+                var c = null;
+                try { c = localStorage.getItem('immobf_cookie_consent'); } catch (e) {}
+                gtag('consent', 'update', { analytics_storage: c === 'accepted' ? 'granted' : 'denied' });
+              }
+              immobfApplyConsent();
+              window.addEventListener('cookie_consent_update', immobfApplyConsent);
               gtag('js', new Date());
               gtag('config', 'G-T60PJGBKF9', { page_path: window.location.pathname });
             `,

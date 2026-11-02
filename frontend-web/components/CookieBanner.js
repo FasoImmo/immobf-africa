@@ -33,6 +33,8 @@ export default function CookieBanner() {
     localStorage.setItem(CONSENT_KEY, value);
     localStorage.setItem(CONSENT_EXPIRY_KEY, String(Date.now()));
     setVisible(false);
+    // Informe Google Analytics (Consent Mode, voir _document.js)
+    window.dispatchEvent(new Event("cookie_consent_update"));
   };
 
   const accept = () => saveConsent("accepted");

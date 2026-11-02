@@ -64,11 +64,11 @@ export default function Layout({ children, title = "ImmoBF Africa" }) {
   }
 
   function changeLang(lang) {
-    i18n.changeLanguage(lang);
     if (typeof window !== "undefined") {
-      localStorage.setItem("immobf_lang", lang);
-      window.location.reload();
+      try { localStorage.setItem("immobf_lang", lang); } catch (_) {}
     }
+    // Bascule vers l'URL de la langue choisie (/ ou /en/...), sans rechargement complet
+    router.push(router.asPath, router.asPath, { locale: lang });
   }
 
   // ─── Tiroir mobile ────────────────────────────────────────────────────────

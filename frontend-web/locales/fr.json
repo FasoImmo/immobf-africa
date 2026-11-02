@@ -260,7 +260,7 @@
     "back_to_login": "Retour à la connexion"
   },
   "cookie": {
-    "banner_text": "ImmoBF Africa utilise des cookies strictement nécessaires à son fonctionnement (session, langue). Aucun cookie publicitaire n'est déposé.",
+    "banner_text": "ImmoBF Africa utilise des cookies nécessaires à son fonctionnement (session, langue) et, si vous l'acceptez, des cookies de mesure d'audience (Google Analytics). Aucun cookie publicitaire n'est déposé.",
     "learn_more": "En savoir plus",
     "accept": "Accepter",
     "refuse": "Refuser"
@@ -269,8 +269,9 @@
     "based_on": "Basé sur vos recherches",
     "recent_all": "Toutes les annonces récentes",
     "no_listings": "Aucune annonce pour l'instant.",
+    "listings_error": "Impossible de charger les annonces pour le moment. Réessayez dans quelques instants.",
     "app_title": "Téléchargez l'application ImmoBF Africa",
-    "app_desc": "Consultez les annonces, payez en mobile money — même hors connexion. Disponible sur Android.",
+    "app_desc": "Consultez les annonces, payez en mobile money — même hors connexion. Disponible sur Android et iPhone.",
     "app_download": "Télécharger l'APK",
     "nl_title": "📬 Restez informé",
     "nl_subtitle": "Recevez en avant-première les nouvelles annonces et tendances du marché immobilier africain.",
