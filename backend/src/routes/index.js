@@ -37,8 +37,8 @@ router.get("/health", (_req, res) => {
   res.json({ ok: true, ts: Date.now() });
 });
 
-// Diagnostic IP sortante Railway (pour whitelist CinetPay) — à supprimer après config
-router.get("/ip-check", asyncHandler(async (_req, res) => {
+// Diagnostic IP sortante Railway (pour whitelist CinetPay), réservé aux admins.
+router.get("/ip-check", requireAuth, requireRole("admin"), asyncHandler(async (_req, res) => {
   const r = await fetch("https://api.ipify.org?format=json");
   const data = await r.json();
   res.json({ outbound_ip: data.ip, ts: Date.now() });
@@ -109,11 +109,9 @@ router.get   ("/admin/properties",          requireAdmin, asyncHandler(adminCtl.
 router.delete("/admin/properties/:id",      requireAdmin, asyncHandler(adminCtl.deleteProperty));
 router.get  ("/admin/revenues",             requireAdmin, asyncHandler(adminCtl.listRevenues));
 router.get  ("/admin/users/:id/stats",      requireAdmin, asyncHandler(adminCtl.userStats));
-// sendNewsletter et saveNewsletterDraft : acceptent requireAdmin OU X-Draft-Secret
-// (envoi automatisé hebdomadaire par la tâche planifiée Cowork + script local).
-// ⚠️ Le secret suffit à déclencher un envoi de masse à tous les abonnés (jusqu'à 500,
-// filtrable par pays) sans authentification admin ni relecture humaine — décision
-// acceptée le 2026-07-27 pour permettre l'automatisation bout-en-bout de la newsletter.
+// saveNewsletterDraft accepte requireAdmin OU X-Draft-Secret (la tâche planifiée prépare
+// le brouillon). L'envoi de masse exige un compte admin : relecture humaine obligatoire
+// (décision du 2026-11-02, remplace celle du 2026-07-27).
 function requireAdminOrDraftSecret(req, res, next) {
   const secret = process.env.NEWSLETTER_DRAFT_SECRET;
   if (secret && req.headers["x-draft-secret"] === secret) return next();
@@ -122,7 +120,7 @@ function requireAdminOrDraftSecret(req, res, next) {
     requireRole("admin")(req, res, next);
   });
 }
-router.post ("/admin/newsletter",           requireAdminOrDraftSecret, asyncHandler(adminCtl.sendNewsletter));
+router.post ("/admin/newsletter",           requireAdmin, asyncHandler(adminCtl.sendNewsletter));
 router.get  ("/admin/newsletter/draft",     requireAdmin, asyncHandler(adminCtl.getNewsletterDraft));
 router.post ("/admin/newsletter/draft",     requireAdminOrDraftSecret, asyncHandler(adminCtl.saveNewsletterDraft));
 router.get  ("/admin/payment-stats",          requireAdmin, asyncHandler(adminCtl.paymentStats));
