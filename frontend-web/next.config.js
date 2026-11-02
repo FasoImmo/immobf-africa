@@ -91,10 +91,9 @@ const nextConfig = {
       },
     ];
   },
-  // Les redirections /fr et /fr/:path* → /:path* sont dans vercel.json.
-  // Déclarées ici avec locale: false, elles bouclaient en auto-hébergement
-  // (next start, Docker) : Next.js préfixe en interne la locale par défaut,
-  // donc /sell était vu comme /fr/sell et redirigé vers /sell, à l'infini.
+  // Pas de redirection /fr → / : avec i18n, Next.js (et Vercel) préfixent en interne
+  // la locale par défaut, donc une règle /fr/:path* → /:path* boucle (308 vers la
+  // même URL). Les doublons /fr/* sont traités par la balise canonical (_app.js).
   async rewrites() {
     // Forward /api/* to the backend API (avoids CORS in browser).
     const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
