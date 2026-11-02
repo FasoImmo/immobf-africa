@@ -58,3 +58,6 @@ reports/
 # Facebook publisher
 .env.facebook
 facebook-posted-ids.json
+
+# Binaires et copies locales (APK/AAB), ne pas versionner ni déployer
+frontend-web/public/downloads/
