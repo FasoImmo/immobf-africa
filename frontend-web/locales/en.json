@@ -360,14 +360,14 @@
       "art8_p1": "These Terms are governed by Burkina Faso law, supplemented by OHADA uniform acts. Any dispute shall be submitted to the competent courts of Ouagadougou, Burkina Faso. Contact:"
     },
     "privacy": {
-      "version": "Version 1.0 — May 12, 2026 — Compliant with GDPR principles and UEMOA/BCEAO regulations",
+      "version": "Version 1.1 — November 3, 2026 — Compliant with GDPR principles and UEMOA/BCEAO regulations",
       "art9_title": "Article 9 — Data controller",
       "art9_p1": "The data controller is ImmoBF Africa. Contact:",
       "art10_title": "Article 10 — Data collected",
       "art10_li1": "Identification data: name, phone number, email.",
       "art10_li2": "Preferences and interactions: saved listings, saved searches, reviews, messages exchanged.",
       "art10_li3": "Transaction data: amounts, references, logs (retained 10 years — BCEAO obligation).",
-      "art10_li4": "Navigation data: IP addresses, technical cookies, access logs.",
+      "art10_li4": "Navigation data: IP addresses, technical cookies, access logs and, if you consent, visit statistics (Google Analytics).",
       "art10_li5": "Published content: listings, photos, property descriptions.",
       "art11_title": "Article 11 — Processing purposes",
       "art11_li1": "Providing the property matching service.",
@@ -387,7 +387,7 @@
       "art14_title": "Article 14 — Security",
       "art14_p1": "We implement appropriate technical measures: password encryption (Argon2), HTTPS/TLS connections, time-limited authentication tokens, access logging.",
       "art15_title": "Article 15 — Cookies",
-      "art15_p1": "The platform uses only strictly necessary technical cookies. No advertising or third-party tracking cookies are placed without your prior consent."
+      "art15_p1": "The platform uses technical cookies that are strictly necessary for it to work. With your consent, given through the cookie banner, it also uses audience measurement cookies (Google Analytics, provided by Google Ireland Ltd) to understand which pages are viewed and improve the service. Without your consent, none of these cookies are placed. No advertising cookies are used. You can change your choice at any time from the Cookie Policy page."
     },
     "disclaimer": {
       "version": "Version 1.0 — May 12, 2026",

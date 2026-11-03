@@ -360,14 +360,14 @@
       "art8_p1": "Les présentes CGU sont soumises au droit burkinabé, complété par les textes OHADA. Tout litige sera soumis aux juridictions compétentes de Ouagadougou, Burkina Faso. Contact :"
     },
     "privacy": {
-      "version": "Version 1.0 — 12 mai 2026 — Conforme aux principes RGPD et à la réglementation UEMOA/BCEAO",
+      "version": "Version 1.1 — 3 novembre 2026 — Conforme aux principes RGPD et à la réglementation UEMOA/BCEAO",
       "art9_title": "Article 9 — Responsable du traitement",
       "art9_p1": "Le responsable du traitement est ImmoBF Africa. Contact :",
       "art10_title": "Article 10 — Données collectées",
       "art10_li1": "Données d'identification : nom, téléphone, e-mail.",
       "art10_li2": "Préférences et interactions : annonces favorites, recherches sauvegardées, avis, messages échangés.",
       "art10_li3": "Données de transaction : montants, références, logs (conservés 10 ans — obligation BCEAO).",
-      "art10_li4": "Données de navigation : adresses IP, cookies techniques, logs d'accès.",
+      "art10_li4": "Données de navigation : adresses IP, cookies techniques, logs d'accès et, si vous l'acceptez, statistiques de visite (Google Analytics).",
       "art10_li5": "Contenu publié : annonces, photos, descriptions de biens.",
       "art11_title": "Article 11 — Finalités du traitement",
       "art11_li1": "Fourniture du service de mise en relation immobilière.",
@@ -387,7 +387,7 @@
       "art14_title": "Article 14 — Sécurité",
       "art14_p1": "Nous mettons en œuvre des mesures techniques adaptées : chiffrement des mots de passe (Argon2), connexions HTTPS/TLS, jetons d'authentification à durée limitée, journalisation des accès.",
       "art15_title": "Article 15 — Cookies",
-      "art15_p1": "La plateforme utilise uniquement des cookies techniques strictement nécessaires à son fonctionnement. Aucun cookie publicitaire ou de traçage tiers n'est déposé sans votre consentement préalable."
+      "art15_p1": "La plateforme utilise des cookies techniques strictement nécessaires à son fonctionnement. Avec votre accord, donné via le bandeau cookies, elle utilise aussi des cookies de mesure d'audience (Google Analytics, fourni par Google Ireland Ltd) pour connaître les pages consultées et améliorer le service. Sans votre accord, aucun de ces cookies n'est déposé. Aucun cookie publicitaire n'est utilisé. Vous pouvez modifier votre choix à tout moment depuis la page Politique cookies."
     },
     "disclaimer": {
       "version": "Version 1.0 — 12 mai 2026",

@@ -6,6 +6,9 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   output: "standalone",
+  // Le dépôt contient un package-lock.json vide à la racine : sans cette ligne,
+  // Next.js prend la racine du dépôt pour celle du projet (avertissement au build).
+  outputFileTracingRoot: __dirname,
   transpilePackages: ["react-leaflet", "@react-leaflet/core", "leaflet"],
   images: {
     remotePatterns: [{ protocol: "https", hostname: "**" }],

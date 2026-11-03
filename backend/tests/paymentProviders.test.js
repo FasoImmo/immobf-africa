@@ -48,16 +48,44 @@ describe("OrangeMoneyProvider stub initiate", () => {
 });
 
 describe("CinetPayProvider parseWebhook", () => {
-  test("mappe cpm_result=00 -> succeeded", () => {
+  // API 1.0 « Aurore » : le webhook n'est qu'un signal. Le statut n'est jamais lu
+  // dans le payload ; parseWebhook() le revérifie via checkStatus() (GET statut).
+  test("revérifie le statut via checkStatus et renvoie le statut canonique", async () => {
     const p = registry.get("cinetpay");
-    // CinetPay renvoie notre reference dans cpm_trans_id (pas cpm_custom)
-    const parsed = p.parseWebhook({
-      cpm_trans_id: "REF2", cpm_custom: "meta", cpm_result: "00",
-      cpm_amount: 5000, cpm_currency: "XOF",
+    const spy = jest.spyOn(p, "checkStatus").mockResolvedValue({
+      reference: "REF2", status: "succeeded", external_id: "CP-123", raw: { ok: true },
     });
-    expect(parsed.status).toBe("succeeded");
+    const parsed = await p.parseWebhook({ merchant_transaction_id: "REF2", status: "FAILED" });
+    expect(spy).toHaveBeenCalledWith("REF2");
+    expect(parsed.status).toBe("succeeded"); // le statut du payload est ignoré
     expect(parsed.reference).toBe("REF2");
-    expect(parsed.amount).toBe(5000);
+    expect(parsed.external_id).toBe("CP-123");
+    spy.mockRestore();
+  });
+
+  test("accepte merchant_transaction_id imbriqué dans data", async () => {
+    const p = registry.get("cinetpay");
+    const spy = jest.spyOn(p, "checkStatus").mockResolvedValue({ reference: "REF3", status: "pending", raw: {} });
+    const parsed = await p.parseWebhook({ data: { merchant_transaction_id: "REF3" } });
+    expect(spy).toHaveBeenCalledWith("REF3");
+    expect(parsed.reference).toBe("REF3");
+    spy.mockRestore();
+  });
+
+  test("payload sans merchant_transaction_id -> pending sans référence", async () => {
+    const p = registry.get("cinetpay");
+    const parsed = await p.parseWebhook({ cpm_trans_id: "REF2", cpm_result: "00" });
+    expect(parsed.reference).toBeNull();
+    expect(parsed.status).toBe("pending");
+  });
+
+  test("échec de la revérification -> pending (repris par la réconciliation)", async () => {
+    const p = registry.get("cinetpay");
+    const spy = jest.spyOn(p, "checkStatus").mockRejectedValue(new Error("network down"));
+    const parsed = await p.parseWebhook({ merchant_transaction_id: "REF4" });
+    expect(parsed.reference).toBe("REF4");
+    expect(parsed.status).toBe("pending");
+    spy.mockRestore();
   });
 });
 
