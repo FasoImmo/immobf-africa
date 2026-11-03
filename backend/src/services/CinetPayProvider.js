@@ -12,7 +12,7 @@
  * Variables d'environnement :
  *   CINETPAY_API_KEY      — clé API (panneau Ressources > API & sécurité > "API Key")
  *   CINETPAY_API_PASSWORD — mot de passe API (à créer dans le panneau > "Définir un mot de passe API")
- *   CINETPAY_NOTIFY_URL   — URL du webhook (ex: https://api.immoafrica.online/api/webhooks/cinetpay)
+ *   CINETPAY_NOTIFY_URL   — URL du webhook (ex: https://immobf-africa-production.up.railway.app/api/v1/payments/webhooks/cinetpay)
  *   CINETPAY_BASE_URL     — URL de base de l'API (défaut: https://api.cinetpay.co pour production)
  *                           Sandbox : https://api.cinetpay.net
  *
@@ -131,10 +131,11 @@ class CinetPayProvider extends PaymentProvider {
     const lastName  = (spaceIdx > 0 ? fullName.substring(spaceIdx + 1) : "ImmoBF").substring(0, 255);
 
     // ── URLs de retour (max 120 chars selon doc) ──────────────────────────
-    const siteBase       = process.env.NEXT_PUBLIC_SITE_URL || "https://www.immoafrica.online";
-    const successUrl     = `${siteBase}/payment/success?ref=${payment.reference}`.substring(0, 120);
-    const failedUrl      = `${siteBase}/payment/cancel?ref=${payment.reference}`.substring(0, 120);
-    const notifyEndpoint = (notifyUrl || `${siteBase}/api/webhooks/cinetpay`).substring(0, 120);
+    // Même page de retour que les autres prestataires (/payment/success et
+    // /payment/cancel n'existent pas sur le site). Webhook : route réelle du backend.
+    const successUrl     = `${config.webUrl}/payment/callback?ref=${payment.reference}`.substring(0, 120);
+    const failedUrl      = `${config.webUrl}/payment/callback?ref=${payment.reference}&status=cancelled`.substring(0, 120);
+    const notifyEndpoint = (notifyUrl || `${config.appUrl}/api/v1/payments/webhooks/cinetpay`).substring(0, 120);
 
     const payload = {
       currency:                payment.currency || "XOF",

@@ -134,7 +134,7 @@ class BarkaPayProvider extends PaymentProvider {
 
     const callbackUrl =
       config.providers.barkapay.notifyUrl ||
-      `${config.appUrl}/api/payments/webhooks/barkapay`;
+      `${config.appUrl}/api/v1/payments/webhooks/barkapay`;
 
     // FormData encodé en application/x-www-form-urlencoded (multipart/form-data
     // aussi accepté ; URLSearchParams = plus simple côté Node)

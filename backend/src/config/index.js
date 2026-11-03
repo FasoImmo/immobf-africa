@@ -28,7 +28,7 @@ module.exports = {
   env: process.env.NODE_ENV || "development",
   port: parseInt(process.env.PORT || "4000", 10),
   logLevel: process.env.LOG_LEVEL || "info",
-  appUrl: process.env.APP_URL || "http://localhost:4000",
+  appUrl: process.env.APP_URL || process.env.PUBLIC_API_URL || "http://localhost:4000",
   // Railway définit cette variable sous le nom PUBLIC_WEB_URL (pas WEB_URL).
   // On garde WEB_URL en repli pour compatibilité avec d'autres environnements,
   // puis localhost en dernier recours pour le dev local.
